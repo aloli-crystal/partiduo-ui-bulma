@@ -1,0 +1,37 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Connexion (ADR-002) : la clé d'accès (passkey) d'abord, le mot de passe ensuite. #}{% extend "ui/auth/base.html" %}
+{% block title %}{% translate "ui.login.title" %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate "ui.login.title" %}</h1>
+<p class="pd-muted mb-4">{% translate "ui.login.subtitle" host: company %}</p>
+
+{% include "ui/_base_errors.html" %}
+
+<section class="pd-auth-block" aria-labelledby="pd-passkey-title">
+  <h2 id="pd-passkey-title" class="pd-auth-subtitle">{% include "ui/_icon.html" with name="key-round" %}<span>{% translate "ui.login.passkey_title" %}</span></h2>
+  <p class="pd-muted">{% translate "ui.login.passkey_help" %}</p>
+  <button type="button" class="button is-primary is-fullwidth pd-touch" data-passkey="login"
+          data-options-url="{% url 'login_passkey_options' %}" data-submit-url="{% url 'login_passkey' %}"
+          data-next="{{ next }}" data-status="pd-passkey-status">{% include "ui/_icon.html" with name="key-round" %}<span>{% translate "ui.login.passkey_button" %}</span></button>
+  <p class="help pd-passkey-status" id="pd-passkey-status" role="status" aria-live="polite" data-unsupported="{% translate 'ui.passkey.unsupported' %}" data-failed="{% translate 'ui.passkey.failed' %}" data-waiting="{% translate 'ui.passkey.waiting' %}"></p>
+</section>
+
+<p class="pd-or"><span>{% translate "ui.login.or" %}</span></p>
+
+<form method="post" action="{% url 'login' %}" class="pd-auth-block" novalidate aria-labelledby="pd-password-title">
+  {% csrf_input %}
+  <input type="hidden" name="next" value="{{ next }}">
+  <h2 id="pd-password-title" class="pd-auth-subtitle">{% include "ui/_icon.html" with name="lock" %}<span>{% translate "ui.login.password_title" %}</span></h2>
+  <div class="field">
+    <label class="label" for="pd-email">{% translate "ui.login.email" %}</label>
+    <div class="control"><input class="input" id="pd-email" name="email" type="email" value="{{ email }}" autocomplete="username webauthn" required autocapitalize="none" spellcheck="false"{% if errors.base %} aria-describedby="pd-form-errors"{% endif %}></div>
+  </div>
+  <div class="field">
+    <label class="label" for="pd-password">{% translate "ui.login.password" %}</label>
+    <div class="control"><input class="input" id="pd-password" name="password" type="password" autocomplete="current-password" required></div>
+  </div>
+  <div class="field pd-form-actions">
+    <button class="button is-link pd-touch" type="submit">{% include "ui/_icon.html" with name="log-in" %}<span>{% translate "ui.login.submit" %}</span></button>
+    <a href="{% url 'password_forgotten' %}">{% translate "ui.login.forgotten" %}</a>
+  </div>
+</form>
+{% endblock content %}

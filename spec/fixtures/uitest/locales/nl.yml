@@ -1,0 +1,11 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+nl:
+  uitest:
+    module:
+      name: "Testextensie"
+    menu:
+      uitest_home: "Testpagina"
+    permissions:
+      page:
+        view: "De testpagina bekijken"
+        edit: "De testpagina wijzigen"

@@ -1,0 +1,1 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Erreurs d'un champ (variable messages), reliées au champ par aria-describedby (variable id). #}{% if messages %}<ul class="help is-danger pd-field-errors" id="{{ id }}">{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>{% endif %}

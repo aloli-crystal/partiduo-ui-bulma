@@ -1,0 +1,8 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Erreurs d'ensemble d'un formulaire (errors.base), temporisation et blocage (throttling). #}{% if errors.base %}<div class="notification is-danger is-light pd-alert" role="alert" id="pd-form-errors">
+  {% if throttling.throttled %}{% include "ui/_icon.html" with name="clock" %}{% elsif throttling.locked %}{% include "ui/_icon.html" with name="lock" %}{% else %}{% include "ui/_icon.html" with name="triangle-alert" %}{% endif %}
+  <div>
+    {% for message in errors.base %}<p>{{ message }}</p>{% endfor %}
+    {% if throttling.throttled %}<p class="pd-muted">{% translate "ui.login.throttled_help" %}</p>{% endif %}
+    {% if throttling.locked %}<p><a href="{% url 'unlock_request' %}">{% translate "ui.unlock.request_link" %}</a></p>{% endif %}
+  </div>
+</div>{% endif %}

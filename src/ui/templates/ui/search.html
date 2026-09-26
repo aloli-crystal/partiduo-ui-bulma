@@ -1,0 +1,11 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Recherche globale (comptes, fiches, pièces) : le contrat ne l'expose pas encore. #}{% extend "ui/base.html" %}
+{% block title %}{% translate "ui.search.title" %}{% endblock title %}
+{% block heading %}{% translate "ui.search.title" %}{% endblock heading %}
+{% block content %}
+<section class="pd-panel">
+  <div class="pd-body">
+    {% if q %}<p>{% translate "ui.search.query" q: q %}</p>{% endif %}
+    <p class="pd-muted" role="status">{% translate "ui.search.unavailable" %}</p>
+  </div>
+</section>
+{% endblock content %}

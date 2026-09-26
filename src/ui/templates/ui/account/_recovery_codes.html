@@ -1,0 +1,11 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Codes de récupération, affichés une seule fois (ADR-002 D7). #}<section class="pd-codes" aria-labelledby="pd-codes-title">
+  <h2 id="pd-codes-title" class="pd-auth-subtitle" tabindex="-1">{% translate "ui.codes.title" %}</h2>
+  <div class="notification is-warning is-light" role="alert">{% translate "ui.codes.once" %}</div>
+  <p>{% translate "ui.codes.help" %}</p>
+  <ol class="pd-code-list">{% for code in codes %}<li><code>{{ code }}</code></li>{% endfor %}</ol>
+  <div class="buttons">
+    <a class="button pd-touch" download="partiduo-recovery-codes.txt" href="{{ codes_href }}">{% include "ui/_icon.html" with name="download" %}<span>{% translate "ui.codes.download" %}</span></a>
+    <button class="button pd-touch" type="button" data-pd-print>{% include "ui/_icon.html" with name="printer" %}<span>{% translate "ui.codes.print" %}</span></button>
+    <a class="button is-primary pd-touch" href="{{ continue_url }}">{% translate "ui.codes.continue" %}</a>
+  </div>
+</section>

@@ -59,11 +59,13 @@ module ApiBoundary
   end
 
   # Fichiers Crystal sous les chemins donnés (répertoires parcourus
-  # récursivement, `lib/` exclu).
+  # récursivement, `lib/` exclu, ainsi que `spec/fixtures/`, qui simule le
+  # dépôt d'une extension : celle-ci déclare son manifeste par
+  # `Partiduo::Modules.register`).
   def self.files(paths : Enumerable(String)) : Array(String)
     paths.flat_map do |path|
       if File.directory?(path)
-        Dir.glob(File.join(path, "**", "*.cr")).reject(&.includes?("/lib/"))
+        Dir.glob(File.join(path, "**", "*.cr")).reject { |file| file.includes?("/lib/") || file.matches?(%r{(\A|/)spec/fixtures/}) }
       elsif File.file?(path) && path.ends_with?(".cr")
         [path]
       else

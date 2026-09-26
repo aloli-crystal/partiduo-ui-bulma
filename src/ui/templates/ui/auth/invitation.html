@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Lien d'invitation : confirmation explicite avant d'ouvrir la session d'enrôlement. #}{% extend "ui/auth/base.html" %}
+{% block title %}{% translate "ui.invitation.title" %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate "ui.invitation.title" %}</h1>
+{% include "ui/_base_errors.html" %}
+{% if errors.base %}
+<p><a href="{% url 'login' %}">{% translate "ui.invitation.to_login" %}</a></p>
+{% else %}
+<p class="mb-4">{% translate "ui.invitation.intro" %}</p>
+<form method="post">
+  {% csrf_input %}
+  <button class="button is-primary pd-touch" type="submit">{% translate "ui.invitation.accept" %}</button>
+</form>
+{% endif %}
+{% endblock content %}

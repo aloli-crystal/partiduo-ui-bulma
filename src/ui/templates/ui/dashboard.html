@@ -1,0 +1,35 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Tableau de bord : assemblera les tuiles de chaque module actif (ADR-005 D5) ; en attendant, modules actifs et sécurité du compte. #}{% extend "ui/base.html" %}
+{% block title %}{% translate "core.menu.dashboard" %}{% endblock title %}
+{% block heading %}{% translate "core.menu.dashboard" %}{% endblock heading %}
+{% block content %}
+{% if suggest_passkey %}
+<div class="notification is-info is-light pd-callout" role="status">
+  {% include "ui/_icon.html" with name="key-round" %}
+  <div><p>{% translate "ui.dashboard.passkey_hint" %}</p><p><a href="{% url 'account_security' %}">{% translate "ui.security.title" %}</a></p></div>
+</div>
+{% endif %}
+<div class="pd-grid2">
+  <section class="pd-panel" aria-labelledby="pd-modules-title">
+    <header><h2 id="pd-modules-title">{% translate "ui.dashboard.modules_title" %}</h2></header>
+    <div class="pd-body">
+      {% if modules %}
+      <ul class="pd-module-list">{% for item in modules %}<li><span>{% translate item.name_key %}</span>{% if item.extension %} <span class="pd-ext pd-ext-light">{{ item.code }}</span>{% endif %}</li>{% endfor %}</ul>
+      {% else %}
+      <p class="pd-muted">{% translate "ui.dashboard.socle_only" %}</p>
+      {% endif %}
+      <p class="pd-muted mt-3">{% translate "ui.dashboard.tiles_later" %}</p>
+    </div>
+  </section>
+  <section class="pd-panel" aria-labelledby="pd-account-title">
+    <header><h2 id="pd-account-title">{% translate "ui.security.title" %}</h2></header>
+    <div class="pd-body">
+      {% if missing %}
+      <ul class="pd-missing">{% for key in missing %}<li>{% include "ui/_icon.html" with name="triangle-alert" %}<span>{% translate key %}</span></li>{% endfor %}</ul>
+      {% else %}
+      <p>{% include "ui/_icon.html" with name="shield-check" %} {% translate "ui.dashboard.secure" %}</p>
+      {% endif %}
+      <p class="mt-3"><a class="button pd-touch" href="{% url 'account_security' %}">{% translate "ui.security.title" %}</a></p>
+    </div>
+  </section>
+</div>
+{% endblock content %}

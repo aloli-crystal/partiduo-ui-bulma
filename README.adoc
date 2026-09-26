@@ -58,7 +58,7 @@ scripts/                 # opal-build, icon_sprite.cr, api_boundary.cr, CI
 SKIP_MARTEN_CLI_PRECOMPILATION=1 shards install
 createdb --encoding=UTF8 partiduo_dev
 crystal run manage.cr -- migrate
-crystal run src/server.cr          # http://127.0.0.1:8000/
+crystal run src/server.cr          # http://demo.partiduo.localhost:8000/
 ----
 
 `PORT` change le port ; `DATABASE_URL` (par défaut
@@ -78,11 +78,94 @@ createdb --encoding=UTF8 partiduo_test_ui
 DATABASE_URL="postgres:///partiduo_test_ui?host=/tmp" crystal spec
 ----
 
-Les specs couvrent la page d'accueil, le service des fichiers statiques, le
-garde-fou d'interface, les conventions (SPDX, traductions, icônes) et Opal.
+Les specs couvrent la coquille (barre supérieure, menu des modules actifs,
+langues), les écrans d'authentification (connexion par passkey ou mot de passe
++ TOTP, enrôlement, sécurité du compte, codes de récupération, temporisation et
+blocage), le contrôle d'accès des extensions, l'accessibilité automatisable, le
+service des fichiers statiques, le garde-fou d'interface, les conventions
+(SPDX, traductions, icônes) et Opal. Les comptes de test sont créés par le
+contrat (`spec/support/accounts.cr`) ; les passkeys sont simulées par un
+authentificateur ES256 (`spec/support/authenticator.cr`) ; l'extension
+factice `UITEST` (`spec/fixtures/uitest/`) sert au contrôle d'accès.
 Les specs qui *exécutent* le JavaScript compilé utilisent un moteur autonome
 (JavaScriptCore, présent sur macOS ; `PARTIDUO_JS_ENGINE` pour en indiquer un
 autre) ; elles sont en attente s'il n'y en a pas.
+
+== Écran
+
+Coquille de la maquette de référence (ADR-005 D5), gabarit `ui/base.html` :
+
+* *barre supérieure* : dossier (`Api::Core.settings`), exercice et période
+  courants (en attente du contrat du lot 1), recherche globale (`/`),
+  langue (fr, en, nl), menu du compte (sécurité, à propos, déconnexion) ;
+* *menu latéral* : `Api::Modules.menu(acteur)` — rubriques du socle dans
+  l'ordre de l'ADR-005, seuls les modules actifs et les entrées permises, puis
+  les extensions (badge de leur code). Un nom de route du manifeste
+  (`accounting:chart`) que l'interface ne fournit pas encore donne une entrée
+  désactivée ;
+* *contenu* : fil d'Ariane, titre, actions (blocs `crumbs`, `heading`,
+  `actions`, `content`).
+
+Trois tailles : ordinateur (≥ 1280 px), tablette (menu repliable, choix
+mémorisé), téléphone (< 768 px : barre non figée sur trois lignes, menu fermé,
+colonnes secondaires masquées par `pd-hide-s`). Cibles tactiles de 44 px,
+focus visible, lien d'évitement, propriétés CSS logiques.
+
+== Authentification (ADR-002)
+
+[cols="2,3",options="header"]
+|===
+|Route |Écran
+
+|`/login` |Connexion : passkey d'abord, puis mot de passe ; temporisation et blocage affichés
+|`/login/second-factor` |Code de l'application d'authentification ou code de récupération
+|`/invitation/<jeton>` |Confirmation de l'invitation, puis session d'enrôlement
+|`/account/enrollment` |Enrôlement : passkey proposée d'abord, mot de passe en repli
+|`/account/security` |Sécurité du compte : niveaux, ce qui manque, élévation, passkeys, TOTP, codes, mot de passe
+|`/account/totp` |Enrôlement TOTP : QR code et secret base32, confirmation par HTMX
+|`/account/passkey-prompt` |Invitation à enrôler une passkey après une connexion par mot de passe
+|`/password/forgotten`, `/password/reset/<jeton>` |Remise à zéro par courriel
+|`/unlock`, `/unlock/<jeton>` |Déblocage par courriel
+|===
+
+Le jeton de session du cœur est gardé dans le cookie `partiduo_session`
+(`HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS) ; chaque requête le
+convertit en acteur par `Api::Auth.actor`. Les passkeys passent par
+`src/ui/assets/ui/js/passkey.js` (WebAuthn, octets en base64url) : aucune règle
+n'y est codée.
+
+== Extensions (ADR-003 D3, ADR-005 D4)
+
+Le dossier `ui/bulma/` d'une extension déclare ses routes et les monte :
+
+[source,crystal]
+----
+module Skel::Ui
+  ROUTES = Marten::Routing::Map.draw do
+    path "/", Skel::Ui::IndexHandler, name: "index"   # route du menu : skel:index
+    path "/edit", Skel::Ui::EditHandler, name: "edit"
+  end
+end
+
+PartiduoUi::Extensions.mount "SKEL", Skel::Ui::ROUTES,
+  permissions: {"edit" => "skel.page.edit"}          # ou permission: pour toutes
+----
+
+Les routes sont servies sous `/ext/SKEL/` et nommées `skel:<nom>`, comme dans
+le manifeste. Toute requête passe d'abord par `PartiduoUi::ExtensionHandler` :
+non connecté → connexion ; extension inconnue ou inactive → 404 ; session sous
+le niveau exigé → sécurité du compte ; permission donnée au montage (déclarée
+par le manifeste de l'extension), à défaut celle de l'entrée de menu du
+manifeste qui porte la route ; sinon 403. L'extension n'a aucun contrôle à
+écrire. Ses gabarits étendent `ui/base.html`.
+
+== JavaScript
+
+HTMX, les paquets Opal, et deux scripts de liaison au navigateur écrits à la
+main, sans compilation ni logique métier (DECISIONS D-UI-005) :
+`shell.js` (repli du menu, raccourci `/`, choix de langue) et `passkey.js`
+(WebAuthn). Toutes les pages restent utilisables sans JavaScript, sauf la
+passkey, qui l'exige par nature.
 
 == Opal
 
@@ -98,7 +181,7 @@ rapprochement). Tout passage d'un écran en Opal est consigné dans DECISIONS.
 * *Compilation* : gem `opal` (version verrouillée par `Gemfile.lock`), sans
   npm ni Node. Le JavaScript produit, `src/ui/assets/ui/js/opal/<écran>.js`,
   est *versionné* et servi par Marten comme HTMX.
-* *Exemple* : `opal/demo.rb`, compteur de clics de la page d'accueil.
+* *Exemple* : `opal/demo.rb`, compteur de clics de la page « À propos ».
 
 Recompiler après toute modification de `opal/` :
 

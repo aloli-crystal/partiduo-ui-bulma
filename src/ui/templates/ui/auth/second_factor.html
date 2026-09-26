@@ -1,0 +1,43 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Second facteur après le mot de passe : code de l'application d'authentification ou code de récupération. #}{% extend "ui/auth/base.html" %}
+{% block title %}{% translate "ui.second_factor.title" %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate "ui.second_factor.title" %}</h1>
+
+{% include "ui/_base_errors.html" %}
+
+{% if totp %}
+<form method="post" action="{% url 'login_second_factor' %}" class="pd-auth-block" novalidate>
+  {% csrf_input %}
+  <input type="hidden" name="kind" value="totp">
+  <input type="hidden" name="next" value="{{ next }}">
+  <input type="hidden" name="factors" value="{{ factors }}">
+  <div class="field">
+    <label class="label" for="pd-totp-code">{% include "ui/_icon.html" with name="smartphone" %} {% translate "ui.second_factor.totp_label" %}</label>
+    <p class="help mb-2" id="pd-totp-help">{% translate "ui.second_factor.totp_help" %}</p>
+    <div class="control"><input class="input pd-code" id="pd-totp-code" name="code" type="text" inputmode="numeric" pattern="[0-9 ]*" maxlength="7" autocomplete="one-time-code" required{% if kind == "totp" %} autofocus{% endif %} aria-describedby="pd-totp-help{% if errors.code %} pd-totp-errors{% endif %}"{% if errors.code %} aria-invalid="true"{% endif %}></div>
+    {% if kind == "totp" %}{% include "ui/_errors.html" with messages=errors.code, id="pd-totp-errors" %}{% endif %}
+  </div>
+  <button class="button is-link pd-touch" type="submit">{% translate "ui.second_factor.submit" %}</button>
+</form>
+{% endif %}
+
+{% if recovery %}
+<details class="pd-auth-block"{% if kind == "recovery_code" %} open{% endif %}{% if not totp %} open{% endif %}>
+  <summary>{% translate "ui.second_factor.recovery_toggle" %}</summary>
+  <form method="post" action="{% url 'login_second_factor' %}" novalidate class="mt-3">
+    {% csrf_input %}
+    <input type="hidden" name="kind" value="recovery_code">
+    <input type="hidden" name="next" value="{{ next }}">
+    <input type="hidden" name="factors" value="{{ factors }}">
+    <div class="field">
+      <label class="label" for="pd-recovery-code">{% translate "ui.second_factor.recovery_label" %}</label>
+      <div class="control"><input class="input pd-code" id="pd-recovery-code" name="code" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" required{% if kind == "recovery_code" %} autofocus aria-describedby="pd-recovery-errors"{% endif %}></div>
+      {% if kind == "recovery_code" %}{% include "ui/_errors.html" with messages=errors.code, id="pd-recovery-errors" %}{% endif %}
+    </div>
+    <button class="button pd-touch" type="submit">{% translate "ui.second_factor.submit" %}</button>
+  </form>
+</details>
+{% endif %}
+
+<p class="mt-4"><a href="{% url 'login' %}">{% translate "ui.second_factor.restart" %}</a></p>
+{% endblock content %}

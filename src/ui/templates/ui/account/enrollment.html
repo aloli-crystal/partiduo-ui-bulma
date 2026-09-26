@@ -1,0 +1,30 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Enrôlement ouvert par une invitation (ADR-002 D6) : la clé d'accès (passkey) est proposée d'abord, le mot de passe en repli. #}{% extend "ui/auth/base.html" %}
+{% block title %}{% translate "ui.enrollment.title" %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate "ui.enrollment.title" %}</h1>
+<p class="pd-muted mb-4">{% translate "ui.enrollment.intro" name: user.name, email: user.email %}</p>
+
+<section class="pd-auth-block pd-recommended" aria-labelledby="pd-enroll-passkey">
+  <h2 id="pd-enroll-passkey" class="pd-auth-subtitle">{% include "ui/_icon.html" with name="key-round" %}<span>{% translate "ui.enrollment.passkey_title" %}</span> <span class="tag is-success is-light">{% translate "ui.enrollment.recommended" %}</span></h2>
+  <p>{% translate "ui.enrollment.passkey_help" %}</p>
+  <div class="field mt-3">
+    <label class="label" for="pd-passkey-name">{% translate "ui.security.passkey_name" %}</label>
+    <div class="control"><input class="input" id="pd-passkey-name" type="text" maxlength="100" autocomplete="off" placeholder="{% translate 'ui.security.passkey_name_placeholder' %}"></div>
+  </div>
+  <button type="button" class="button is-primary is-fullwidth pd-touch" data-passkey="register" data-name-input="pd-passkey-name"
+          data-options-url="{% url 'account_passkey_options' %}" data-submit-url="{% url 'account_passkeys' %}"
+          data-status="pd-passkey-status">{% include "ui/_icon.html" with name="key-round" %}<span>{% translate "ui.enrollment.passkey_button" %}</span></button>
+  <p class="help pd-passkey-status" id="pd-passkey-status" role="status" aria-live="polite" data-unsupported="{% translate 'ui.passkey.unsupported' %}" data-failed="{% translate 'ui.passkey.failed' %}" data-waiting="{% translate 'ui.passkey.waiting' %}"></p>
+</section>
+
+<details class="pd-auth-block"{% if failed %} open{% endif %}>
+  <summary>{% translate "ui.enrollment.password_toggle" %}</summary>
+  <p class="pd-muted mt-2">{% translate "ui.enrollment.password_help" %}</p>
+  {% include "ui/_base_errors.html" %}
+  <form method="post" action="{% url 'account_enrollment' %}" novalidate class="mt-3">
+    {% csrf_input %}
+    {% include "ui/account/_new_password.html" %}
+    <button class="button pd-touch" type="submit">{% translate "ui.password.save" %}</button>
+  </form>
+</details>
+{% endblock content %}

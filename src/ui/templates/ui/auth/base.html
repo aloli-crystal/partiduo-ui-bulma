@@ -1,0 +1,29 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Mise en page des écrans d'authentification : carte centrée, sans menu. #}<!DOCTYPE html>
+<html lang="{{ locale }}">
+  <head>
+{% include "ui/_head.html" %}
+    <title>{% block title %}Partiduo{% endblock title %} · Partiduo</title>
+    <script src="{% asset 'ui/js/passkey.js' %}" defer></script>
+  </head>
+  <body class="pd-auth-body" hx-headers='{"X-CSRF-Token": "{% csrf_token %}"}'>
+    <a class="pd-skip" href="#pd-main">{% translate "ui.shell.skip" %}</a>
+    <header class="pd-auth-top">
+      <span class="pd-brand"><b>Partiduo</b><small>{% translate "ui.shell.tagline" %}</small></span>
+      <form class="pd-lang" method="post" action="{% url 'language' %}">
+        {% csrf_input %}
+        <input type="hidden" name="next" value="{{ ui_path }}">
+        <label class="is-sr-only" for="pd-lang">{% translate "ui.shell.language" %}</label>
+        <div class="select"><select id="pd-lang" name="locale" data-pd-autosubmit>
+          {% for code in available_locales %}<option value="{{ code }}" lang="{{ code }}"{% if code == locale %} selected{% endif %}>{{ code|upcase }}</option>{% endfor %}
+        </select></div>
+        <button class="button pd-nojs" type="submit">{% translate "ui.shell.apply" %}</button>
+      </form>
+    </header>
+    <main class="pd-auth" id="pd-main" tabindex="-1">
+      <div class="pd-auth-card" id="pd-content">
+        {% include "ui/_messages.html" %}
+        {% block content %}{% endblock content %}
+      </div>
+    </main>
+  </body>
+</html>

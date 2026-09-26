@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Page des codes de récupération (après l'activation du TOTP ou leur régénération). #}{% extend "ui/base.html" %}
+{% block title %}{% translate "ui.codes.title" %}{% endblock title %}
+{% block crumbs %}<li><a href="{% url 'account_security' %}">{% translate "ui.security.title" %}</a></li>{% endblock crumbs %}
+{% block heading %}{% translate "ui.codes.title" %}{% endblock heading %}
+{% block content %}
+<div class="pd-panel"><div class="pd-body">{% include "ui/account/_recovery_codes.html" %}</div></div>
+{% endblock content %}

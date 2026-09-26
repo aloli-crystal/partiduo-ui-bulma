@@ -1,0 +1,27 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Invitation à enrôler une clé d'accès après une connexion par mot de passe (ADR-002 D6) : refusable, rappelée. #}{% extend "ui/base.html" %}
+{% block title %}{% translate "ui.prompt.title" %}{% endblock title %}
+{% block scripts %}<script src="{% asset 'ui/js/passkey.js' %}" defer></script>{% endblock scripts %}
+{% block heading %}{% translate "ui.prompt.title" %}{% endblock heading %}
+{% block content %}
+<div class="pd-panel">
+  <div class="pd-body content">
+    <p>{% translate "ui.prompt.intro" %}</p>
+    <ul>
+      <li>{% translate "ui.prompt.benefit_phishing" %}</li>
+      <li>{% translate "ui.prompt.benefit_gesture" %}</li>
+      <li>{% translate "ui.prompt.benefit_secret" %}</li>
+    </ul>
+    <div class="buttons">
+      <button type="button" class="button is-primary pd-touch" data-passkey="register"
+              data-options-url="{% url 'account_passkey_options' %}" data-submit-url="{% url 'account_passkeys' %}"
+              data-status="pd-passkey-status">{% include "ui/_icon.html" with name="key-round" %}<span>{% translate "ui.enrollment.passkey_button" %}</span></button>
+      <form method="post" action="{% url 'account_passkey_prompt' %}">
+        {% csrf_input %}
+        <input type="hidden" name="next" value="{{ next }}">
+        <button class="button pd-touch" type="submit">{% translate "ui.prompt.later" %}</button>
+      </form>
+    </div>
+    <p class="help pd-passkey-status" id="pd-passkey-status" role="status" aria-live="polite" data-unsupported="{% translate 'ui.passkey.unsupported' %}" data-failed="{% translate 'ui.passkey.failed' %}" data-waiting="{% translate 'ui.passkey.waiting' %}"></p>
+  </div>
+</div>
+{% endblock content %}

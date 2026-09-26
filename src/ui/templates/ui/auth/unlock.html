@@ -1,0 +1,14 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Déblocage du compte par lien reçu par courriel. #}{% extend "ui/auth/base.html" %}
+{% block title %}{% translate "ui.unlock.title" %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% translate "ui.unlock.title" %}</h1>
+{% include "ui/_base_errors.html" %}
+{% if not errors.base %}
+<p class="mb-4">{% translate "ui.unlock.confirm_intro" %}</p>
+<form method="post">
+  {% csrf_input %}
+  <button class="button is-primary pd-touch" type="submit">{% translate "ui.unlock.confirm" %}</button>
+</form>
+{% endif %}
+<p class="mt-4"><a href="{% url 'login' %}">{% translate "ui.invitation.to_login" %}</a></p>
+{% endblock content %}

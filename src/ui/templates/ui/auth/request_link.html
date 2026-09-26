@@ -1,0 +1,17 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Demande d'un lien par courriel : remise à zéro du mot de passe (kind password_reset) ou déblocage (kind unlock). #}{% extend "ui/auth/base.html" %}
+{% block title %}{% if kind == "unlock" %}{% translate "ui.unlock.title" %}{% else %}{% translate "ui.password.forgotten_title" %}{% endif %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% if kind == "unlock" %}{% translate "ui.unlock.title" %}{% else %}{% translate "ui.password.forgotten_title" %}{% endif %}</h1>
+<p class="mb-4">{% if kind == "unlock" %}{% translate "ui.unlock.intro" %}{% else %}{% translate "ui.password.forgotten_intro" %}{% endif %}</p>
+<form method="post" novalidate>
+  {% csrf_input %}
+  <div class="field">
+    <label class="label" for="pd-email">{% translate "ui.login.email" %}</label>
+    <div class="control"><input class="input" id="pd-email" name="email" type="email" value="{{ email }}" autocomplete="username" required autocapitalize="none" spellcheck="false"></div>
+  </div>
+  <div class="field pd-form-actions">
+    <button class="button is-primary pd-touch" type="submit">{% translate "ui.link.send" %}</button>
+    <a href="{% url 'login' %}">{% translate "ui.second_factor.restart" %}</a>
+  </div>
+</form>
+{% endblock content %}

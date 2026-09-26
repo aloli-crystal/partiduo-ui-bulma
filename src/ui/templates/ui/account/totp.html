@@ -1,0 +1,40 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Enrôlement de l'application d'authentification (ADR-002) : QR code et secret base32, sans recommander aucune application. #}{% extend "ui/base.html" %}
+{% block title %}{% translate "ui.totp.title" %}{% endblock title %}
+{% block crumbs %}<li><a href="{% url 'account_security' %}">{% translate "ui.security.title" %}</a></li>{% endblock crumbs %}
+{% block heading %}{% translate "ui.totp.title" %}{% endblock heading %}
+{% block content %}
+<div class="pd-panel">
+  <div class="pd-body pd-totp">
+    <ol class="pd-steps">
+      <li>
+        <h2>{% translate "ui.totp.step_app" %}</h2>
+        <p>{% translate "ui.totp.step_app_help" %}</p>
+      </li>
+      <li>
+        <h2>{% translate "ui.totp.step_scan" %}</h2>
+        <div class="pd-totp-grid">
+          <figure class="pd-qr-box">{{ qr }}</figure>
+          <div>
+            <p>{% translate "ui.totp.manual" %}</p>
+            <p class="pd-secret" aria-label="{% translate 'ui.totp.secret_label' %}"><code>{{ secret }}</code></p>
+            <dl class="pd-dl">
+              <dt>{% translate "ui.totp.issuer" %}</dt><dd>{{ issuer }}</dd>
+              <dt>{% translate "ui.totp.account" %}</dt><dd>{{ account }}</dd>
+              <dt>{% translate "ui.totp.type" %}</dt><dd>{% translate "ui.totp.type_value" digits: digits, period: period %}</dd>
+            </dl>
+          </div>
+        </div>
+      </li>
+      <li>
+        <h2><label for="pd-totp-code">{% translate "ui.totp.step_confirm" %}</label></h2>
+        <form method="post" action="{% url 'account_totp' %}" hx-post="{% url 'account_totp' %}" hx-target="#pd-totp-feedback" hx-swap="outerHTML" novalidate class="pd-inline-form">
+          {% csrf_input %}
+          <input class="input pd-code" id="pd-totp-code" name="code" type="text" inputmode="numeric" pattern="[0-9 ]*" maxlength="7" autocomplete="one-time-code" required aria-describedby="pd-totp-feedback">
+          <button class="button is-primary pd-touch" type="submit">{% translate "ui.totp.activate" %}</button>
+        </form>
+        {% include "ui/account/_totp_feedback.html" %}
+      </li>
+    </ol>
+  </div>
+</div>
+{% endblock content %}

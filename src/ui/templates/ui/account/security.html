@@ -1,0 +1,160 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Page « sécurité du compte » (ADR-002 D6, D7) : niveau atteint, niveau exigé, ce qu'il manque pour monter, méthodes enrôlées, élévation de la session. #}{% extend "ui/base.html" %}
+{% block title %}{% translate "ui.security.title" %}{% endblock title %}
+{% block scripts %}<script src="{% asset 'ui/js/passkey.js' %}" defer></script>{% endblock scripts %}
+{% block heading %}{% translate "ui.security.title" %}{% endblock heading %}
+{% block content %}
+{% include "ui/_base_errors.html" %}
+
+<section class="pd-panel" aria-labelledby="pd-level-title">
+  <header><h2 id="pd-level-title">{% translate "ui.security.level_title" %}</h2></header>
+  <div class="pd-body">
+    <p>{% translate "ui.security.level_summary" session: security_session_level, required: security_required_level, achievable: security_achievable_level %}</p>
+    <ol class="pd-levels">
+      {% for step in levels %}
+      <li class="pd-level{% if step.reached %} is-reached{% endif %}{% if step.required %} is-required{% endif %}">
+        <span class="pd-level-num" aria-hidden="true">{{ step.level }}</span>
+        <span>
+          <strong>{% translate step.key %}</strong>
+          <small>{% if step.reached %}{% translate "ui.security.level_reached" %}{% elsif step.possible %}{% translate "ui.security.level_possible" %}{% else %}{% translate "ui.security.level_missing" %}{% endif %}{% if step.required %} · {% translate "ui.security.level_required" %}{% endif %}</small>
+        </span>
+      </li>
+      {% endfor %}
+    </ol>
+    {% if missing %}
+    <h3 class="pd-subhead">{% translate "ui.security.missing_title" %}</h3>
+    <ul class="pd-missing">{% for key in missing %}<li>{% include "ui/_icon.html" with name="triangle-alert" %}<span>{% translate key %}</span></li>{% endfor %}</ul>
+    {% endif %}
+  </div>
+</section>
+
+{% if security_elevation %}
+<section class="pd-panel pd-elevate" aria-labelledby="pd-elevate-title">
+  <header><h2 id="pd-elevate-title">{% translate "ui.security.elevate_title" %}</h2></header>
+  <div class="pd-body">
+    <p class="mb-3">{% translate "ui.security.elevate_help" required: security_required_level %}</p>
+    {% if security_has_passkey %}
+    <button type="button" class="button is-primary pd-touch" data-passkey="elevate"
+            data-options-url="{% url 'account_elevate_passkey_options' %}" data-submit-url="{% url 'account_elevate_passkey' %}"
+            data-status="pd-elevate-status">{% include "ui/_icon.html" with name="key-round" %}<span>{% translate "ui.security.elevate_passkey" %}</span></button>
+    <p class="help pd-passkey-status" id="pd-elevate-status" role="status" aria-live="polite" data-unsupported="{% translate 'ui.passkey.unsupported' %}" data-failed="{% translate 'ui.passkey.failed' %}" data-waiting="{% translate 'ui.passkey.waiting' %}"></p>
+    {% endif %}
+    {% if security_has_totp %}
+    <form method="post" action="{% url 'account_elevate_totp' %}" class="pd-inline-form mt-3" novalidate>
+      {% csrf_input %}
+      <label class="label" for="pd-elevate-code">{% translate "ui.second_factor.totp_label" %}</label>
+      <input class="input pd-code" id="pd-elevate-code" name="code" type="text" inputmode="numeric" pattern="[0-9 ]*" maxlength="7" autocomplete="one-time-code" required{% if errors.code %} aria-invalid="true" aria-describedby="pd-elevate-errors"{% endif %}>
+      <button class="button pd-touch" type="submit">{% translate "ui.security.elevate_totp" %}</button>
+    </form>
+    {% include "ui/_errors.html" with messages=errors.code, id="pd-elevate-errors" %}
+    {% endif %}
+    {% if not security_has_passkey %}{% if not security_has_totp %}<p>{% translate "ui.security.elevate_enroll" %}</p>{% endif %}{% endif %}
+  </div>
+</section>
+{% endif %}
+
+<section class="pd-panel" aria-labelledby="pd-passkeys-title">
+  <header>
+    <h2 id="pd-passkeys-title">{% include "ui/_icon.html" with name="key-round" %} {% translate "ui.security.passkeys_title" %}</h2>
+  </header>
+  <div class="pd-body">
+    <p class="pd-muted mb-3">{% translate "ui.security.passkeys_help" %}</p>
+    {% if passkeys %}
+    <table class="table is-fullwidth pd-table">
+      <caption class="is-sr-only">{% translate "ui.security.passkeys_title" %}</caption>
+      <thead><tr><th scope="col">{% translate "ui.security.passkey_name" %}</th><th scope="col" class="pd-hide-s">{% translate "ui.security.passkey_created" %}</th><th scope="col" class="pd-hide-s">{% translate "ui.security.passkey_used" %}</th><th scope="col"><span class="is-sr-only">{% translate "ui.security.actions" %}</span></th></tr></thead>
+      <tbody>
+      {% for passkey in passkeys %}
+        <tr>
+          <td>
+            <form method="post" action="{% url 'account_passkey_rename' id: passkey.id %}" class="pd-inline-form">
+              {% csrf_input %}
+              <label class="is-sr-only" for="pd-passkey-{{ passkey.id }}">{% translate "ui.security.passkey_name" %}</label>
+              <input class="input" id="pd-passkey-{{ passkey.id }}" name="name" value="{{ passkey.name }}" maxlength="100">
+              <button class="button pd-touch" type="submit">{% translate "ui.security.rename" %}</button>
+            </form>
+            {% if passkey.synced %}<small class="pd-muted">{% translate "ui.security.passkey_synced" %}</small>{% endif %}
+          </td>
+          <td class="pd-hide-s pd-mono">{{ passkey.created_at }}</td>
+          <td class="pd-hide-s pd-mono">{{ passkey.last_used_at|default:"—" }}</td>
+          <td>
+            {% if security_sensitive %}
+            <form method="post" action="{% url 'account_passkey_remove' id: passkey.id %}">
+              {% csrf_input %}
+              <button class="button is-danger is-light pd-touch" type="submit">{% include "ui/_icon.html" with name="x" %}<span>{% translate "ui.security.remove" %}</span></button>
+            </form>
+            {% endif %}
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+    {% if not security_sensitive %}<p class="help">{% translate "ui.security.sensitive_help" %}</p>{% endif %}
+    {% else %}
+    <p>{% translate "ui.security.no_passkey" %}</p>
+    {% endif %}
+    <div class="field is-grouped is-grouped-multiline mt-3">
+      <div class="control">
+        <label class="is-sr-only" for="pd-new-passkey-name">{% translate "ui.security.passkey_name" %}</label>
+        <input class="input" id="pd-new-passkey-name" type="text" maxlength="100" autocomplete="off" placeholder="{% translate 'ui.security.passkey_name_placeholder' %}">
+      </div>
+      <div class="control">
+        <button type="button" class="button is-primary pd-touch" data-passkey="register" data-name-input="pd-new-passkey-name"
+                data-options-url="{% url 'account_passkey_options' %}" data-submit-url="{% url 'account_passkeys' %}"
+                data-status="pd-register-status">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "ui.security.add_passkey" %}</span></button>
+      </div>
+    </div>
+    <p class="help pd-passkey-status" id="pd-register-status" role="status" aria-live="polite" data-unsupported="{% translate 'ui.passkey.unsupported' %}" data-failed="{% translate 'ui.passkey.failed' %}" data-waiting="{% translate 'ui.passkey.waiting' %}"></p>
+  </div>
+</section>
+
+<section class="pd-panel" aria-labelledby="pd-totp-title">
+  <header><h2 id="pd-totp-title">{% include "ui/_icon.html" with name="smartphone" %} {% translate "ui.totp.section_title" %}</h2></header>
+  <div class="pd-body">
+    {% if security_has_totp %}
+    <p class="mb-3"><span class="tag is-success is-light">{% translate "ui.totp.active" %}</span></p>
+    {% if security_sensitive %}
+    <form method="post" action="{% url 'account_totp_disable' %}" class="pd-inline-form" novalidate>
+      {% csrf_input %}
+      <label class="label" for="pd-disable-code">{% translate "ui.totp.disable_label" %}</label>
+      <input class="input pd-code" id="pd-disable-code" name="code" type="text" inputmode="numeric" pattern="[0-9 ]*" maxlength="7" autocomplete="one-time-code" required>
+      <button class="button is-danger is-light pd-touch" type="submit">{% translate "ui.totp.disable" %}</button>
+    </form>
+    {% else %}<p class="help">{% translate "ui.security.sensitive_help" %}</p>{% endif %}
+    {% else %}
+    <p class="mb-3">{% translate "ui.totp.intro" %}</p>
+    <a class="button is-link pd-touch" href="{% url 'account_totp' %}">{% translate "ui.totp.enable" %}</a>
+    {% endif %}
+  </div>
+</section>
+
+<section class="pd-panel" aria-labelledby="pd-codes-section">
+  <header><h2 id="pd-codes-section">{% translate "ui.codes.title" %}</h2></header>
+  <div class="pd-body">
+    <p class="mb-3">{% translate "ui.codes.remaining" count: security_codes_remaining %}</p>
+    {% if security_sensitive %}
+    <form method="post" action="{% url 'account_recovery_codes' %}">
+      {% csrf_input %}
+      <button class="button pd-touch" type="submit">{% translate "ui.codes.regenerate" %}</button>
+    </form>
+    {% else %}<p class="help">{% translate "ui.security.sensitive_help" %}</p>{% endif %}
+  </div>
+</section>
+
+<section class="pd-panel" aria-labelledby="pd-password-section">
+  <header><h2 id="pd-password-section">{% include "ui/_icon.html" with name="lock" %} {% if security_has_password %}{% translate "ui.password.change_title" %}{% else %}{% translate "ui.password.set_title" %}{% endif %}</h2></header>
+  <div class="pd-body">
+    <form method="post" action="{% url 'account_password' %}" novalidate class="pd-narrow">
+      {% csrf_input %}
+      {% if security_has_password %}
+      <div class="field">
+        <label class="label" for="pd-current-password">{% translate "ui.password.current" %}</label>
+        <div class="control"><input class="input" id="pd-current-password" name="current_password" type="password" autocomplete="current-password" required{% if errors.current_password %} aria-invalid="true" aria-describedby="pd-current-errors"{% endif %}></div>
+        {% include "ui/_errors.html" with messages=errors.current_password, id="pd-current-errors" %}
+      </div>
+      {% endif %}
+      {% include "ui/account/_new_password.html" %}
+      <button class="button is-link pd-touch" type="submit">{% translate "ui.password.save" %}</button>
+    </form>
+  </div>
+</section>
+{% endblock content %}

@@ -1,32 +1,76 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later #}<!DOCTYPE html>
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Coquille de l'écran (maquette de référence, ADR-005 D5) : barre supérieure, menu latéral des modules actifs puis des extensions, zone de contenu (titre, fil d'Ariane, actions). #}<!DOCTYPE html>
 <html lang="{{ locale }}">
   <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Partiduo{% endblock %}</title>
-    <link rel="stylesheet" href="{% asset 'ui/css/fonts.css' %}">
-    <link rel="stylesheet" href="{% asset 'ui/css/bulma.min.css' %}">
-    <link rel="stylesheet" href="{% asset 'ui/css/theme.css' %}">
-    <link rel="stylesheet" href="{% asset 'ui/css/app.css' %}">
-    <script src="{% asset 'ui/js/htmx.min.js' %}" defer></script>
+{% include "ui/_head.html" %}
+    <title>{% block title %}Partiduo{% endblock title %} · {{ shell.company_name|default:"Partiduo" }}</title>
     {% block scripts %}{% endblock scripts %}
   </head>
-  <body>
-    <div class="pd-app">
+  <body hx-headers='{"X-CSRF-Token": "{% csrf_token %}"}'>
+    <a class="pd-skip" href="#pd-main">{% translate "ui.shell.skip" %}</a>
+    <div class="pd-app" id="pd-app">
       <header class="pd-top">
-        <button class="button is-small pd-burger" type="button" onclick="this.setAttribute('aria-expanded', document.getElementById('pd-side').classList.toggle('is-open'))" aria-controls="pd-side" aria-expanded="false" aria-label="{% translate 'ui.shell.menu' %}">{% include "ui/_icon.html" with name="menu" %}</button>
-        <div class="pd-brand"><b>Partiduo</b><small>{% translate 'ui.shell.tagline' %}</small></div>
-        <div class="pd-grow"></div>
+        <button class="button pd-burger" type="button" data-pd-menu-toggle aria-controls="pd-side" aria-expanded="true" aria-label="{% translate 'ui.shell.menu' %}">{% include "ui/_icon.html" with name="menu" %}</button>
+        <a class="pd-brand" href="{% url 'core:dashboard' %}"><b>Partiduo</b><small>{% translate "ui.shell.tagline" %}</small></a>
+        <div class="pd-dossier">
+          <strong>{{ shell.company_name|default:"—" }}</strong>
+          {% if shell.company_detail %}<span>{{ shell.company_detail }}</span>{% endif %}
+        </div>
+        <div class="pd-period" role="group" aria-label="{% translate 'ui.shell.period_group' %}">
+          <div>
+            <span class="pd-period-label">{% translate "ui.shell.fiscal_year" %}</span>
+            <span class="pd-period-value">{% if shell.fiscal_year %}{{ shell.fiscal_year }}{% else %}{% translate "ui.shell.no_fiscal_year" %}{% endif %}</span>
+          </div>
+          <div>
+            <span class="pd-period-label">{% translate "ui.shell.period" %}</span>
+            <span class="pd-period-value">{% if shell.period %}{{ shell.period }}{% else %}—{% endif %}</span>
+          </div>
+        </div>
+        <form class="pd-grow pd-search" role="search" action="{% url 'search' %}" method="get">
+          <label class="is-sr-only" for="pd-search">{% translate "ui.shell.search_label" %}</label>
+          <input class="input" id="pd-search" name="q" type="search" placeholder="{% translate 'ui.shell.search_placeholder' %}" autocomplete="off" data-pd-search>
+        </form>
+        <form class="pd-lang" method="post" action="{% url 'language' %}">
+          {% csrf_input %}
+          <input type="hidden" name="next" value="{{ shell.current_path }}">
+          <label class="is-sr-only" for="pd-lang">{% translate "ui.shell.language" %}</label>
+          <div class="select"><select id="pd-lang" name="locale" data-pd-autosubmit>
+            {% for code in shell.locales %}<option value="{{ code }}" lang="{{ code }}"{% if code == shell.locale %} selected{% endif %}>{{ code|upcase }}</option>{% endfor %}
+          </select></div>
+          <button class="button pd-nojs" type="submit">{% translate "ui.shell.apply" %}</button>
+        </form>
+        <details class="pd-user">
+          <summary><span class="pd-avatar" aria-hidden="true">{{ shell.user_initials }}</span><span class="pd-user-name">{{ shell.user_name|default:shell.user_email }} · {% translate shell.user_role_key %}</span><span class="is-sr-only">{% translate "ui.shell.user_menu" %}</span></summary>
+          <ul class="pd-user-menu">
+            <li><a href="{% url 'account_security' %}">{% include "ui/_icon.html" with name="shield-check" %}<span>{% translate "ui.security.title" %}</span></a></li>
+            <li><a href="{% url 'about' %}">{% include "ui/_icon.html" with name="circle-help" %}<span>{% translate "ui.about.title" %}</span></a></li>
+            <li><form method="post" action="{% url 'logout' %}">{% csrf_input %}<button type="submit">{% include "ui/_icon.html" with name="log-out" %}<span>{% translate "ui.login.logout" %}</span></button></form></li>
+          </ul>
+        </details>
       </header>
 
       <nav class="pd-side menu" id="pd-side" aria-label="{% translate 'ui.shell.navigation' %}">
-        <ul class="menu-list">
-          <li><a href="{% url 'home' %}" class="is-active" aria-current="page">{% include "ui/_icon.html" with name="layout-dashboard" %}<span>{% translate 'ui.home.title' %}</span></a></li>
+        {% for section in shell.sections %}
+        {% if section.label_key %}<p class="menu-label" id="pd-menu-{{ section.code }}">{% translate section.label_key %}</p>{% endif %}
+        <ul class="menu-list"{% if section.label_key %} aria-labelledby="pd-menu-{{ section.code }}"{% endif %}>
+          {% for item in section.items %}
+          <li>{% if item.disabled %}<span class="pd-menu-off" aria-disabled="true"><span>{% translate item.label_key %}<span class="is-sr-only"> ({% translate "ui.shell.unavailable" %})</span></span>{% if item.badge %}<span class="pd-ext">{{ item.badge }}</span>{% endif %}</span>{% else %}<a href="{{ item.url }}"{% if item.active %} class="is-active" aria-current="page"{% endif %}><span>{% translate item.label_key %}</span>{% if item.badge %}<span class="pd-ext">{{ item.badge }}</span>{% endif %}</a>{% endif %}</li>
+          {% endfor %}
         </ul>
+        {% endfor %}
       </nav>
 
-      <main class="pd-main" id="pd-main">
-        {% block content %}{% endblock content %}
+      <main class="pd-main" id="pd-main" tabindex="-1">
+        {% include "ui/_messages.html" %}
+        <div id="pd-content">
+          <div class="pd-head">
+            <div>
+              <nav class="pd-crumb" aria-label="{% translate 'ui.shell.breadcrumb' %}"><ol>{% block crumbs %}<li>{{ shell.company_name|default:"Partiduo" }}</li>{% endblock crumbs %}</ol></nav>
+              <h1>{% block heading %}{% endblock heading %}</h1>
+            </div>
+            <div class="buttons pd-actions">{% block actions %}{% endblock actions %}</div>
+          </div>
+          {% block content %}{% endblock content %}
+        </div>
       </main>
     </div>
   </body>

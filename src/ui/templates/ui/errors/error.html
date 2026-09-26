@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Page d'erreur (401, 403, 404) rendue hors des handlers, notamment par le contrôle d'accès des extensions. #}{% extend "ui/auth/base.html" %}
+{% block title %}{% if status == 404 %}{% translate "ui.errors.not_found_title" %}{% elsif status == 401 %}{% translate "ui.errors.unauthorized_title" %}{% else %}{% translate "ui.errors.forbidden_title" %}{% endif %}{% endblock title %}
+{% block content %}
+<h1 class="pd-auth-title">{% if status == 404 %}{% translate "ui.errors.not_found_title" %}{% elsif status == 401 %}{% translate "ui.errors.unauthorized_title" %}{% else %}{% translate "ui.errors.forbidden_title" %}{% endif %}</h1>
+<p>{% if status == 404 %}{% translate "ui.errors.not_found" %}{% elsif status == 401 %}{% translate "ui.errors.unauthorized" %}{% else %}{% translate "ui.errors.forbidden" %}{% endif %}</p>
+<p class="mt-4"><a class="button is-primary" href="{% url 'core:dashboard' %}">{% translate "ui.errors.back" %}</a></p>
+{% endblock content %}
