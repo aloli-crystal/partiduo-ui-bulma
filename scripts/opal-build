@@ -1,0 +1,91 @@
+#!/usr/bin/env ruby
+# SPDX-License-Identifier: AGPL-3.0-or-later
+#
+# Compile les écrans Opal (ADR-001 D4, ADR-005 D5), sans npm ni Node.
+#
+#   bundle exec scripts/opal-build           # recompile tous les paquets
+#   bundle exec scripts/opal-build --check   # échoue si un paquet est périmé
+#
+# Chaque fichier `opal/<nom>.rb` (à la racine de `opal/`) produit un paquet
+# autonome `src/ui/assets/ui/js/opal/<nom>.js`, versionné dans le dépôt et servi
+# par Marten comme les autres fichiers statiques. Les fichiers des
+# sous-dossiers (`opal/partiduo_ui/…`) sont des bibliothèques partagées.
+#
+# L'en-tête de chaque paquet porte la version d'Opal et l'empreinte SHA-256
+# de *toutes* les sources de `opal/` : la spec `spec/opal/build_spec.cr` la
+# recalcule (sans Ruby) et échoue si le JavaScript versionné est périmé.
+ENV["OPAL_CACHE_DISABLE"] = "true" # compilation reproductible, rien hors du dépôt
+require "bundler/setup"
+require "digest"
+require "fileutils"
+require "opal"
+
+ROOT = File.expand_path("..", __dir__)
+SOURCES = File.join(ROOT, "opal")
+OUTPUT = File.join(ROOT, "src", "ui", "assets", "ui", "js", "opal")
+
+# Même calcul que `PartiduoUi::OpalBuild.sources_digest` (Crystal) : pour
+# chaque fichier .rb, trié par chemin relatif, « chemin\0contenu\0 ».
+def sources_digest
+  digest = Digest::SHA256.new
+  Dir.glob("**/*.rb", base: SOURCES).sort.each do |relative|
+    digest << relative << "\0" << File.binread(File.join(SOURCES, relative)) << "\0"
+  end
+  digest.hexdigest
+end
+
+def header(name, digest)
+  <<~JS
+    /* SPDX-License-Identifier: AGPL-3.0-or-later AND MIT
+     * Paquet Opal « #{name} », généré par scripts/opal-build — ne pas modifier.
+     * Sources : opal/#{name}.rb ; runtime Opal (MIT).
+     * opal-version: #{Opal::VERSION}
+     * sources-sha256: #{digest}
+     */
+  JS
+end
+
+def build(entry)
+  builder = Opal::Builder.new
+  builder.append_paths(SOURCES)
+  builder.build("opal") # bibliothèque de base d'Opal, embarquée dans chaque paquet
+  builder.build(entry)
+  builder.to_s
+end
+
+check = ARGV.include?("--check")
+digest = sources_digest
+entries = Dir.glob("*.rb", base: SOURCES).sort.map { |file| File.basename(file, ".rb") }
+stale = []
+
+FileUtils.mkdir_p(OUTPUT)
+entries.each do |name|
+  target = File.join(OUTPUT, "#{name}.js")
+  if check
+    first = File.exist?(target) ? File.read(target, 400) : ""
+    stale << name unless first.include?("sources-sha256: #{digest}") && first.include?("opal-version: #{Opal::VERSION}")
+    next
+  end
+
+  javascript = header(name, digest) + build(File.join(SOURCES, "#{name}.rb"))
+  File.write(target, javascript)
+  puts "opal/#{name}.rb -> #{target.delete_prefix("#{ROOT}/")} (#{javascript.bytesize} octets)"
+end
+
+# Paquets orphelins (source supprimée).
+Dir.glob("*.js", base: OUTPUT).each do |file|
+  name = File.basename(file, ".js")
+  next if entries.include?(name)
+
+  if check
+    stale << name
+  else
+    File.delete(File.join(OUTPUT, file))
+    puts "supprimé : #{file} (plus de source opal/#{name}.rb)"
+  end
+end
+
+if check && !stale.empty?
+  warn "Paquets Opal périmés : #{stale.join(", ")}. Lancez : bundle exec scripts/opal-build"
+  exit 1
+end

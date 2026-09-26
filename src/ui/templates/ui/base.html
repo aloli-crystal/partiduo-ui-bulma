@@ -1,0 +1,33 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later #}<!DOCTYPE html>
+<html lang="{{ locale }}">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Partiduo{% endblock %}</title>
+    <link rel="stylesheet" href="{% asset 'ui/css/fonts.css' %}">
+    <link rel="stylesheet" href="{% asset 'ui/css/bulma.min.css' %}">
+    <link rel="stylesheet" href="{% asset 'ui/css/theme.css' %}">
+    <link rel="stylesheet" href="{% asset 'ui/css/app.css' %}">
+    <script src="{% asset 'ui/js/htmx.min.js' %}" defer></script>
+    {% block scripts %}{% endblock scripts %}
+  </head>
+  <body>
+    <div class="pd-app">
+      <header class="pd-top">
+        <button class="button is-small pd-burger" type="button" onclick="this.setAttribute('aria-expanded', document.getElementById('pd-side').classList.toggle('is-open'))" aria-controls="pd-side" aria-expanded="false" aria-label="{% translate 'ui.shell.menu' %}">{% include "ui/_icon.html" with name="menu" %}</button>
+        <div class="pd-brand"><b>Partiduo</b><small>{% translate 'ui.shell.tagline' %}</small></div>
+        <div class="pd-grow"></div>
+      </header>
+
+      <nav class="pd-side menu" id="pd-side" aria-label="{% translate 'ui.shell.navigation' %}">
+        <ul class="menu-list">
+          <li><a href="{% url 'home' %}" class="is-active" aria-current="page">{% include "ui/_icon.html" with name="layout-dashboard" %}<span>{% translate 'ui.home.title' %}</span></a></li>
+        </ul>
+      </nav>
+
+      <main class="pd-main" id="pd-main">
+        {% block content %}{% endblock content %}
+      </main>
+    </div>
+  </body>
+</html>

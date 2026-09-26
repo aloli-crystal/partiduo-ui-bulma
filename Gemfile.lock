@@ -1,0 +1,30 @@
+GEM
+  remote: https://rubygems.org/
+  specs:
+    ast (2.4.3)
+    base64 (0.3.0)
+    opal (1.8.2)
+      ast (>= 2.3.0)
+      parser (~> 3.0, >= 3.0.3.2)
+    parser (3.3.9.0)
+      ast (~> 2.4.1)
+      racc
+    racc (1.8.1)
+
+PLATFORMS
+  arm64-darwin-25
+  ruby
+
+DEPENDENCIES
+  base64 (= 0.3.0)
+  opal (= 1.8.2)
+
+CHECKSUMS
+  ast (2.4.3)
+  base64 (0.3.0)
+  opal (1.8.2)
+  parser (3.3.9.0)
+  racc (1.8.1)
+
+BUNDLED WITH
+  4.0.17

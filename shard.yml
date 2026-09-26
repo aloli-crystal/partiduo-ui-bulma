@@ -1,0 +1,32 @@
+name: partiduo-ui-bulma
+version: 0.1.0
+
+description: |
+  Première interface de Partiduo (ADR-005 D5) : routes, handlers, gabarits et
+  fichiers statiques (Bulma, HTMX, Opal). Ne parle au métier que par le
+  contrat Partiduo::Api du cœur (partiduo-app).
+
+authors:
+  - Philippe Nénert <it+claude.ai@aloli.fr>
+
+crystal: ">= 1.19.1"
+
+license: AGPL-3.0-or-later
+
+targets:
+  partiduo-server:
+    main: src/server.cr
+  partiduo-ui-manage:
+    main: manage.cr
+
+dependencies:
+  # Le cœur : socle, modules et contrat Partiduo::Api.
+  partiduo:
+    path: ../partiduo-app
+  marten:
+    path: ../../marten
+
+development_dependencies:
+  ameba:
+    github: crystal-ameba/ameba
+    version: "~> 1.6"

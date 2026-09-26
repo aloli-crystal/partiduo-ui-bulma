@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+fr:
+  ui:
+    shell:
+      menu: "Menu"
+      navigation: "Navigation principale"
+      tagline: "portage de NOALYSS"
+    home:
+      title: "Accueil"
+      welcome_title: "Bienvenue"
+      welcome: "Partiduo, comptabilité et facturation, portage libre de NOALYSS."
+      api_version: "Contrat Partiduo::Api, version %{version}"
+      opal_title: "Démonstration Opal"
+      opal_help: "Ce compteur est écrit en Ruby, compilé en JavaScript par Opal et servi par Marten."
+      opal_clicks: "Clics :"
+      opal_increment: "Ajouter"
+      opal_reset: "Remettre à zéro"

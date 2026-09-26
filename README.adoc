@@ -1,0 +1,143 @@
+= partiduo-ui-bulma — interface Bulma de Partiduo
+:toc: left
+:toc-title: Table des matières
+:icons: font
+
+*Partiduo* est le portage en Crystal de https://noalyss.eu[NOALYSS], logiciel
+libre de comptabilité et d'ERP créé et maintenu par *Dany De Bontridder*.
+Partiduo n'est pas un projet officiel NOALYSS.
+
+Ce dépôt est la *première interface* de Partiduo (ADR-005 D5) : routes,
+handlers, gabarits, feuilles de style, JavaScript et écrans Opal. Il compose le
+cœur `partiduo-app` (shard `partiduo`) et ne lui parle *que* par le contrat
+`Partiduo::Api` (ADR-005 D1, D2) : aucune règle métier ici, aucun modèle du
+cœur lu directement. Une autre interface (`partiduo-ui-<nom>`) peut remplacer
+celle-ci sans toucher au métier.
+
+La spécification est dans `../partiduo-docs/` (ADR-001 à ADR-006, maquette de
+référence `maquette/index.html`). Les décisions et blocages du portage sont
+consignés dans `../partiduo-app/DECISIONS.adoc` et `../partiduo-app/BLOCAGES.adoc`.
+
+== Organisation
+
+[source]
+----
+config/                  # réglages Marten (composition cœur + interface), routes
+src/
+├── partiduo_ui.cr       # point d'entrée : require "partiduo" + application ui
+├── server.cr            # serveur HTTP (Marten.start)
+├── cli.cr               # ligne de commande (migrations du cœur comprises)
+└── ui/                  # application Marten « ui » (PartiduoUi)
+    ├── handlers/        # handlers HTTP
+    ├── templates/ui/    # gabarits (base.html, _icon.html…)
+    ├── locales/         # libellés d'écran fr, en, nl (ADR-005 D7)
+    └── assets/ui/
+        ├── css/         # bulma.min.css (1.0.4), theme.css, fonts.css, app.css
+        ├── fonts/       # IBM Plex Sans et Plex Mono (woff2, SIL OFL 1.1)
+        ├── icons/       # sprite.svg : jeu d'icônes unique (Lucide, ISC)
+        └── js/          # htmx.min.js (2.0.11), opal/<écran>.js (générés)
+opal/                    # sources Ruby des écrans Opal
+icons/lucide/            # sources SVG des icônes retenues
+scripts/                 # opal-build, icon_sprite.cr, api_boundary.cr, CI
+----
+
+== Prérequis
+
+* Crystal 1.19.1 ;
+* PostgreSQL 18, joint *par socket Unix* (`/tmp/.s.PGSQL.5432`) ;
+* le cœur à côté du dépôt (`../partiduo-app`) et les shards maison dans
+  `prod-crystal/` (`marten`, `authn`, `password-policy`, `totp`, `webauthn`,
+  `jose`), en dépendances `path:` (voir `shard.override.yml`) ;
+* pour *recompiler* les écrans Opal seulement : Ruby ≥ 3.1 et Bundler. Ni npm
+  ni Node ne sont utilisés.
+
+== Installation et lancement
+
+[source,sh]
+----
+SKIP_MARTEN_CLI_PRECOMPILATION=1 shards install
+createdb --encoding=UTF8 partiduo_dev
+crystal run manage.cr -- migrate
+crystal run src/server.cr          # http://127.0.0.1:8000/
+----
+
+`PORT` change le port ; `DATABASE_URL` (par défaut
+`postgres:///partiduo_dev?host=/tmp`) et `PARTIDUO_MODULES` sont lus par le
+cœur. En production : `MARTEN_ENV=production`, `MARTEN_SECRET_KEY`,
+`MARTEN_ALLOWED_HOSTS`, puis `crystal run manage.cr -- collectassets` ; les
+fichiers collectés sont servis par Marten (`Marten::Middleware::AssetServing`).
+
+== Specs
+
+Chaque développeur ou agent utilise sa propre base de test (nom contenant
+`test`) :
+
+[source,sh]
+----
+createdb --encoding=UTF8 partiduo_test_ui
+DATABASE_URL="postgres:///partiduo_test_ui?host=/tmp" crystal spec
+----
+
+Les specs couvrent la page d'accueil, le service des fichiers statiques, le
+garde-fou d'interface, les conventions (SPDX, traductions, icônes) et Opal.
+Les specs qui *exécutent* le JavaScript compilé utilisent un moteur autonome
+(JavaScriptCore, présent sur macOS ; `PARTIDUO_JS_ENGINE` pour en indiquer un
+autre) ; elles sont en attente s'il n'y en a pas.
+
+== Opal
+
+Opal fait partie de la stack (ADR-001 D4, ADR-005 D5) : chaque écran démarre
+en HTMX et passe en Opal quand l'ergonomie l'exige (saisie, lettrage,
+rapprochement). Tout passage d'un écran en Opal est consigné dans DECISIONS.
+
+* *Sources* : `opal/<écran>.rb` (un paquet par fichier à la racine de
+  `opal/`) ; bibliothèques partagées sous `opal/partiduo_ui/`. Les composants
+  s'enregistrent auprès de `PartiduoUi::Boot.register("<sélecteur CSS>")` et
+  sont montés au chargement de la page et après chaque remplacement HTMX
+  (`htmx:load`).
+* *Compilation* : gem `opal` (version verrouillée par `Gemfile.lock`), sans
+  npm ni Node. Le JavaScript produit, `src/ui/assets/ui/js/opal/<écran>.js`,
+  est *versionné* et servi par Marten comme HTMX.
+* *Exemple* : `opal/demo.rb`, compteur de clics de la page d'accueil.
+
+Recompiler après toute modification de `opal/` :
+
+[source,sh]
+----
+bundle install                       # une fois
+bundle exec scripts/opal-build       # recompile tous les paquets
+bundle exec scripts/opal-build --check
+----
+
+L'en-tête de chaque paquet porte l'empreinte SHA-256 des sources : la spec
+`spec/opal/build_spec.cr` échoue si un paquet n'a pas été recompilé.
+
+== Icônes
+
+Un seul jeu, *Lucide* (licence ISC, version dans `icons/lucide/VERSION`) :
+chaque icône retenue est un fichier de `icons/lucide/`, assemblé dans
+`src/ui/assets/ui/icons/sprite.svg` par `crystal run scripts/icon_sprite.cr`.
+Dans un gabarit :
+
+[source,html]
+----
+{% include "ui/_icon.html" with name="search" %}
+----
+
+== Garde-fou ADR-005 D3
+
+`scripts/api_boundary.cr` (exécuté en CI et par
+`spec/architecture/api_boundary_spec.cr`) refuse toute référence au cœur
+hors de `Partiduo::Api` : constante `Partiduo::<Interne>`, appel
+`Partiduo.<méthode>`, `require "partiduo/<fichier interne>"`, réouverture
+d'un espace `Partiduo`. Seule la composition est admise :
+`require "partiduo"`, `require "partiduo/cli"`, `Partiduo.apply_settings`,
+`Partiduo::INSTALLED_APPS`, `Partiduo::LOCALES`, `Partiduo::VERSION`,
+`Partiduo::API_VERSION`.
+
+== Licences
+
+* Code de ce dépôt : GNU AGPL v3 ou ultérieure (`LICENSE`) ; chaque fichier
+  source commence par `SPDX-License-Identifier: AGPL-3.0-or-later`.
+* Bulma (MIT), HTMX (0BSD), runtime Opal (MIT), IBM Plex (SIL OFL 1.1),
+  Lucide (ISC) : fichiers tiers versionnés tels quels.

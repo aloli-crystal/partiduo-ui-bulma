@@ -1,0 +1,17 @@
+# SPDX-License-Identifier: AGPL-3.0-or-later
+nl:
+  ui:
+    shell:
+      menu: "Menu"
+      navigation: "Hoofdnavigatie"
+      tagline: "port van NOALYSS"
+    home:
+      title: "Startpagina"
+      welcome_title: "Welkom"
+      welcome: "Partiduo, boekhouding en facturatie, een vrije port van NOALYSS."
+      api_version: "Partiduo::Api-contract, versie %{version}"
+      opal_title: "Opal-demonstratie"
+      opal_help: "Deze teller is in Ruby geschreven, door Opal naar JavaScript gecompileerd en door Marten geserveerd."
+      opal_clicks: "Klikken:"
+      opal_increment: "Toevoegen"
+      opal_reset: "Op nul zetten"

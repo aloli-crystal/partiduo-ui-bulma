@@ -1,0 +1,57 @@
+/* SPDX-License-Identifier: AGPL-3.0-or-later
+   Mise en page de partiduo-ui-bulma, reprise de la maquette de référence
+   (partiduo-docs/maquette/index.html). Couleurs et polices : theme.css
+   uniquement. Propriétés logiques (margin-inline…) pour ne fermer aucun sens
+   d'écriture (ADR-005 D7). */
+
+[hidden] { display: none !important; }
+html, body { min-height: 100%; }
+body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bulma-family-primary); }
+:focus-visible { outline: 2px solid var(--pd-focus); outline-offset: 2px; }
+
+.pd-icon { width: 1.15em; height: 1.15em; flex: none; vertical-align: -0.2em; }
+
+.pd-app { display: grid; grid-template-columns: 15rem minmax(0, 1fr); grid-template-rows: auto 1fr; min-height: 100vh; }
+
+/* Barre supérieure */
+.pd-top { grid-column: 1 / -1; display: flex; align-items: center; gap: 1rem; flex-wrap: wrap;
+  background: var(--pd-surface); border-block-end: 1px solid var(--pd-rule); padding: .6rem 1rem;
+  position: sticky; inset-block-start: 0; z-index: 20; }
+.pd-brand { display: flex; align-items: baseline; gap: .5rem; font-weight: 700; color: var(--pd-ink); letter-spacing: -.01em; }
+.pd-brand b { font-size: 1.15rem; }
+.pd-brand small { font-weight: 400; color: var(--pd-muted); font-size: .8rem; }
+.pd-grow { flex: 1 1 12rem; min-width: 0; }
+.pd-burger { display: none; min-width: 44px; min-height: 44px; }
+
+/* Menu latéral */
+.pd-side { background: var(--pd-sidebar); color: var(--pd-sidebar-text); padding: 1rem .75rem; }
+.pd-side .menu-label { color: var(--pd-sidebar-text); opacity: .7; font-size: .68rem; letter-spacing: .08em; margin-block-start: 1.1rem; }
+.pd-side .menu-list a { background: transparent; color: var(--pd-sidebar-text); border-radius: var(--bulma-radius); display: flex; gap: .5rem; align-items: center; padding: .45rem .65rem; min-height: 44px; }
+.pd-side .menu-list a:hover { background: var(--pd-sidebar-active-bg); color: var(--pd-sidebar-active); }
+.pd-side .menu-list a.is-active { background: var(--pd-sidebar-active-bg); color: var(--pd-sidebar-active); font-weight: 600; box-shadow: inset 3px 0 0 #7fd0e2; }
+
+/* Contenu */
+.pd-main { padding: 1.25rem 1.5rem 3rem; min-width: 0; }
+.pd-head { display: flex; justify-content: space-between; align-items: flex-end; gap: 1rem; flex-wrap: wrap; margin-block-end: 1.25rem; }
+.pd-head h1 { font-size: 1.5rem; font-weight: 600; color: var(--pd-ink); text-wrap: balance; }
+.pd-crumb { font-size: .8rem; color: var(--pd-muted); margin-block-end: .2rem; }
+.pd-panel { background: var(--pd-surface); border: 1px solid var(--pd-rule); border-radius: var(--bulma-radius); margin-block-end: 1rem; }
+.pd-panel > header { display: flex; justify-content: space-between; align-items: center; gap: .75rem; padding: .75rem 1rem; border-block-end: 1px solid var(--pd-rule); }
+.pd-panel > header h2 { font-size: .95rem; font-weight: 600; color: var(--pd-ink); }
+.pd-panel > .pd-body { padding: 1rem; }
+.amount, .pd-mono { font-family: var(--bulma-family-code); font-variant-numeric: tabular-nums; }
+.amount { text-align: end; white-space: nowrap; }
+.pd-muted { color: var(--pd-muted); }
+.pd-counter { display: flex; align-items: center; gap: .75rem; flex-wrap: wrap; }
+.pd-counter output { font-family: var(--bulma-family-code); font-size: 1.35rem; font-weight: 600; min-width: 3ch; text-align: end; }
+.pd-counter .button { min-height: 44px; }
+
+@media (max-width: 820px) {
+  .pd-app { grid-template-columns: minmax(0, 1fr); }
+  .pd-side { display: none; }
+  .pd-side.is-open { display: block; }
+  .pd-burger { display: inline-flex; }
+  .pd-main { padding: 1rem 1rem 3rem; }
+  .pd-top { position: static; gap: .5rem .75rem; }
+  .pd-brand small { display: none; }
+}
