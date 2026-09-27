@@ -182,7 +182,7 @@ describe "Plan comptable" do
     csv.status.should eq(200)
     csv.content_type.should eq("text/csv; charset=utf-8")
     csv.headers["Content-Disposition"].should start_with(%(attachment; filename="plan-comptable-))
-    csv.content.should start_with("﻿Compte;Libellé;Type;Saisie;Sous-comptes\n")
+    csv.content.should start_with("﻿Compte;Libellé;Type;Saisie;Sous-comptes;Solde\n")
     csv.content.should contain("\n400;")
     csv.content.should_not contain("\n510001;")
   end

@@ -70,15 +70,21 @@ module PartiduoUi
 
   # Écritures : recherche par journal, dates et texte (`Api::Accounting.entries`).
   class EntriesHandler < AccountingScreen
-    LIMIT = 500
+    LIMIT   = 500
+    FILTERS = %w[ledger from to q]
 
     def get
+      # Critères gardés d'une visite à l'autre (D-UI-035).
+      if redirect = PersistentFilters.apply(request, "entries", FILTERS)
+        return redirect
+      end
+      context["persistent_filters"] = true
       actor = current.actor
       from, to = bounds
       criteria = Acc::EntryQuery.new(ledger_id: query("ledger").to_i64?, date_from: from, date_to: to, text: query("q").presence, limit: LIMIT)
       total = Acc.count_entries(actor, criteria)
       params = {} of String => String
-      {"ledger", "from", "to", "q"}.each { |name| params[name] = query(name) unless query(name).empty? }
+      FILTERS.each { |name| params[name] = query(name) unless query(name).empty? }
       table = Table.new(I18n.t("accounting.menu.acc_entries"), columns, Acc.entries(actor, criteria).map { |entry| row(entry) },
         reverse("accounting:entries"), params, empty_message: I18n.t("ui.entries.list_empty"))
       actions = [] of Screen::Action

@@ -11,11 +11,12 @@
         <tr><td colspan="{{ table.columns|size }}" class="pd-muted pd-empty">{{ table.empty_message }}</td></tr>
       {% endif %}
       </tbody>
+      {% if table.footer_rows %}<tfoot>{% for row in table.footer_rows %}<tr{% if row.css %} class="{{ row.css }}"{% endif %}>{% for cell in row.cells %}<td{% if cell.css %} class="{{ cell.css }}"{% endif %}>{% if cell.url %}<a class="pd-link" href="{{ cell.url }}">{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}</td>{% endfor %}</tr>{% endfor %}</tfoot>{% endif %}
     </table>
   </div>
   <footer class="pd-table-foot">
     <span class="pd-muted">{{ table.summary }}</span>
     {% if table.pages %}<nav class="pd-pages" hx-boost="true" aria-label="{% translate 'ui.table.pages' %}"><ul>{% for link in table.pages %}<li>{% if link.current %}<span class="pd-page is-current" id="{{ table.id }}-page-{{ link.number }}" tabindex="-1" aria-current="page">{{ link.number }}</span>{% else %}<a class="pd-page" id="{{ table.id }}-page-{{ link.number }}" href="{{ link.url }}">{{ link.number }}</a>{% endif %}</li>{% endfor %}</ul></nav>{% endif %}
-    <a class="button is-small" href="{{ table.csv_url }}" download>{% include "ui/_icon.html" with name="download" %}<span>{% translate "ui.table.export_csv" %}</span></a>
+    {% if table.exportable %}<span class="pd-row-actions"><a class="button is-small" href="{{ table.csv_url }}" download>{% include "ui/_icon.html" with name="download" %}<span>{% translate "ui.table.export_csv" %}</span></a>{% if table.pdf %}<a class="button is-small" href="{{ table.pdf_url }}" download>{% include "ui/_icon.html" with name="printer" %}<span>{% translate "ui.reports.export_pdf" %}</span></a>{% endif %}</span>{% endif %}
   </footer>
 </div>

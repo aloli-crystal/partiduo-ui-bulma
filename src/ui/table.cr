@@ -116,19 +116,28 @@ module PartiduoUi
     getter page_count : Int32 = 1
     getter total : Int32 = 0
     getter empty_message : String
+    # Lignes de pied (totaux) : ni filtrées, ni triées, ni paginées.
+    getter footer_rows : Array(Row)?
+    # Liens d'export du pied de tableau : CSV (`?format=csv`), et PDF
+    # (`?format=pdf`) quand l'écran le produit (éditions, lot 3) ; aucun
+    # pour un tableau dont l'écran exporte autrement.
+    property exportable : Bool = true
+    property pdf : Bool = false
 
     def initialize(@caption : String, @columns : Array(Column), @rows : Array(Row), @path : String,
                    @params : Hash(String, String) = {} of String => String, @empty_message : String = "",
-                   @id : String = "pd-table")
+                   @id : String = "pd-table", footer_rows : Array(Row)? = nil)
       @sort_key = nil
       @descending = false
       @total = @rows.size
-      @rows.each do |row|
+      @footer_rows = footer_rows.try { |list| Screen.listed(list) }
+      (@rows + (@footer_rows || [] of Row)).each do |row|
         row.cells.each_with_index do |cell, index|
           column = @columns[index]?
           next unless column
           classes = [column.css]
           classes << "pd-mono" if column.kind == "mono"
+          classes << cell.css unless cell.css.empty?
           cell.css = classes.reject(&.empty?).join(" ")
         end
       end
@@ -203,6 +212,10 @@ module PartiduoUi
 
     def csv_url : String
       url(format: "csv", page: nil)
+    end
+
+    def pdf_url : String
+      url(format: "pdf", page: nil)
     end
 
     def query : String

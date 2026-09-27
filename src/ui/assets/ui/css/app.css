@@ -367,3 +367,14 @@ kbd { font-family: var(--bulma-family-code); font-size: .72rem; border: 1px soli
   .pd-app { display: block; }
   .pd-panel, .pd-auth-card { border: 0; }
 }
+
+/* Éditions (lot 3) : critères compacts, sous-totaux et totaux, rubriques
+   du bilan et du compte de résultat par niveau. */
+.pd-report-grid { grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); }
+.pd-table tr.pd-row-subtotal td { font-weight: 600; background: var(--pd-row-alt); }
+.pd-table tr.pd-row-total td, .pd-table tfoot td { font-weight: 700; border-top: 2px solid var(--pd-rule); }
+.pd-table tr.pd-row-heading td { font-weight: 600; text-transform: uppercase; letter-spacing: .04em; font-size: .8rem; color: var(--pd-muted); }
+.pd-table tr.pd-row-section td { font-weight: 600; background: var(--pd-row-alt); }
+.pd-table td.pd-indent-1 { padding-inline-start: 1.5rem; }
+.pd-table td.pd-indent-2 { padding-inline-start: 2.5rem; }
+.pd-table td.pd-indent-3 { padding-inline-start: 3.5rem; }

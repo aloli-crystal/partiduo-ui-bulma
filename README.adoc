@@ -143,6 +143,28 @@ focus visible, lien d'évitement, propriétés CSS logiques.
 Dates abrégées partout où l'on saisit une date : `12` = le 12 du mois de la
 période de travail, `12/3` = le 12 mars, `120326` = le 12 mars 2026.
 
+== Éditions (lot 3)
+
+[cols="2,3",options="header"]
+|===
+|Route |Écran
+
+|`/accounting/reports/trial-balance` |Balance générale : ouverture, mouvements, soldes, totaux par classe, synthèse
+|`/accounting/reports/auxiliary-balance` |Balance des tiers (clients, fournisseurs)
+|`/accounting/reports/aged-balance` |Balance âgée au jour choisi ; éléments ouverts d'un tiers
+|`/accounting/reports/general-ledger` |Grand livre par compte ou par tiers (grand livre auxiliaire)
+|`/accounting/reports/journals` |Journaux : écritures, lignes, totaux du mois
+|`/accounting/reports/balance-sheet`, `…/income-statement` |Bilan et compte de résultat (FR, BE), exercice précédent en regard
+|`/accounting/reports/custom` |Rapports personnalisés par formules : liste, calcul, création, modification
+|`/accounting/reports/fec` |FEC de l'exercice (séparateur, encodage)
+|===
+
+Chaque édition exporte en CSV et en PDF (`?format=csv|pdf`, fichiers du
+cœur) ; ses critères sont gardés d'une visite à l'autre (`?reset=1` les
+oublie, DECISIONS D-UI-035) ; tout compte, tiers ou montant agrégé est un
+lien vers sa consultation (D-UI-036). Le plan comptable affiche les soldes
+(D-UI-037).
+
 == Authentification (ADR-002)
 
 [cols="2,3",options="header"]

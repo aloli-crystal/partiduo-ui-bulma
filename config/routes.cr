@@ -71,6 +71,21 @@ ACCOUNTING_ROUTES = Marten::Routing::Map.draw do
   path "/invoicing-history/post", PartiduoUi::InvoicingHistoryPostHandler, name: "invoicing_history_post"
   path "/invoicing-history/<id:int>/dismiss", PartiduoUi::InvoicingHistoryDismissHandler, name: "invoicing_history_dismiss"
   path "/invoicing-history/<id:int>/restore", PartiduoUi::InvoicingHistoryRestoreHandler, name: "invoicing_history_restore"
+  # Éditions (lot 3) : balances, grand livre, journaux, bilan, compte de
+  # résultat, rapports personnalisés, FEC ; `?format=csv|pdf` exporte.
+  path "/reports/trial-balance", PartiduoUi::TrialBalanceHandler, name: "trial_balance"
+  path "/reports/auxiliary-balance", PartiduoUi::AuxiliaryBalanceHandler, name: "auxiliary_balance"
+  path "/reports/aged-balance", PartiduoUi::AgedBalanceHandler, name: "aged_balance"
+  path "/reports/general-ledger", PartiduoUi::GeneralLedgerHandler, name: "general_ledger"
+  path "/reports/journals", PartiduoUi::JournalsHandler, name: "journals"
+  path "/reports/balance-sheet", PartiduoUi::BalanceSheetHandler, name: "balance_sheet"
+  path "/reports/income-statement", PartiduoUi::IncomeStatementHandler, name: "income_statement"
+  path "/reports/custom", PartiduoUi::CustomReportsHandler, name: "reports"
+  path "/reports/custom/new", PartiduoUi::CustomReportNewHandler, name: "report_new"
+  path "/reports/custom/<id:int>", PartiduoUi::CustomReportHandler, name: "report"
+  path "/reports/custom/<id:int>/edit", PartiduoUi::CustomReportEditHandler, name: "report_edit"
+  path "/reports/custom/<id:int>/delete", PartiduoUi::CustomReportDeleteHandler, name: "report_delete"
+  path "/reports/fec", PartiduoUi::FecHandler, name: "fec"
 end
 
 # Module Facturation (menus `invoicing:documents`, `invoice_new`, `payments`,

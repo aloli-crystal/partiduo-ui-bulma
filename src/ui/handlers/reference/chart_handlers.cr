@@ -4,9 +4,41 @@ module PartiduoUi
   # Plan comptable du module Comptabilité (`Partiduo::Api::Accounting`,
   # successeur de `tmp_pcmn`) : arbre par classe, création, consultation
   # (sous-comptes, fiches rattachées, usages par défaut), modification,
-  # suppression. Les soldes arrivent avec les écritures (lot 2).
+  # suppression. Soldes (lot 3, D-UI-020 levée) : ceux de la balance du
+  # contrat, de l'exercice de travail, reliés au relevé du compte.
   abstract class ChartScreen < ReferenceHandler
     KINDS = Partiduo::Api::Accounting::AccountKind.values
+
+    @balances : Hash(String, BigDecimal)?
+    @balance_bounds : {Time, Time}?
+    @balances_loaded = false
+
+    # Soldes de clôture par numéro de compte (`Api::Accounting.trial_balance`)
+    # de l'exercice de la période de travail ; `nil` sans le droit de lire
+    # les éditions ou sans exercice. Calculés une seule fois par requête,
+    # échec compris (`@balances_loaded`). Seuls les comptes mouvementés y figurent : un compte
+    # parent n'a pas de solde propre, l'interface ne cumule rien.
+    def balances : Hash(String, BigDecimal)?
+      return @balances if @balances_loaded
+      @balances_loaded = true
+      return unless can?("accounting.report.read")
+      period = Shell.working_period(request, current.actor)
+      from = period.try { |value| Partiduo::Api::Core.fiscal_year(current.actor, value.fiscal_year_id).starts_on }
+      view = Partiduo::Api::Accounting.trial_balance(current.actor,
+        Partiduo::Api::Accounting::TrialBalanceQuery.new(date_from: from, date_to: period.try(&.ends_on)))
+      @balance_bounds = {view.date_from, view.date_to}
+      @balances = view.rows.to_h { |row| {row.number, row.closing.signed} }
+    rescue Partiduo::Api::AccessDenied | Partiduo::Api::NotFound
+      nil
+    end
+
+    def balance_cell(values : Hash(String, BigDecimal), number : String) : Table::Cell
+      bounds = @balance_bounds
+      value = values[number]?
+      return Table::Cell.new("", sort: BigDecimal.new(0), csv: "") unless value && bounds
+      url = "#{reverse("accounting:accounts")}?#{URI::Params.encode({"q" => number, "from" => bounds[0].to_s("%Y-%m-%d"), "to" => bounds[1].to_s("%Y-%m-%d")})}"
+      Table::Cell.new(fmt.amount(value), url, sort: value, csv: fmt.csv_amount(value))
+    end
 
     def crumbs : Array(Screen::Crumb)
       [crumb("core.menu.reference"), crumb("accounting.menu.acc_chart", reverse("accounting:chart"))]
@@ -64,7 +96,7 @@ module PartiduoUi
         Table::Cell.new(kind_label(account.kind)),
         Table::Cell.new(yes_no(account.direct_use)),
         Table::Cell.new(line.children_count.to_s, sort: BigDecimal.new(line.children_count)),
-      ], css.join(" "))
+      ] + (balances.try { |values| [balance_cell(values, account.number)] } || [] of Table::Cell), css.join(" "))
     end
 
     # L'arbre n'a de sens que dans l'ordre des numéros.
@@ -79,7 +111,7 @@ module PartiduoUi
         Table::Column.new("kind", I18n.t("ui.chart.kind"), secondary: true),
         Table::Column.new("direct_use", I18n.t("ui.chart.direct_use_short"), secondary: true),
         Table::Column.new("children", I18n.t("ui.chart.children"), "amount", secondary: true),
-      ]
+      ] + (balances ? [Table::Column.new("balance", I18n.t("ui.reports.columns.balance"), "amount")] : [] of Table::Column)
     end
   end
 
