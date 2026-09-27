@@ -43,12 +43,18 @@ module PartiduoUi
       digits(rounded, decimals, group)
     end
 
-    # Nombre sans zéros inutiles (`5,5`, `20`) : taux, quantités.
-    def number(value : BigDecimal?, max_decimals : Int32 = 4) : String
+    # Nombre sans zéros inutiles (`5,5`, `20`) : taux, quantités. `group:
+    # false` pour préremplir un champ de saisie (relu par `parse_decimal`).
+    def number(value : BigDecimal?, max_decimals : Int32 = 4, group : Bool = true) : String
       return "" if value.nil?
-      text = amount(value, max_decimals, group: true)
+      text = amount(value, max_decimals, group: group)
       return text unless text.includes?(@convention.decimal)
       text.rstrip('0').rchop(@convention.decimal)
+    end
+
+    # Valeur d'un champ de saisie numérique : sans séparateur de milliers.
+    def input_number(value : BigDecimal?, max_decimals : Int32 = 6) : String
+      number(value, max_decimals, group: false)
     end
 
     # Taux en pourcentage (`20 %`, `5,5 %`).
@@ -61,6 +67,26 @@ module PartiduoUi
       return "" if value.nil?
       value.to_s(@convention.date)
     end
+
+    # Horodatage : date de la langue et heure `HH:MM`, dans la zone locale du
+    # serveur (les horodatages du cœur sont en UTC).
+    def datetime(value : Time?, location : Time::Location = Time::Location.local) : String
+      return "" if value.nil?
+      local = value.in(location)
+      "#{date(local)} #{local.to_s("%H:%M")}"
+    end
+
+    # Message d'une erreur du contrat, ses paramètres de date (ISO, seul
+    # format du contrat) présentés selon la langue et le pays.
+    def message(error : Partiduo::Api::FieldError) : String
+      return error.message unless error.params.values.any?(&.matches?(ISO_DATE))
+      params = error.params.transform_values do |value|
+        value.matches?(ISO_DATE) ? (parse_date(value).try { |day| date(day) } || value) : value
+      end
+      error.copy_with(params: params).message
+    end
+
+    ISO_DATE = /\A\d{4}-\d{2}-\d{2}\z/
 
     # Nom du mois (`septembre 2026`) : période mensuelle.
     def month(value : Time) : String
@@ -90,27 +116,47 @@ module PartiduoUi
       @convention.decimal == "," ? ';' : ','
     end
 
-    # Lecture d'un nombre saisi (`1 234,56`, `1.234,56`, `1234.56`) ; `nil` si
-    # la saisie n'est pas un nombre. Le dernier séparateur décimal rencontré
-    # l'emporte, les autres sont des séparateurs de milliers.
-    def self.parse_decimal(text : String) : BigDecimal?
-      cleaned = text.strip.gsub(/[\s  ']/, "")
+    # Lecture d'un nombre saisi dans la convention de la langue : son
+    # séparateur décimal est le *seul* admis (`1,5` en fr, `1.5` en en) ; son
+    # séparateur de milliers (ou une espace) n'est admis qu'entre des groupes
+    # de trois chiffres (`1 234,56` en fr, `1.234,56` en nl-BE, `1,234.56` en
+    # en). Toute autre écriture est refusée (`nil`) plutôt que devinée : « 1,234 »
+    # en en vaut mille deux cent trente-quatre, jamais 1,234.
+    def parse_decimal(text : String) : BigDecimal?
+      cleaned = text.strip
       return if cleaned.empty?
       negative = cleaned.starts_with?('-')
-      cleaned = cleaned.lchop('-').lchop('+')
-      last = {cleaned.rindex(','), cleaned.rindex('.')}.to_a.compact.max?
-      normalized = if last
-                     whole = cleaned[0...last].delete(",.")
-                     fraction = cleaned[(last + 1)..]
-                     fraction.empty? ? whole : "#{whole}.#{fraction}"
-                   else
-                     cleaned
-                   end
-      return unless normalized.matches?(/\A\d+(\.\d+)?\z/) || normalized.matches?(/\A\.\d+\z/)
-      value = BigDecimal.new(normalized)
+      cleaned = cleaned.lchop('-').lchop('+').strip
+      parts = cleaned.split(@convention.decimal)
+      return if parts.size > 2
+      whole = parts[0]
+      fraction = parts[1]?
+      return if fraction && !fraction.matches?(/\A\d+\z/)
+      whole = ungrouped(whole) || return
+      return if whole.empty? && fraction.nil?
+      value = BigDecimal.new("#{whole.empty? ? "0" : whole}#{fraction ? ".#{fraction}" : ""}")
       negative ? -value : value
     rescue ArgumentError | InvalidBigDecimalException
       nil
+    end
+
+    # Valeur décimale enregistrée (`BigDecimal#to_s`, point décimal), telle
+    # que le cœur la rend dans un attribut libre ; `nil` si illisible.
+    def self.canonical_decimal(text : String) : BigDecimal?
+      value = text.strip
+      return unless value.matches?(/\A-?\d+(\.\d+)?\z/)
+      BigDecimal.new(value)
+    rescue ArgumentError | InvalidBigDecimalException
+      nil
+    end
+
+    # Partie entière sans ses séparateurs de milliers, s'ils sont bien placés.
+    private def ungrouped(whole : String) : String?
+      return whole if whole.matches?(/\A\d*\z/)
+      separator = Regex.escape(@convention.group)
+      pattern = /\A\d{1,3}(?:(?:#{separator}|[\s\x{00A0}\x{202F}])\d{3})+\z/
+      return unless whole.matches?(pattern)
+      whole.gsub(/\D/, "")
     end
 
     # Date saisie : `AAAA-MM-JJ` (champ date du navigateur) ou le motif de la

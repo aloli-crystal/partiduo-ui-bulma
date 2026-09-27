@@ -58,16 +58,50 @@ describe PartiduoUi::Format do
     end
   end
 
-  it "lit les nombres saisis dans les écritures usuelles" do
+  it "lit les nombres saisis selon la convention de la langue, sans deviner" do
+    fr = PartiduoUi::Format.new("fr", "FR")
+    nl = PartiduoUi::Format.new("nl", "BE")
+    en = PartiduoUi::Format.new("en")
     {
-      "1 234,56" => "1234.56", "1.234,56" => "1234.56", "1,234.56" => "1234.56", "1234.5" => "1234.5",
-      "12" => "12", "-3,5" => "-3.5", "1#{NNBSP}000" => "1000", ",5" => "0.5",
-    }.each do |text, expected|
-      PartiduoUi::Format.parse_decimal(text).should eq(BigDecimal.new(expected))
+      {fr, "1 234,56"} => "1234.56", {fr, "1#{NNBSP}000"} => "1000", {fr, "1,5"} => "1.5", {fr, ",5"} => "0.5",
+      {fr, "-3,5"} => "-3.5", {fr, "12"} => "12",
+      {nl, "1.234,56"} => "1234.56", {nl, "1.234"} => "1234", {nl, "1,5"} => "1.5",
+      {en, "1,234.56"} => "1234.56", {en, "1,234"} => "1234", {en, "1.5"} => "1.5", {en, "1234.5"} => "1234.5",
+    }.each do |(format, text), expected|
+      {format.locale, text, format.parse_decimal(text)}.should eq({format.locale, text, BigDecimal.new(expected)})
     end
-    PartiduoUi::Format.parse_decimal("douze").should be_nil
-    PartiduoUi::Format.parse_decimal("").should be_nil
-    PartiduoUi::Format.parse_decimal("1e5").should be_nil
+    # Séparateur d'une autre langue, groupes mal formés, texte : refusés.
+    [{fr, "1.5"}, {en, "1,5"}, {nl, "1.5"}, {en, "1,23,456"}, {fr, "douze"}, {fr, ""}, {fr, "1e5"}, {fr, "1,2,3"}].each do |format, text|
+      {format.locale, text, format.parse_decimal(text)}.should eq({format.locale, text, nil})
+    end
+  end
+
+  it "relit à l'identique ce qu'elle affiche dans un champ de saisie (fr, nl-BE, en)" do
+    [PartiduoUi::Format.new("fr", "FR"), PartiduoUi::Format.new("nl", "BE"), PartiduoUi::Format.new("en")].each do |format|
+      %w[1234 1234.5 0.0625 1234567.891234 -42.1].each do |text|
+        value = BigDecimal.new(text)
+        format.parse_decimal(format.input_number(value)).should eq(value)
+        format.parse_decimal(format.number(value, 6)).should eq(value) # même avec les séparateurs de milliers
+        format.parse_decimal(format.amount(value, 6)).should eq(value)
+      end
+    end
+  end
+
+  it "lit une valeur décimale enregistrée (point décimal)" do
+    PartiduoUi::Format.canonical_decimal("1234.5").should eq(BigDecimal.new("1234.5"))
+    PartiduoUi::Format.canonical_decimal("1,5").should be_nil
+  end
+
+  it "affiche un horodatage selon la langue" do
+    PartiduoUi::Format.new("fr", "FR").datetime(Time.utc(2026, 9, 27, 14, 5), Time::Location::UTC).should eq("27/09/2026 14:05")
+    PartiduoUi::Format.new("en", "US").datetime(Time.utc(2026, 9, 27, 14, 5), Time::Location::UTC).should eq("09/27/2026 14:05")
+  end
+
+  it "présente les dates ISO des messages du cœur selon la langue" do
+    error = Partiduo::Api::FieldError.base("core.errors.period.overlap", {"starts_on" => "2026-01-01", "ends_on" => "2026-01-31"})
+    with_locale("fr") do
+      PartiduoUi::Format.new("fr", "FR").message(error).should eq("La période chevauche la période du 01/01/2026 au 31/01/2026.")
+    end
   end
 
   it "lit les dates du navigateur et celles de la langue" do

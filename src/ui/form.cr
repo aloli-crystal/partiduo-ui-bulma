@@ -108,8 +108,11 @@ module PartiduoUi
     # Range les erreurs d'un résultat du contrat : sous le champ de même nom,
     # ou sous le premier champ dont le nom commence par `champ.`
     # (`address` → `address.line1`), sinon à l'ensemble.
-    def add_errors(errors : Enumerable(Partiduo::Api::FieldError)) : self
-      errors.each { |error| add_error(error.field, error.message) }
+    #
+    # `format` : présentation des dates que le cœur passe en ISO dans les
+    # paramètres du message (`2026-01-01` → `01/01/2026`, D-UI-017).
+    def add_errors(errors : Enumerable(Partiduo::Api::FieldError), format : Format = Format.new(I18n.locale)) : self
+      errors.each { |error| add_error(error.field, format.message(error)) }
       self
     end
 

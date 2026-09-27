@@ -11,7 +11,7 @@ fr:
       no_fiscal_year: "aucun exercice"
       period: "Période"
       search_label: "Recherche"
-      search_placeholder: "Rechercher un compte, une fiche, une pièce… (/)"
+      search_placeholder: "Rechercher un compte, une fiche, une pièce… (Ctrl+K)"
       language: "Langue"
       apply: "Appliquer"
       user_menu: "Menu du compte"
@@ -117,6 +117,7 @@ fr:
       no_passkey: "Aucune clé d'accès enregistrée."
       add_passkey: "Ajouter une clé d'accès"
     codes:
+      filename: "partiduo-codes-de-recuperation.txt"
       title: "Codes de récupération"
       once: "Ces codes ne seront plus jamais affichés. Conservez-les maintenant, hors de cet appareil."
       help: "Chaque code sert une seule fois, à la place du code de l'application d'authentification, si vous perdez votre appareil."
@@ -188,6 +189,7 @@ fr:
       sent_title: "Vérifiez votre messagerie"
       sent: "Si l'adresse correspond à un compte de ce dossier, un message vient d'y être envoyé. Le lien qu'il contient ne sert qu'une fois."
     errors:
+      too_many_requests: "Trop de demandes depuis cette adresse : réessayez dans quelques minutes."
       not_found_title: "Page introuvable"
       not_found: "Cette page n'existe pas, ou le module qui la fournit n'est pas activé sur ce dossier."
       forbidden_title: "Accès refusé"
@@ -196,7 +198,7 @@ fr:
       unauthorized: "Connectez-vous pour accéder à cette page."
       back: "Revenir au tableau de bord"
     emails:
-      expires: "Ce lien expire le %{at}."
+      expires: "Ce lien expire le %{at} (heure UTC)."
       ignore: "Si vous n'êtes pas à l'origine de cette demande, ignorez ce message."
       password_reset:
         subject: "Partiduo : nouveau mot de passe"
@@ -251,6 +253,7 @@ fr:
       invalid_number: "Indiquez un nombre (par exemple 1 234,56)."
       invalid_date: "Indiquez une date valide."
     fiscal_years:
+      csv_name: "exercices"
       intro: "Un exercice est découpé en périodes mensuelles ; une période close n'accepte plus d'opération."
       title: "Exercice %{label}"
       new: "Nouvel exercice"
@@ -290,6 +293,7 @@ fr:
       delete_period_confirm: "Supprimer cette période ?"
       period_deleted: "Période %{period} supprimée."
     vat:
+      csv_name: "taux-tva"
       title: "Taux %{code}"
       new: "Nouveau taux"
       edit: "Modifier le taux %{code}"
@@ -315,6 +319,7 @@ fr:
       purchase_on_payment: "TVA déductible au paiement (achats)"
       show_disabled: "Inclure les taux inactifs"
     chart:
+      csv_name: "plan-comptable"
       title: "Compte %{number} — %{label}"
       new: "Nouveau compte"
       new_child: "Nouveau sous-compte"
@@ -336,6 +341,8 @@ fr:
       kind_inherited: "Celui du compte parent"
       direct_use: "Utilisable en saisie"
       direct_use_short: "Saisie"
+      not_direct_use: "hors saisie"
+      level: "niveau %{level} :"
       direct_use_help: "Décochez pour un compte de regroupement."
       children: "Sous-comptes"
       summary: "Compte"
@@ -345,6 +352,7 @@ fr:
       cards: "Fiches rattachées"
       no_card: "Aucune fiche n'est rattachée à ce compte."
     ledgers:
+      csv_name: "journaux"
       title: "Journal %{code} — %{name}"
       new: "Nouveau journal"
       edit: "Modifier le journal %{code}"
@@ -360,8 +368,11 @@ fr:
       kind: "Type"
       description: "Description"
       default_account: "Compte par défaut"
-      default_account_help: "Obligatoire pour un journal financier (banque ou caisse)."
+      default_account_help: "Journal d'achats, de ventes ou d'opérations diverses : compte proposé à la saisie."
+      bank_card: "Fiche de la banque"
+      bank_card_help: "Journal financier : quick code de la fiche Banque ; le compte du journal est celui de la fiche."
       currency: "Devise"
+      currency_default: "Devise de tenue du dossier"
       access: "Votre accès"
       summary: "Journal"
       receipts: "Numérotation des pièces"
@@ -373,6 +384,8 @@ fr:
       last_receipt: "Dernier numéro attribué"
       next_receipt: "Prochaine pièce"
     cards:
+      csv_name: "tiers"
+      csv_name_items: "articles"
       parties: "Tiers"
       items: "Articles et services"
       title: "Fiche %{code} — %{name}"

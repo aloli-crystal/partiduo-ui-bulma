@@ -52,6 +52,9 @@ module PartiduoUi
       getter tag : String?
       getter actions : Array(Screen::Action)?
       property css : String = ""
+      # Texte lu par les technologies d'assistance seulement, avant le
+      # contenu (profondeur d'un compte dans l'arbre).
+      property hidden_text : String? = nil
 
       # `tag` : texte affiché comme étiquette (« désactivé », « clos ») ;
       # `actions` : boutons de la ligne (colonne sans tri ni export).
@@ -82,8 +85,11 @@ module PartiduoUi
       getter url : String?
       getter aria_sort : String?
       getter sort_hint : String
+      # Clé de la colonne : identifiant stable du lien de tri, auquel HTMX
+      # rend le focus après le remplacement du tableau (WCAG 2.4.3).
+      getter key : String
 
-      def initialize(@label, @css, @url, @aria_sort, @sort_hint)
+      def initialize(@label, @css, @url, @aria_sort, @sort_hint, @key = "")
       end
     end
 
@@ -176,13 +182,13 @@ module PartiduoUi
     def headers : Array(Header)
       @columns.map do |column|
         unless column.sortable
-          next Header.new(column.label, column.css, nil, nil, "")
+          next Header.new(column.label, column.css, nil, nil, "", column.key)
         end
         current = @sort_key == column.key
         next_sort = current && !@descending ? "-#{column.key}" : column.key
         aria = current ? (@descending ? "descending" : "ascending") : nil
         hint = I18n.t(current && !@descending ? "ui.table.sort_descending" : "ui.table.sort_ascending")
-        Header.new(column.label, column.css, url(sort: next_sort, page: nil), aria, hint)
+        Header.new(column.label, column.css, url(sort: next_sort, page: nil), aria, hint, column.key)
       end
     end
 

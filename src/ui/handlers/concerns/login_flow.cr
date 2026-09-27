@@ -31,7 +31,7 @@ module PartiduoUi
         case error.key
         when "auth.errors.login.throttled"
           details["throttled"] = true
-          details["seconds"] = error.params["seconds"]? || ""
+          details["seconds"] = error.params["count"]? || ""
         when "auth.errors.login.locked"
           details["locked"] = true
         end

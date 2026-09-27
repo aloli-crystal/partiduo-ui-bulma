@@ -7,7 +7,7 @@
 {% if intro %}<p class="pd-muted mb-3">{{ intro }}</p>{% endif %}
 {% if chooser %}<section class="pd-panel" aria-labelledby="pd-chooser-title">
   <header><h2 id="pd-chooser-title">{{ chooser_title }}</h2></header>
-  <div class="pd-body"><form method="get" action="{{ chooser_action }}" class="pd-inline-form">{% for field in chooser.fields %}<label class="label" for="{{ field.id }}">{{ field.label }}</label><div class="select"><select id="{{ field.id }}" name="{{ field.name }}" data-pd-autosubmit>{% for option in field.options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div>{% endfor %}<button class="button pd-touch pd-nojs" type="submit">{% translate "ui.forms.choose" %}</button></form></div>
+  <div class="pd-body"><form method="get" action="{{ chooser_action }}" class="pd-inline-form">{% for field in chooser.fields %}<label class="label" for="{{ field.id }}">{{ field.label }}</label><div class="select"><select id="{{ field.id }}" name="{{ field.name }}">{% for option in field.options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div>{% endfor %}<button class="button pd-touch" type="submit">{% translate "ui.forms.choose" %}</button></form></div>
 </section>{% endif %}
 {% if form %}<section class="pd-panel" aria-label="{{ title }}"><div class="pd-body">{% include "ui/_form.html" %}</div></section>{% endif %}
 {% endblock content %}

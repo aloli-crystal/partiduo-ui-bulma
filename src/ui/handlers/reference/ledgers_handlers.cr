@@ -25,7 +25,8 @@ module PartiduoUi
 
     def ledger_form(input : Partiduo::Api::Accounting::LedgerInput? = nil, next_receipt : String = "") : Form
       values = input || Partiduo::Api::Accounting::LedgerInput.new(name: "", kind: Partiduo::Api::Accounting::LedgerKind::Purchase)
-      currencies = Partiduo::Api::Core.currencies(current.actor).map { |currency| option(currency.code, "#{currency.code} — #{currency.name}") }
+      currencies = [option("", I18n.t("ui.ledgers.currency_default"))] +
+                   Partiduo::Api::Core.currencies(current.actor).map { |currency| option(currency.code, "#{currency.code} — #{currency.name}") }
       Form.new([
         Form::Group.new(nil, [
           Form::Field.new("name", I18n.t("ui.ledgers.name"), value: values.name, required: true, maxlength: 80, wide: true),
@@ -34,7 +35,9 @@ module PartiduoUi
             help: I18n.t("ui.ledgers.code_help")),
           Form::Field.new("default_account", I18n.t("ui.ledgers.default_account"), value: values.default_account || "",
             mono: true, help: I18n.t("ui.ledgers.default_account_help")),
-          Form::Field.new("currency_code", I18n.t("ui.ledgers.currency"), "select", values.currency_code, options: currencies),
+          Form::Field.new("bank_card", I18n.t("ui.ledgers.bank_card"), value: values.bank_card || "", mono: true,
+            help: I18n.t("ui.ledgers.bank_card_help")),
+          Form::Field.new("currency_code", I18n.t("ui.ledgers.currency"), "select", values.currency_code || "", options: currencies),
           Form::Field.new("description", I18n.t("ui.ledgers.description"), "textarea", values.description, wide: true),
           Form::Field.new("enabled", I18n.t("ui.forms.enabled"), "checkbox", values.enabled ? "1" : ""),
         ]),
@@ -58,7 +61,7 @@ module PartiduoUi
         name: field("name"), kind: kind, code: field("code").presence, description: field("description", strip: false).strip,
         enabled: checkbox("enabled"), default_account: field("default_account").presence,
         receipt_prefix: field("receipt_prefix"), receipt_padding: padding, next_receipt_number: next_number,
-        currency_code: field("currency_code").presence || "EUR",
+        currency_code: field("currency_code").presence, bank_card: field("bank_card").presence,
       )
     end
 
@@ -68,7 +71,7 @@ module PartiduoUi
         form.fields.find(&.name.==(name)).try(&.value=(field(name)))
       end
       form_errors.each { |(name, message)| form.add_error(name, message) }
-      form.add_errors(errors)
+      form.add_errors(errors, fmt)
     end
   end
 
@@ -105,7 +108,7 @@ module PartiduoUi
       actions << link_action("ui.ledgers.new", reverse("accounting:ledger_new"), "primary", "plus") if can?("accounting.ledger.write")
       kinds = [option("", I18n.t("ui.ledgers.all_kinds"))] + kind_options
       filters = search_filters([Form::Field.new("kind", I18n.t("ui.ledgers.kind"), "select", query("kind"), options: kinds)])
-      list_page(I18n.t("accounting.menu.acc_ledgers"), table, crumbs[0, 1], "journaux", actions, filters: filters)
+      list_page(I18n.t("accounting.menu.acc_ledgers"), table, crumbs[0, 1], "ui.ledgers.csv_name", actions, filters: filters)
     end
   end
 
@@ -143,6 +146,8 @@ module PartiduoUi
         Screen::Item.new(I18n.t("ui.ledgers.kind"), kind_label(ledger.kind)),
         Screen::Item.new(I18n.t("ui.ledgers.default_account"), account ? "#{account.number} — #{account.label}" : "",
           account.try { |item| reverse("accounting:account", id: item.id) }),
+        Screen::Item.new(I18n.t("ui.ledgers.bank_card"), ledger.bank_card_code || "",
+          ledger.bank_card_id.try { |id| reverse("cards:show", id: id) }),
         Screen::Item.new(I18n.t("ui.ledgers.currency"), ledger.currency_code, mono: true),
         Screen::Item.new(I18n.t("ui.ledgers.description"), ledger.description),
         Screen::Item.new(I18n.t("ui.ledgers.access"), access_label(ledger.access)),
@@ -170,8 +175,9 @@ module PartiduoUi
       ledger = Partiduo::Api::Accounting.ledger(current.actor, id_param)
       input = Partiduo::Api::Accounting::LedgerInput.new(
         name: ledger.name, kind: ledger.kind, code: ledger.code, description: ledger.description, enabled: ledger.enabled,
-        default_account: ledger.default_account.try(&.number), receipt_prefix: ledger.receipt_prefix,
-        receipt_padding: ledger.receipt_padding, currency_code: ledger.currency_code,
+        default_account: ledger.kind.financial? ? nil : ledger.default_account.try(&.number),
+        receipt_prefix: ledger.receipt_prefix,
+        receipt_padding: ledger.receipt_padding, currency_code: ledger.currency_code, bank_card: ledger.bank_card_code,
       )
       show(ledger_form(input, ledger.next_receipt), ledger)
     end

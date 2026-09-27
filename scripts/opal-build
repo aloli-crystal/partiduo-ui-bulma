@@ -6,10 +6,15 @@
 #   bundle exec scripts/opal-build           # recompile tous les paquets
 #   bundle exec scripts/opal-build --check   # échoue si un paquet est périmé
 #
-# Chaque fichier `opal/<nom>.rb` (à la racine de `opal/`) produit un paquet
-# autonome `src/ui/assets/ui/js/opal/<nom>.js`, versionné dans le dépôt et servi
-# par Marten comme les autres fichiers statiques. Les fichiers des
-# sous-dossiers (`opal/partiduo_ui/…`) sont des bibliothèques partagées.
+# Un paquet commun, `src/ui/assets/ui/js/opal/runtime.js`, porte la
+# bibliothèque de base d'Opal, `native` et l'amorçage `partiduo_ui/boot` : il
+# est chargé une fois (et mis en cache) par tout gabarit qui monte un écran
+# Opal, avant le paquet de l'écran. Chaque fichier `opal/<nom>.rb` (à la
+# racine de `opal/`) produit le paquet `src/ui/assets/ui/js/opal/<nom>.js`,
+# *sans* ce que porte déjà le paquet commun (D-UI-023). Paquets versionnés
+# dans le dépôt et servis par Marten comme les autres fichiers statiques. Les
+# fichiers des sous-dossiers (`opal/partiduo_ui/…`) sont des bibliothèques
+# partagées.
 #
 # L'en-tête de chaque paquet porte la version d'Opal et l'empreinte SHA-256
 # de *toutes* les sources de `opal/` : la spec `spec/opal/build_spec.cr` la
@@ -35,20 +40,38 @@ def sources_digest
 end
 
 def header(name, digest)
+  sources = name == RUNTIME ? "bibliothèque de base d'Opal, native, opal/partiduo_ui/boot.rb" : "opal/#{name}.rb"
   <<~JS
     /* SPDX-License-Identifier: AGPL-3.0-or-later AND MIT
      * Paquet Opal « #{name} », généré par scripts/opal-build — ne pas modifier.
-     * Sources : opal/#{name}.rb ; runtime Opal (MIT).
+     * Sources : #{sources} ; runtime Opal (MIT).
      * opal-version: #{Opal::VERSION}
      * sources-sha256: #{digest}
      */
   JS
 end
 
-def build(entry)
+RUNTIME = "runtime"
+# Ce que porte le paquet commun, chargé avant chaque écran.
+RUNTIME_REQUIRES = %w[opal native partiduo_ui/boot]
+
+def runtime_builder
   builder = Opal::Builder.new
   builder.append_paths(SOURCES)
-  builder.build("opal") # bibliothèque de base d'Opal, embarquée dans chaque paquet
+  builder.build_str(RUNTIME_REQUIRES.map { |name| "require #{name.inspect}" }.join("\n"), "partiduo_runtime.rb")
+  builder
+end
+
+def build_runtime
+  runtime_builder.to_s
+end
+
+# Paquet d'un écran : sans les fichiers déjà chargés par le paquet commun.
+def build(entry)
+  shared = runtime_builder
+  builder = Opal::Builder.new
+  builder.append_paths(SOURCES)
+  builder.prerequired = shared.already_processed.to_a + RUNTIME_REQUIRES
   builder.build(entry)
   builder.to_s
 end
@@ -58,8 +81,10 @@ digest = sources_digest
 entries = Dir.glob("*.rb", base: SOURCES).sort.map { |file| File.basename(file, ".rb") }
 stale = []
 
+abort "opal/#{RUNTIME}.rb : nom réservé au paquet commun" if entries.include?(RUNTIME)
+
 FileUtils.mkdir_p(OUTPUT)
-entries.each do |name|
+([RUNTIME] + entries).each do |name|
   target = File.join(OUTPUT, "#{name}.js")
   if check
     first = File.exist?(target) ? File.read(target, 400) : ""
@@ -67,15 +92,16 @@ entries.each do |name|
     next
   end
 
-  javascript = header(name, digest) + build(File.join(SOURCES, "#{name}.rb"))
+  body = name == RUNTIME ? build_runtime : build(File.join(SOURCES, "#{name}.rb"))
+  javascript = header(name, digest) + body
   File.write(target, javascript)
-  puts "opal/#{name}.rb -> #{target.delete_prefix("#{ROOT}/")} (#{javascript.bytesize} octets)"
+  puts "#{name} -> #{target.delete_prefix("#{ROOT}/")} (#{javascript.bytesize} octets)"
 end
 
 # Paquets orphelins (source supprimée).
 Dir.glob("*.js", base: OUTPUT).each do |file|
   name = File.basename(file, ".js")
-  next if entries.include?(name)
+  next if name == RUNTIME || entries.include?(name)
 
   if check
     stale << name

@@ -20,7 +20,7 @@ module PartiduoUi
           Form::Field.new("code", I18n.t("ui.vat.code"), value: input.code, required: true, mono: true, maxlength: 5,
             help: I18n.t("ui.vat.code_help")),
           Form::Field.new("label", I18n.t("ui.vat.label"), value: input.label, required: true, maxlength: 255, wide: true),
-          Form::Field.new("rate", I18n.t("ui.vat.rate"), "number", fmt.number(input.rate), required: true, mono: true,
+          Form::Field.new("rate", I18n.t("ui.vat.rate"), "number", fmt.input_number(input.rate, 4), required: true, mono: true,
             help: I18n.t("ui.vat.rate_help")),
           Form::Field.new("category", I18n.t("ui.vat.category"), "select", input.category || "S", options: categories, required: true),
           Form::Field.new("exemption_code", I18n.t("ui.vat.exemption_code"), value: input.exemption_code || "", mono: true,
@@ -58,7 +58,7 @@ module PartiduoUi
       form = rate_form(input)
       form.fields.find(&.name.==("rate")).try(&.value=(field("rate")))
       form_errors.each { |(name, message)| form.add_error(name, message) }
-      form.add_errors(errors)
+      form.add_errors(errors, fmt)
     end
   end
 
@@ -90,7 +90,7 @@ module PartiduoUi
       actions = [] of Screen::Action
       actions << link_action("ui.vat.new", reverse("vat:rate_new"), "primary", "plus") if can?("vat.rate.write")
       filters = search_filters([Form::Field.new("all", I18n.t("ui.vat.show_disabled"), "checkbox", all ? "1" : "")])
-      list_page(I18n.t("vat.menu.vat_rates"), table, crumbs[0, 1], "taux-tva", actions, filters: filters)
+      list_page(I18n.t("vat.menu.vat_rates"), table, crumbs[0, 1], "ui.vat.csv_name", actions, filters: filters)
     end
 
     private def checkbox_query(name : String) : Bool

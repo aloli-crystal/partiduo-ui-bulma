@@ -4,10 +4,31 @@ module PartiduoUi
   # Liens à usage unique envoyés par courriel. La réponse est la même que
   # l'adresse soit connue ou non : seule la possession de l'adresse permet
   # d'utiliser le jeton (doc/api/auth.adoc du cœur).
+  #
+  # Le courriel part à l'adresse *enregistrée* (`TokenView#email`), jamais à
+  # celle saisie, dans la langue de l'utilisateur ; le lien est bâti sur le
+  # nom d'hôte configuré de l'instance (`TokenView#domain`), en `https://`,
+  # jamais sur l'en-tête `Host` de la requête (D-UI-021).
   module TokenMail
-    def self.send(request : Marten::HTTP::Request, email : String, token : Partiduo::Api::Auth::TokenView, route : String) : Nil
-      link = "#{request.scheme}://#{request.headers["Host"]? || request.host}#{Marten.routes.reverse(route, token: token.token)}"
-      TokenEmail.new(email, token.purpose, link, token.expires_at).deliver
+    def self.send(token : Partiduo::Api::Auth::TokenView, route : String) : Nil
+      link = "#{base_url(token.domain)}#{Marten.routes.reverse(route, token: token.token)}"
+      locale = Locale.available.includes?(token.locale) ? token.locale : I18n.locale
+      I18n.with_locale(locale) do
+        TokenEmail.new(token.email, token.purpose, link, token.expires_at, Format.new(locale, token.country_code)).deliver
+      end
+    end
+
+    # `https://<domaine>` ; seul un domaine de développement en `.localhost`
+    # (contexte sécurisé sans HTTPS, ADR-002 D5) est servi en `http://`, sur
+    # le port du serveur.
+    def self.base_url(domain : String) : String
+      host = domain.downcase
+      if host == "localhost" || host.ends_with?(".localhost")
+        port = Marten.settings.port
+        "http://#{host}#{port == 80 ? "" : ":#{port}"}"
+      else
+        "https://#{host}"
+      end
     end
   end
 
@@ -18,8 +39,10 @@ module PartiduoUi
 
     def post
       email = field("email")
-      if token = Partiduo::Api::Auth.request_password_reset(Partiduo::Api::Actor.anonymous, email)
-        TokenMail.send(request, email, token, "password_reset")
+      # Même réponse au-delà de la limite : rien n'est révélé, rien n'est envoyé.
+      token = RateLimit.allow?(request, "token_request") ? Partiduo::Api::Auth.request_password_reset(Partiduo::Api::Actor.anonymous, email) : nil
+      if token
+        TokenMail.send(token, "password_reset")
       end
       page("ui/auth/link_sent.html", {"kind" => "password_reset"})
     end
@@ -56,8 +79,9 @@ module PartiduoUi
 
     def post
       email = field("email")
-      if token = Partiduo::Api::Auth.request_unlock(Partiduo::Api::Actor.anonymous, email)
-        TokenMail.send(request, email, token, "unlock")
+      token = RateLimit.allow?(request, "token_request") ? Partiduo::Api::Auth.request_unlock(Partiduo::Api::Actor.anonymous, email) : nil
+      if token
+        TokenMail.send(token, "unlock")
       end
       page("ui/auth/link_sent.html", {"kind" => "unlock"})
     end

@@ -25,11 +25,11 @@
           </div>
           <div>
             <label class="pd-period-label" for="pd-period">{% translate "ui.shell.period" %}</label>
-            <div class="select is-small"><select id="pd-period" name="period" data-pd-autosubmit>
+            <div class="select is-small"><select id="pd-period" name="period">
               {% for group in shell.period_groups %}<optgroup label="{{ group.label }}">{% for option in group.options %}<option value="{{ option.id }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</optgroup>{% endfor %}
             </select></div>
           </div>
-          <button class="button is-small pd-nojs" type="submit">{% translate "ui.shell.apply" %}</button>
+          <button class="button is-small" type="submit">{% translate "ui.shell.apply" %}</button>
         </form>
         {% else %}
         <div class="pd-period" role="group" aria-label="{% translate 'ui.shell.period_group' %}">
@@ -51,10 +51,10 @@
           {% csrf_input %}
           <input type="hidden" name="next" value="{{ shell.current_path }}">
           <label class="is-sr-only" for="pd-lang">{% translate "ui.shell.language" %}</label>
-          <div class="select"><select id="pd-lang" name="locale" data-pd-autosubmit>
+          <div class="select"><select id="pd-lang" name="locale">
             {% for code in shell.locales %}<option value="{{ code }}" lang="{{ code }}"{% if code == shell.locale %} selected{% endif %}>{{ code|upcase }}</option>{% endfor %}
           </select></div>
-          <button class="button pd-nojs" type="submit">{% translate "ui.shell.apply" %}</button>
+          <button class="button" type="submit">{% translate "ui.shell.apply" %}</button>
         </form>
         <details class="pd-user">
           <summary><span class="pd-avatar" aria-hidden="true">{{ shell.user_initials }}</span><span class="pd-user-name">{{ shell.user_name|default:shell.user_email }} · {% translate shell.user_role_key %}</span><span class="is-sr-only">{% translate "ui.shell.user_menu" %}</span></summary>

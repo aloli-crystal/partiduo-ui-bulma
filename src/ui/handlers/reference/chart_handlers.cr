@@ -39,22 +39,37 @@ module PartiduoUi
     end
 
     def posted_form(errors : Array(Partiduo::Api::FieldError), inherit : Bool = true) : Form
-      account_form(field("number"), field("label"), field("parent"), field("kind"), checkbox("direct_use"), inherit).add_errors(errors)
+      account_form(field("number"), field("label"), field("parent"), field("kind"), checkbox("direct_use"), inherit).add_errors(errors, fmt)
     end
 
-    # Ligne d'un compte ; `depth` : retrait dans l'arbre.
-    def account_row(line : Partiduo::Api::Accounting::ChartLineView, depth : Int32) : Table::Row
+    # Ligne d'un compte ; `depth` : retrait dans l'arbre. `tree` faux (liste
+    # triée sur une autre colonne que le numéro) : ni retrait ni niveau, qui
+    # n'auraient plus de sens. Un compte hors usage direct porte une
+    # étiquette, pas seulement une couleur (WCAG 1.4.1) ; le niveau est lu
+    # par les technologies d'assistance (WCAG 1.3.1).
+    def account_row(line : Partiduo::Api::Accounting::ChartLineView, depth : Int32, tree : Bool = true) : Table::Row
       account = line.account
-      css = ["pd-depth-#{depth.clamp(0, 6)}"]
-      css << "pd-class" if depth.zero?
+      css = [] of String
+      if tree
+        css << "pd-depth-#{depth.clamp(0, 6)}"
+        css << "pd-class" if depth.zero?
+      end
       css << "pd-row-closed" unless account.direct_use
+      number = Table::Cell.new(account.number, reverse("accounting:account", id: account.id), sort: account.number,
+        tag: account.direct_use ? nil : I18n.t("ui.chart.not_direct_use"))
+      number.hidden_text = I18n.t("ui.chart.level", level: depth + 1) if tree
       Table::Row.new([
-        Table::Cell.new(account.number, reverse("accounting:account", id: account.id), sort: account.number),
+        number,
         Table::Cell.new(account.label),
         Table::Cell.new(kind_label(account.kind)),
         Table::Cell.new(yes_no(account.direct_use)),
         Table::Cell.new(line.children_count.to_s, sort: BigDecimal.new(line.children_count)),
       ], css.join(" "))
+    end
+
+    # L'arbre n'a de sens que dans l'ordre des numéros.
+    def tree_order? : Bool
+      query("sort").in?("", "number")
     end
 
     def account_columns : Array(Table::Column)
@@ -77,14 +92,14 @@ module PartiduoUi
       wanted = "" unless classes.includes?(wanted)
       shown = wanted.empty? ? lines : lines.select(&.account.number.starts_with?(wanted))
       params = wanted.empty? ? {} of String => String : {"class" => wanted}
-      table = Table.new(I18n.t("accounting.menu.acc_chart"), account_columns, shown.map { |line| account_row(line, line.depth) },
+      table = Table.new(I18n.t("accounting.menu.acc_chart"), account_columns, shown.map { |line| account_row(line, line.depth, tree_order?) },
         reverse("accounting:chart"), params, empty_message: I18n.t("ui.chart.empty"))
       tabs = [Screen::Tab.new(I18n.t("ui.chart.all_classes"), tab_url(""), wanted.empty?)]
       classes.each { |code| tabs << Screen::Tab.new(I18n.t("ui.chart.class", class: code), tab_url(code), code == wanted) }
       actions = [] of Screen::Action
       actions << link_action("ui.chart.new", reverse("accounting:account_new"), "primary", "plus") if can?("accounting.account.write")
       filters = search_filters(wanted.empty? ? [] of Form::Field : [Form::Field.new("class", "", "hidden", wanted)])
-      list_page(I18n.t("accounting.menu.acc_chart"), table, crumbs[0, 1], "plan-comptable", actions, tabs,
+      list_page(I18n.t("accounting.menu.acc_chart"), table, crumbs[0, 1], "ui.chart.csv_name", actions, tabs,
         I18n.t("ui.chart.classes"), filters)
     end
 
@@ -141,7 +156,7 @@ module PartiduoUi
       sections = [Screen::Section.new(I18n.t("ui.chart.summary"), items)]
 
       children = Partiduo::Api::Accounting.chart(actor, account.number).reject(&.depth.zero?)
-      table = Table.new(I18n.t("ui.chart.sub_accounts"), account_columns, children.map { |line| account_row(line, line.depth - 1) },
+      table = Table.new(I18n.t("ui.chart.sub_accounts"), account_columns, children.map { |line| account_row(line, line.depth - 1, tree_order?) },
         reverse("accounting:account", id: account.id), empty_message: I18n.t("ui.chart.no_sub_account"), id: "pd-sub-accounts")
       prepare(table)
       return csv_response(table, "compte-#{account.number}") if csv?

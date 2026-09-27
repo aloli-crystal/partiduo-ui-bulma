@@ -11,7 +11,7 @@ nl:
       no_fiscal_year: "geen boekjaar"
       period: "Periode"
       search_label: "Zoeken"
-      search_placeholder: "Zoek een rekening, een fiche, een stuk… (/)"
+      search_placeholder: "Zoek een rekening, een fiche, een stuk… (Ctrl+K)"
       language: "Taal"
       apply: "Toepassen"
       user_menu: "Accountmenu"
@@ -117,6 +117,7 @@ nl:
       no_passkey: "Geen toegangssleutel geregistreerd."
       add_passkey: "Een toegangssleutel toevoegen"
     codes:
+      filename: "partiduo-herstelcodes.txt"
       title: "Herstelcodes"
       once: "Deze codes worden nooit meer getoond. Bewaar ze nu, buiten dit toestel."
       help: "Elke code werkt één keer, in plaats van de code van de authenticatie-app, als u uw toestel verliest."
@@ -188,6 +189,7 @@ nl:
       sent_title: "Controleer uw mailbox"
       sent: "Als het adres bij een account van dit dossier hoort, is er zonet een bericht naartoe gestuurd. De link erin werkt maar één keer."
     errors:
+      too_many_requests: "Te veel aanvragen vanaf dit adres: probeer het over enkele minuten opnieuw."
       not_found_title: "Pagina niet gevonden"
       not_found: "Deze pagina bestaat niet, of de module die ze levert is niet ingeschakeld voor dit dossier."
       forbidden_title: "Toegang geweigerd"
@@ -196,7 +198,7 @@ nl:
       unauthorized: "Meld u aan om deze pagina te openen."
       back: "Terug naar het dashboard"
     emails:
-      expires: "Deze link vervalt op %{at}."
+      expires: "Deze link vervalt op %{at} (UTC-tijd)."
       ignore: "Als u dit niet hebt aangevraagd, negeer dan dit bericht."
       password_reset:
         subject: "Partiduo: nieuw wachtwoord"
@@ -251,6 +253,7 @@ nl:
       invalid_number: "Geef een getal op (bijvoorbeeld 1.234,56)."
       invalid_date: "Geef een geldige datum op."
     fiscal_years:
+      csv_name: "boekjaren"
       intro: "Een boekjaar is verdeeld in maandelijkse periodes; een afgesloten periode aanvaardt geen verrichtingen meer."
       title: "Boekjaar %{label}"
       new: "Nieuw boekjaar"
@@ -290,6 +293,7 @@ nl:
       delete_period_confirm: "Deze periode verwijderen?"
       period_deleted: "Periode %{period} verwijderd."
     vat:
+      csv_name: "btw-tarieven"
       title: "Tarief %{code}"
       new: "Nieuw tarief"
       edit: "Tarief %{code} wijzigen"
@@ -315,6 +319,7 @@ nl:
       purchase_on_payment: "Btw aftrekbaar bij betaling (aankopen)"
       show_disabled: "Inactieve tarieven tonen"
     chart:
+      csv_name: "rekeningstelsel"
       title: "Rekening %{number} — %{label}"
       new: "Nieuwe rekening"
       new_child: "Nieuwe subrekening"
@@ -336,6 +341,8 @@ nl:
       kind_inherited: "Dat van de hoofdrekening"
       direct_use: "Bruikbaar bij het boeken"
       direct_use_short: "Boeken"
+      not_direct_use: "niet voor invoer"
+      level: "niveau %{level}:"
       direct_use_help: "Vink uit voor een groeperingsrekening."
       children: "Subrekeningen"
       summary: "Rekening"
@@ -345,6 +352,7 @@ nl:
       cards: "Gekoppelde fiches"
       no_card: "Geen enkele fiche is aan deze rekening gekoppeld."
     ledgers:
+      csv_name: "dagboeken"
       title: "Dagboek %{code} — %{name}"
       new: "Nieuw dagboek"
       edit: "Dagboek %{code} wijzigen"
@@ -360,8 +368,11 @@ nl:
       kind: "Type"
       description: "Beschrijving"
       default_account: "Standaardrekening"
-      default_account_help: "Verplicht voor een financieel dagboek (bank of kas)."
+      default_account_help: "Aankoop-, verkoop- of diverse dagboek: rekening voorgesteld bij de invoer."
+      bank_card: "Bankfiche"
+      bank_card_help: "Financieel dagboek: quick code van de bankfiche; de rekening van het dagboek is die van de fiche."
       currency: "Munt"
+      currency_default: "Boekhoudmunt van het dossier"
       access: "Uw toegang"
       summary: "Dagboek"
       receipts: "Nummering van de stukken"
@@ -373,6 +384,8 @@ nl:
       last_receipt: "Laatst toegekend nummer"
       next_receipt: "Volgend stuk"
     cards:
+      csv_name: "relaties"
+      csv_name_items: "artikelen"
       parties: "Derden"
       items: "Artikelen en diensten"
       title: "Fiche %{code} — %{name}"

@@ -46,7 +46,7 @@ module PartiduoUi
           flash["success"] = I18n.t("ui.fiscal_years.created", label: created.label)
           return go(reverse("core:fiscal_year", id: created.id))
         end
-        form.add_errors(result.errors)
+        form.add_errors(result.errors, fmt)
       end
       show(Partiduo::Api::Core.fiscal_years(current.actor), form, 422)
     end
@@ -77,7 +77,7 @@ module PartiduoUi
       if can?("core.fiscal_year.write")
         set_form(form, reverse("core:fiscal_years"), I18n.t("ui.fiscal_years.create"), title: I18n.t("ui.fiscal_years.new"))
       end
-      list_page(I18n.t("core.menu.core_fiscal_years"), table, crumbs[0, 1], "exercices",
+      list_page(I18n.t("core.menu.core_fiscal_years"), table, crumbs[0, 1], "ui.fiscal_years.csv_name",
         intro: I18n.t("ui.fiscal_years.intro"), status: status)
     end
 
@@ -118,7 +118,7 @@ module PartiduoUi
           flash["success"] = I18n.t("ui.fiscal_years.period_added", period: fmt.period(added.starts_on, added.ends_on))
           return go(reverse("core:fiscal_year", id: id_param))
         end
-        form.add_errors(result.errors)
+        form.add_errors(result.errors, fmt)
       end
       show(form, 422)
     end
@@ -268,7 +268,7 @@ module PartiduoUi
         begin
           period = Partiduo::Api::Core.period(current.actor, id)
           request.cookies.set(Shell::PERIOD_COOKIE, period.id.to_s, expires: Time.local + 365.days, http_only: true,
-            secure: request.secure?, same_site: "Lax")
+            secure: Current.secure_cookies?(request), same_site: "Lax")
         rescue Partiduo::Api::NotFound
         end
       end

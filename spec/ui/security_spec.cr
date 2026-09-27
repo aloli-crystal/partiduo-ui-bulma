@@ -19,10 +19,14 @@ describe "Sécurité du compte (ADR-002 D6)" do
   it "enrôle l'application d'authentification : QR code et secret base32, sans nommer d'application" do
     PartiduoUi::Accounts.create
     browser = PartiduoUi::Accounts.signed_in
+    # Le GET ne crée pas de secret : c'est le POST du bouton (CSRF).
+    browser.get("/account/totp").html.should contain(%(action="/account/totp/start"))
+    browser.post("/account/totp/start").headers["Location"].should eq("/account/totp")
     body = browser.get("/account/totp").html
     body.should contain(%(<svg class="pd-qr"))
     body.should contain(%(role="img" aria-label="QR code à scanner avec votre application d'authentification"))
-    secret = body.match!(/<p class="pd-secret"[^>]*><code>([A-Z2-7 ]+)<\/code>/)[1]
+    secret = body.match!(/<p class="pd-secret"[^>]*>.*?<code>([A-Z2-7 ]+)<\/code>/)[1]
+    body.should contain(%(<span class="is-sr-only">Secret à saisir à la main : </span>))
     secret.delete(' ').size.should eq(32)
     body.should contain("fondé sur le temps, 6 chiffres, 30 secondes")
     %w[Google Microsoft Authy FreeOTP Aegis 2FAS Bitwarden 1Password KeePass].each do |brand|

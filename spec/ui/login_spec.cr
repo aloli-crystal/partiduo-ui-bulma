@@ -59,7 +59,7 @@ describe "Connexion (ADR-002)" do
     3.times { login(browser, "Wrongpassword42abc") }
     throttled = login(browser, "Wrongpassword42abc")
     throttled.status.should eq(422)
-    throttled.html.should match(/Trop de tentatives : réessayez dans \d+ secondes\./)
+    throttled.html.should match(/Trop de tentatives : réessayez dans \d+ secondes?\./)
     throttled.html.should contain("/assets/ui/icons/sprite.svg#clock")
   end
 
@@ -158,13 +158,16 @@ describe "Connexion (ADR-002)" do
   it "envoie un lien de remise à zéro, avec la même réponse pour une adresse inconnue" do
     PartiduoUi::Accounts.create
     Marten::Emailing::Backend::Development.delivered_emails.clear
-    known = PartiduoUi::Browser.new.post("/password/forgotten", {"email" => "alice@example.com"}).html
+    known = PartiduoUi::Browser.new.post("/password/forgotten", {"email" => "Alice@Example.com"}).html
     unknown = PartiduoUi::Browser.new.post("/password/forgotten", {"email" => "nobody@example.com"}).html
     strip = ->(html : String) { html.gsub(/[A-Za-z0-9_-]{60,}/, "") }
     strip.call(known).should eq(strip.call(unknown))
     emails = Marten::Emailing::Backend::Development.delivered_emails
     emails.size.should eq(1)
-    link = emails.first.text_body.to_s.match!(/http:\/\/[^\s]+\/password\/reset\/(\S+)/)
+    emails.first.to.map(&.address).should eq(["alice@example.com"]) # adresse enregistrée, pas celle saisie
+    # Lien bâti sur le domaine configuré, pas sur l'en-tête Host de la requête.
+    # (instance sans société : domaine des instances, en .localhost en test).
+    link = emails.first.text_body.to_s.match!(/http:\/\/[a-z0-9.-]+\.localhost(?::\d+)?\/password\/reset\/(\S+)/)
     token = link[1]
 
     browser = PartiduoUi::Browser.new

@@ -13,10 +13,10 @@
         {% csrf_input %}
         <input type="hidden" name="next" value="{{ ui_path }}">
         <label class="is-sr-only" for="pd-lang">{% translate "ui.shell.language" %}</label>
-        <div class="select"><select id="pd-lang" name="locale" data-pd-autosubmit>
+        <div class="select"><select id="pd-lang" name="locale">
           {% for code in available_locales %}<option value="{{ code }}" lang="{{ code }}"{% if code == locale %} selected{% endif %}>{{ code|upcase }}</option>{% endfor %}
         </select></div>
-        <button class="button pd-nojs" type="submit">{% translate "ui.shell.apply" %}</button>
+        <button class="button" type="submit">{% translate "ui.shell.apply" %}</button>
       </form>
     </header>
     <main class="pd-auth" id="pd-main" tabindex="-1">

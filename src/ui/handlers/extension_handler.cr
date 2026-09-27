@@ -11,7 +11,8 @@ module PartiduoUi
       mount = Extensions[params["code"].to_s]?
       return ErrorPage.render(request, 404) if mount.nil?
 
-      path = "/#{params["path"]?}"
+      # `/ext/CODE` (sans barre finale) : chemin vide dans la carte de l'extension.
+      path = request.path == mount.path ? "" : "/#{params["path"]?}"
       route_name = Extensions.route_name(mount.routes, path, mount.namespace)
       case Extensions.authorize(current, mount, route_name)
       in .allowed?    then call_extension(mount, path)

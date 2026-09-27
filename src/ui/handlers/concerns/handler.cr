@@ -49,7 +49,8 @@ module PartiduoUi
     # (`base` pour l'ensemble) : `{"email" => ["…"], "base" => ["…"]}`.
     def errors_of(result) : Hash(String, Array(String))
       errors = {} of String => Array(String)
-      result.errors.each { |error| (errors[error.field] ||= [] of String) << error.message }
+      format = Format.new(I18n.locale)
+      result.errors.each { |error| (errors[error.field] ||= [] of String) << format.message(error) }
       errors
     end
 

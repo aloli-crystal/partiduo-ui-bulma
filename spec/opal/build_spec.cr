@@ -9,12 +9,12 @@ describe "Intégration d'Opal (ADR-001 D4, ADR-005 D5)" do
       File.exists?(File.join(PartiduoUi::OpalBuild::OUTPUT, "#{name}.js")).should be_true
     end
     Dir.glob(File.join(PartiduoUi::OpalBuild::OUTPUT, "*.js")).map { |path| File.basename(path, ".js") }.sort!
-      .should eq(PartiduoUi::OpalBuild.entries)
+      .should eq((PartiduoUi::OpalBuild.entries + ["runtime"]).sort)
   end
 
   it "a recompilé les paquets après la dernière modification des sources (bundle exec scripts/opal-build)" do
     digest = PartiduoUi::OpalBuild.sources_digest
-    PartiduoUi::OpalBuild.entries.each do |name|
+    (PartiduoUi::OpalBuild.entries + ["runtime"]).each do |name|
       PartiduoUi::OpalBuild.header(name).should contain("sources-sha256: #{digest}")
     end
   end
@@ -27,11 +27,22 @@ describe "Intégration d'Opal (ADR-001 D4, ADR-005 D5)" do
     end
   end
 
-  it "embarque le runtime Opal et le composant compilé" do
+  it "met le runtime Opal dans un paquet commun, et seulement l'écran dans son paquet (D-UI-023)" do
+    runtime = File.read(File.join(PartiduoUi::OpalBuild::OUTPUT, "runtime.js"))
+    runtime.should contain("var Opal = global_object.Opal = {};")
+    runtime.should contain("Opal.modules[\"partiduo_ui/boot\"]")
     javascript = File.read(File.join(PartiduoUi::OpalBuild::OUTPUT, "demo.js"))
-    javascript.should contain("var Opal = global_object.Opal = {};")
     javascript.should contain("Opal.modules[\"partiduo_ui/demo/counter\"]")
-    javascript.should contain("Opal.modules[\"partiduo_ui/boot\"]")
+    javascript.should_not contain("var Opal = global_object.Opal = {};")
+    javascript.should_not contain("Opal.modules[\"partiduo_ui/boot\"]")
+    # Plafonds : un écran ne rembarque jamais le runtime.
+    File.size(File.join(PartiduoUi::OpalBuild::OUTPUT, "demo.js")).should be < 50_000
+    File.size(File.join(PartiduoUi::OpalBuild::OUTPUT, "runtime.js")).should be < 900_000
+  end
+
+  it "charge le paquet commun avant celui de l'écran" do
+    template = File.read(PartiduoUi::SpecSupport.path("src", "ui", "templates", "ui", "about.html"))
+    template.index!("opal/runtime.js").should be < template.index!("opal/demo.js")
   end
 
   it "monte le compteur sur la page et réagit aux clics (DOM simulé)" do
@@ -75,7 +86,8 @@ describe "Intégration d'Opal (ADR-001 D4, ADR-005 D5)" do
 
     output = IO::Memory.new
     error = IO::Memory.new
-    status = Process.run(engine, [dom, File.join(PartiduoUi::OpalBuild::OUTPUT, "demo.js"), probe], output: output, error: error)
+    status = Process.run(engine, [dom, File.join(PartiduoUi::OpalBuild::OUTPUT, "runtime.js"),
+                                  File.join(PartiduoUi::OpalBuild::OUTPUT, "demo.js"), probe], output: output, error: error)
     status.success?.should be_true, "#{error}#{output}"
     output.to_s.lines.should eq(["monte=true affiche=5", "apres2clics=7", "apresremise=0", "ecouteurs=1"])
   ensure
@@ -99,7 +111,8 @@ describe "Intégration d'Opal (ADR-001 D4, ADR-005 D5)" do
 
     output = IO::Memory.new
     error = IO::Memory.new
-    status = Process.run(engine, [File.join(PartiduoUi::OpalBuild::OUTPUT, "demo.js"), probe], output: output, error: error)
+    status = Process.run(engine, [File.join(PartiduoUi::OpalBuild::OUTPUT, "runtime.js"),
+                                  File.join(PartiduoUi::OpalBuild::OUTPUT, "demo.js"), probe], output: output, error: error)
     status.success?.should be_true, "#{error}#{output}"
     output.to_s.lines.should eq(["valeur=4", "remise=0", "navigateur=false"])
   ensure

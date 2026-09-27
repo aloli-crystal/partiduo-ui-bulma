@@ -122,7 +122,10 @@
     {% else %}<p class="help">{% translate "ui.security.sensitive_help" %}</p>{% endif %}
     {% else %}
     <p class="mb-3">{% translate "ui.totp.intro" %}</p>
-    <a class="button is-link pd-touch" href="{% url 'account_totp' %}">{% translate "ui.totp.enable" %}</a>
+    <form method="post" action="{% url 'account_totp_start' %}">
+      {% csrf_input %}
+      <button class="button is-link pd-touch" type="submit">{% translate "ui.totp.enable" %}</button>
+    </form>
     {% endif %}
   </div>
 </section>

@@ -7,6 +7,11 @@ Marten.configure :production do |config|
   config.secret_key = ENV.fetch("MARTEN_SECRET_KEY")
   config.allowed_hosts = ENV.fetch("MARTEN_ALLOWED_HOSTS").split(',').map(&.strip).reject(&.empty?)
 
+  # TLS est terminé par le proxy (nginx, `deploy/templates/nginx-vhost.conf.tmpl`
+  # du cœur), qui doit être de confiance et poser `X-Forwarded-Proto` :
+  # `request.secure?` en dépend (cookies `Secure`, HSTS, D-UI-021).
+  config.use_x_forwarded_proto = true
+
   config.sessions.cookie_secure = true
   config.sessions.cookie_http_only = true
   config.csrf.cookie_secure = true
@@ -16,5 +21,5 @@ Marten.configure :production do |config|
   # Fichiers statiques collectés (`crystal run manage.cr -- collectassets`)
   # puis servis par Marten, compressés.
   config.assets.root = ENV["PARTIDUO_ASSETS_ROOT"]? || "assets"
-  config.middleware = [Marten::Middleware::AssetServing] + config.middleware
+  config.middleware = [PartiduoUi::StrictTransportSecurity, Marten::Middleware::AssetServing] + config.middleware
 end

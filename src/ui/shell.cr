@@ -103,7 +103,7 @@ module PartiduoUi
       session = current.session!
       settings = begin
         Partiduo::Api::Core.settings(actor)
-      rescue Partiduo::Api::NotFound
+      rescue Partiduo::Api::NotFound | Partiduo::Api::AccessDenied # session sous le niveau exigé
         nil
       end
       detail = settings.try do |values|

@@ -2,6 +2,8 @@
 
 require "./ext/request"
 require "./current"
+require "./strict_transport_security"
+require "./rate_limit"
 require "./navigation"
 require "./extensions"
 require "./format"

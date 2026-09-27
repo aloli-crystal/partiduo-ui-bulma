@@ -35,6 +35,9 @@ module UiTest
     path "/hidden", PageHandler, name: "hidden"
     # Permission que le manifeste ne déclare pas : jamais ouverte.
     path "/undeclared", PageHandler, name: "undeclared"
+    # Chemin vide (/ext/UITEST, sans barre finale) : passe lui aussi par le
+    # contrôle d'accès ; ni au montage ni au menu, donc jamais ouvert.
+    path "", PageHandler, name: "bare"
   end
 end
 

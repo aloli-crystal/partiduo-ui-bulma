@@ -5,7 +5,8 @@ module PartiduoUi
   # acteur et session du contrat `Partiduo::Api::Auth` (ADR-002, ADR-005 D2).
   #
   # Le cœur tient les sessions (révocation immédiate) ; l'interface ne garde
-  # que le jeton, dans un cookie `HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS.
+  # que le jeton, dans un cookie `HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS
+  # et *toujours* en production (`secure_cookies?`).
   class Current
     # Cookie du jeton de session.
     COOKIE = "partiduo_session"
@@ -40,8 +41,15 @@ module PartiduoUi
     # Ouvre la session dans le navigateur : pose le cookie du jeton.
     def self.open(request : Marten::HTTP::Request, token : String) : Nil
       expires = Partiduo::Api::Auth.session(token).try(&.expires_at)
-      request.cookies.set(COOKIE, token, expires: expires, http_only: true, secure: request.secure?, same_site: "Lax")
+      request.cookies.set(COOKIE, token, expires: expires, http_only: true, secure: secure_cookies?(request), same_site: "Lax")
       request.partiduo_current = nil
+    end
+
+    # Attribut `Secure` des cookies : en HTTPS, et toujours en production —
+    # même si le proxy n'indiquait pas `X-Forwarded-Proto`, un jeton ne part
+    # jamais en clair (D-UI-021).
+    def self.secure_cookies?(request : Marten::HTTP::Request) : Bool
+      request.secure? || Marten.env.production?
     end
 
     # Ferme la session : révoque le jeton côté cœur et efface le cookie.

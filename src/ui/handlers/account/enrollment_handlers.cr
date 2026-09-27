@@ -114,10 +114,20 @@ module PartiduoUi
 
   # Enrôlement de l'application d'authentification (TOTP, RFC 6238 : SHA-1,
   # 6 chiffres, 30 s) : QR code *et* secret base32, sans nommer aucune
-  # application (ADR-002).
+  # application (ADR-002). Le secret est créé par un POST
+  # (`TotpStartHandler`, protégé contre la falsification de requête) ; le GET
+  # n'affiche que le secret déjà en attente, ou le bouton qui le crée.
+  class TotpStartHandler < AccountHandler
+    def post
+      Partiduo::Api::Auth.begin_totp_enrollment(current.actor)
+      go(reverse("account_totp"))
+    end
+  end
+
   class TotpEnrollmentHandler < AccountHandler
     def get
-      enrollment = Partiduo::Api::Auth.begin_totp_enrollment(current.actor)
+      enrollment = Partiduo::Api::Auth.pending_totp_enrollment(current.actor)
+      return page("ui/account/totp.html", {"errors" => {} of String => Array(String)}) if enrollment.nil?
       page("ui/account/totp.html", {
         "qr"      => Marten::Template::SafeString.new(QrSvg.render(enrollment.qr_code, I18n.t("ui.totp.qr_label"))),
         "secret"  => QrSvg.group(enrollment.secret_base32),
@@ -131,7 +141,7 @@ module PartiduoUi
 
     # Confirmation par un premier code. En HTMX, un code refusé ne remplace
     # que le message d'erreur : le QR code affiché reste valable. Sans
-    # JavaScript, la page est reproposée avec un nouveau secret.
+    # JavaScript, la page est reproposée avec le même secret en attente.
     def post
       result = Partiduo::Api::Auth.confirm_totp_enrollment(current.actor, field("code").delete(' '))
       if result.failure?

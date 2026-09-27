@@ -1,6 +1,6 @@
 {# SPDX-License-Identifier: AGPL-3.0-or-later. À propos : versions et démonstration Opal (lot P). #}{% extend "ui/base.html" %}
 {% block title %}{% translate "ui.about.title" %}{% endblock title %}
-{% block scripts %}<script src="{% asset 'ui/js/opal/demo.js' %}" defer></script>{% endblock scripts %}
+{% block scripts %}<script src="{% asset 'ui/js/opal/runtime.js' %}" defer></script><script src="{% asset 'ui/js/opal/demo.js' %}" defer></script>{% endblock scripts %}
 {% block heading %}{% translate "ui.about.title" %}{% endblock heading %}
 {% block content %}
 <section class="pd-panel">

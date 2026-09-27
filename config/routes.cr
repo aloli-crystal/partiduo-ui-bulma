@@ -75,6 +75,7 @@ Marten.routes.draw do
   path "/account/security", PartiduoUi::SecurityHandler, name: "account_security"
   path "/account/password", PartiduoUi::PasswordChangeHandler, name: "account_password"
   path "/account/totp", PartiduoUi::TotpEnrollmentHandler, name: "account_totp"
+  path "/account/totp/start", PartiduoUi::TotpStartHandler, name: "account_totp_start"
   path "/account/totp/disable", PartiduoUi::TotpDisableHandler, name: "account_totp_disable"
   path "/account/recovery-codes", PartiduoUi::RecoveryCodesHandler, name: "account_recovery_codes"
   path "/account/passkeys/options", PartiduoUi::PasskeyRegistrationOptionsHandler, name: "account_passkey_options"
@@ -94,6 +95,10 @@ Marten.routes.draw do
   # l'extension. Les cartes de routes des extensions sont ajoutées par
   # PartiduoUi::App#setup, après ces deux règles : elles servent à nommer
   # les routes (`uitest:index`), jamais à les atteindre directement.
+  # `/ext/<CODE>` sans barre finale aussi : une route d'extension de chemin
+  # vide (`path ""`) serait sinon servie par la carte de l'extension, sans
+  # contrôle.
+  path "/ext/<code:str>", PartiduoUi::ExtensionHandler, name: "extension_bare"
   path "/ext/<code:str>/", PartiduoUi::ExtensionHandler, name: "extension_root"
   path "/ext/<code:str>/<path:path>", PartiduoUi::ExtensionHandler, name: "extension"
 

@@ -38,6 +38,13 @@ module PartiduoUi
     end
 
     # Prix : deux décimales, jusqu'à quatre si la saisie en porte plus.
+    # Prix dans un champ de saisie : sans séparateur de milliers (relu par
+    # `Format#parse_decimal`).
+    def input_price(value : BigDecimal?) : String
+      return "" if value.nil?
+      fmt.amount(value, value.round(2) == value ? 2 : 4, group: false)
+    end
+
     def price(value : BigDecimal?) : String
       return "" if value.nil?
       value.round(2) == value ? fmt.amount(value) : fmt.amount(value, 4)
@@ -83,8 +90,8 @@ module PartiduoUi
               Partiduo::Api::Vat.rates(current.actor).map { |rate| option(rate.id.to_s, "#{rate.code} — #{rate.label}") }
       Form::Group.new(I18n.t("ui.cards.item_group"), [
         Form::Field.new("unit_code", I18n.t("ui.cards.unit"), "select", input.unit_code || "C62", options: units),
-        Form::Field.new("sale_price", I18n.t("ui.cards.sale_price"), "number", price(input.sale_price), mono: true),
-        Form::Field.new("purchase_price", I18n.t("ui.cards.purchase_price"), "number", price(input.purchase_price), mono: true),
+        Form::Field.new("sale_price", I18n.t("ui.cards.sale_price"), "number", input_price(input.sale_price), mono: true),
+        Form::Field.new("purchase_price", I18n.t("ui.cards.purchase_price"), "number", input_price(input.purchase_price), mono: true),
         Form::Field.new("vat_rate_id", I18n.t("ui.cards.vat_rate"), "select", input.vat_rate_id.try(&.to_s) || "", options: rates),
       ])
     end
@@ -130,7 +137,7 @@ module PartiduoUi
       when "boolean"
         Form::Field.new(name, attribute.label, "checkbox", value.try(&.as_bool?) ? "1" : "")
       when "number"
-        Form::Field.new(name, attribute.label, "number", text.empty? ? "" : fmt.number(Format.parse_decimal(text), 6),
+        Form::Field.new(name, attribute.label, "number", text.empty? ? "" : fmt.input_number(Format.canonical_decimal(text)),
           required: attribute.required, mono: true)
       when "date"
         Form::Field.new(name, attribute.label, "date", text, required: attribute.required)
@@ -191,7 +198,7 @@ module PartiduoUi
     private def extra_value(value_type : String, name : String, text : String, form_errors) : JSON::Any
       case value_type
       when "number"
-        parsed = Format.parse_decimal(text)
+        parsed = fmt.parse_decimal(text)
         form_errors << {name, I18n.t("ui.forms.invalid_number")} unless parsed
         JSON::Any.new(parsed.try(&.to_s) || text)
       when "card"
@@ -216,7 +223,7 @@ module PartiduoUi
         item.value = field(item.name, strip: item.type != "textarea")
       end
       form_errors.each { |(name, message)| form.add_error(name, message) }
-      form.add_errors(errors)
+      form.add_errors(errors, fmt)
     end
 
     def category_param(name : String) : Partiduo::Api::Cards::CategoryView?
@@ -257,7 +264,7 @@ module PartiduoUi
       end
       intro = Partiduo::Api::Cards.count_cards(actor, card_query) > LIST_LIMIT ? I18n.t("ui.cards.truncated", count: LIST_LIMIT) : nil
       title = I18n.t(items ? "ui.cards.items" : "ui.cards.parties")
-      list_page(title, table, [crumb("core.menu.reference")], items ? "articles" : "tiers", actions, tabs(items),
+      list_page(title, table, [crumb("core.menu.reference")], items ? "ui.cards.csv_name_items" : "ui.cards.csv_name", actions, tabs(items),
         I18n.t("cards.menu.cards_list"), list_filters(items, categories, category_id, kinds, kind), intro, filter: false)
     end
 
@@ -466,7 +473,7 @@ module PartiduoUi
     private def attribute_text(value_type : String, value : JSON::Any) : String
       case value_type
       when "boolean" then yes_no(value.as_bool? || false)
-      when "number"  then fmt.number(Format.parse_decimal(json_text(value)), 6)
+      when "number"  then fmt.number(Format.canonical_decimal(json_text(value)), 6)
       when "date"    then fmt.date(fmt.parse_date(json_text(value)))
       else                json_text(value)
       end

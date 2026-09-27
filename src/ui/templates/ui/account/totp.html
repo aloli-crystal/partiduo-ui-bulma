@@ -5,6 +5,13 @@
 {% block content %}
 <div class="pd-panel">
   <div class="pd-body pd-totp">
+    {% if not secret %}
+    <p class="mb-3">{% translate "ui.totp.intro" %}</p>
+    <form method="post" action="{% url 'account_totp_start' %}">
+      {% csrf_input %}
+      <button class="button is-link pd-touch" type="submit">{% translate "ui.totp.enable" %}</button>
+    </form>
+    {% else %}
     <ol class="pd-steps">
       <li>
         <h2>{% translate "ui.totp.step_app" %}</h2>
@@ -16,7 +23,7 @@
           <figure class="pd-qr-box">{{ qr }}</figure>
           <div>
             <p>{% translate "ui.totp.manual" %}</p>
-            <p class="pd-secret" aria-label="{% translate 'ui.totp.secret_label' %}"><code>{{ secret }}</code></p>
+            <p class="pd-secret"><span class="is-sr-only">{% translate "ui.totp.secret_label" %} : </span><code>{{ secret }}</code></p>
             <dl class="pd-dl">
               <dt>{% translate "ui.totp.issuer" %}</dt><dd>{{ issuer }}</dd>
               <dt>{% translate "ui.totp.account" %}</dt><dd>{{ account }}</dd>
@@ -35,6 +42,7 @@
         {% include "ui/account/_totp_feedback.html" %}
       </li>
     </ol>
+    {% endif %}
   </div>
 </div>
 {% endblock content %}

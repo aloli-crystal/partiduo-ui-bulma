@@ -7,7 +7,7 @@
 {% if intro %}<p class="pd-muted mb-3">{{ intro }}</p>{% endif %}
 <section class="pd-panel" aria-label="{{ table.caption }}">
   <header class="pd-list-head">
-    {% if tabs %}<nav class="pd-tabs" aria-label="{{ tabs_label }}">{% for tab in tabs %}<a href="{{ tab.url }}"{% if tab.current %} aria-current="page"{% endif %}>{{ tab.label }}</a>{% endfor %}</nav>{% endif %}
+    {% if tabs %}<nav class="pd-tabs" id="{{ table.id }}-tabs" aria-label="{{ tabs_label }}">{% for tab in tabs %}<a href="{{ tab.url }}"{% if tab.current %} aria-current="page"{% endif %}>{{ tab.label }}</a>{% endfor %}</nav>{% endif %}
     {% include "ui/_filters.html" %}
   </header>
   {% include "ui/_table.html" %}

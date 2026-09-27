@@ -80,7 +80,7 @@ describe "Exercices et périodes" do
 
     # Barre supérieure : exercice et période de travail.
     top = browser.get("/").html
-    top.should contain(%(<select id="pd-period" name="period" data-pd-autosubmit>))
+    top.should contain(%(<select id="pd-period" name="period">)) # pas d'envoi au changement (WCAG 3.2.2)
     top.should contain(%(<optgroup label="2026">))
     top.should contain(">janvier 2026</option>")
   end
@@ -153,6 +153,15 @@ describe "Plan comptable" do
     page.should contain(%(<a href="/accounting/chart?class=4">Classe 4</a>))
     page.should contain(%(class="pd-depth-0 pd-class))
     page.should_not contain(%(aria-sort="ascending"))
+    # Accessibilité (relecture) : niveau lu par les technologies d'assistance,
+    # étiquette « hors saisie » en plus de la couleur, liens de tri et région
+    # d'état à identifiant stable, tri des filtres et onglets mis à jour hors bande.
+    page.should contain(%(<span class="is-sr-only">niveau 1 : </span>))
+    page.should contain(%(<span class="tag is-light">hors saisie</span>))
+    page.should contain(%(id="pd-table-sort-number"))
+    page.should contain(%(<p class="is-sr-only" role="status" id=))
+    page.should contain(%(hx-select-oob=))
+    page.should contain(%(hx-swap="outerHTML show:none"))
 
     class6 = browser.get("/accounting/chart?class=6").html
     class6.should contain(%(<a href="/accounting/chart?class=6" aria-current="page">Classe 6</a>))
@@ -165,6 +174,7 @@ describe "Plan comptable" do
 
     sorted = browser.get("/accounting/chart?class=5&sort=-number").html
     sorted.should contain(%(aria-sort="descending"))
+    sorted.should_not contain("pd-depth-") # l'arbre n'a plus de sens hors de l'ordre des numéros
     numbers = sorted.scan(/>(5\d*)<\/a><\/td>/).map(&.[1])
     numbers.should eq(numbers.sort.reverse!)
 
@@ -222,7 +232,18 @@ describe "Journaux" do
 
     refused = browser.post("/accounting/ledgers/new", {"name" => "Banque 2", "kind" => "financial", "currency_code" => "EUR", "enabled" => "1"})
     refused.status.should eq(422)
-    refused.html.should contain("Un journal financier a un compte de banque ou de caisse.")
+    refused.html.should contain("Un journal financier cite la fiche de sa banque ou de sa caisse.")
+
+    # Journal financier du jeu initial : sa fiche Banque, dont le compte est celui du journal.
+    financial = browser.get("/accounting/ledgers?kind=financial").html
+    id = financial.match!(%r{/accounting/ledgers/(\d+)"})[1]
+    detail = browser.get("/accounting/ledgers/#{id}").html
+    detail.should contain("Fiche de la banque")
+    detail.should contain("510001")
+
+    # Devise non choisie : la devise de tenue, décidée par le cœur.
+    browser.follow(browser.post("/accounting/ledgers/new", {"name" => "Divers 2", "kind" => "misc", "currency_code" => "", "enabled" => "1"}))
+      .html.should contain("EUR")
 
     response = browser.post("/accounting/ledgers/new", {"name" => "Achats import", "kind" => "purchase", "currency_code" => "EUR",
                                                         "receipt_prefix" => "IMP-", "receipt_padding" => "4", "enabled" => "1"})

@@ -26,7 +26,7 @@ module PartiduoUi
       end
 
       request.cookies.set(Current::PENDING_COOKIE, view.pending_token!, expires: 10.minutes.from_now,
-        http_only: true, secure: request.secure?, same_site: "Lax")
+        http_only: true, secure: Current.secure_cookies?(request), same_site: "Lax")
       params = {"factors" => view.second_factors.join(',')}
       params["next"] = next_path unless next_path == reverse("core:dashboard")
       go("#{reverse("login_second_factor")}?#{URI::Params.encode(params)}")
@@ -103,6 +103,9 @@ module PartiduoUi
   # options pour `navigator.credentials.get()`, puis vérification.
   class LoginPasskeyOptionsHandler < Handler
     def post
+      unless RateLimit.allow?(request, "passkey_options")
+        return json(PasskeyJson.outcome(false, error: I18n.t("ui.errors.too_many_requests")), 429)
+      end
       json(PasskeyJson.request(Partiduo::Api::Auth.begin_passkey_login(Partiduo::Api::Actor.anonymous)))
     end
   end
@@ -150,7 +153,7 @@ module PartiduoUi
       locale = field("locale")
       if Locale.available.includes?(locale)
         request.cookies.set(Marten.settings.i18n.locale_cookie_name, locale, expires: 1.year.from_now,
-          same_site: "Lax", secure: request.secure?)
+          same_site: "Lax", secure: Current.secure_cookies?(request))
       end
       go(Navigation.next_path(request, reverse("login")))
     end

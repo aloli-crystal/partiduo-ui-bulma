@@ -9,14 +9,15 @@ module PartiduoUi
     to @address
     subject I18n.t("ui.emails.#{@kind}.subject")
 
-    def initialize(@address : String, @kind : String, @link : String, @expires_at : Time)
+    def initialize(@address : String, @kind : String, @link : String, @expires_at : Time,
+                   @format : Format = Format.new(I18n.locale))
     end
 
     def text_body : String?
       String.build do |io|
         io << I18n.t("ui.emails.#{@kind}.intro") << "\n\n"
         io << @link << "\n\n"
-        io << I18n.t("ui.emails.expires", at: @expires_at.to_s("%Y-%m-%d %H:%M UTC")) << "\n"
+        io << I18n.t("ui.emails.expires", at: @format.datetime(@expires_at, Time::Location::UTC)) << "\n"
         io << I18n.t("ui.emails.ignore") << "\n"
       end
     end

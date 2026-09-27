@@ -43,6 +43,11 @@
   --pd-warn: #8a5700;
   --pd-warn-bg: #fdf1dc;
   --pd-focus: #1c8aa5;
+  /* Texte sur fond --bulma-primary (onglet courant, page courante) : 4,5:1 au
+     moins dans les deux thèmes (WCAG 1.4.3). */
+  --pd-on-primary: #ffffff;
+  /* Indicateur de focus sur le menu latéral foncé (WCAG 1.4.11). */
+  --pd-focus-on-dark: #7fd0e2;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -69,6 +74,7 @@
     --pd-warn: #f2b85a;
     --pd-warn-bg: #3a2d14;
     --pd-focus: #5cc3dc;
+    --pd-on-primary: #0f1719;
   }
 }
 
@@ -95,4 +101,5 @@
   --pd-warn: #f2b85a;
   --pd-warn-bg: #3a2d14;
   --pd-focus: #5cc3dc;
+  --pd-on-primary: #0f1719;
 }

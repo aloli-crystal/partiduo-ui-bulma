@@ -70,6 +70,15 @@ describe "Routes d'extension sous /ext/<CODE>/ (ADR-003 D3, ADR-005 D4)" do
     browser.get("/ext/UITEST/undeclared").status.should eq(403)
   end
 
+  it "contrôle aussi le chemin sans barre finale : jamais de handler atteint directement" do
+    activate_uitest
+    PartiduoUi::Accounts.create
+    response = PartiduoUi::Accounts.signed_in.get("/ext/UITEST")
+    response.status.should eq(403)
+    response.content.should_not contain("page UITEST")
+    PartiduoUi::Browser.new.get("/ext/UITEST").status.should eq(302) # anonyme : connexion
+  end
+
   it "renvoie une session sous le niveau exigé vers l'élévation" do
     activate_uitest
     PartiduoUi::Accounts.create(email: "compta@example.com", role: "accountant", profile: "ACCOUNTANT")

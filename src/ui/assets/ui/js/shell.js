@@ -1,9 +1,10 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later
    Liaison de la coquille au navigateur (DECISIONS D-UI-005), sans logique
-   d'écran : repli du menu latéral (tablette, téléphone), raccourci « / » vers
-   la recherche, envoi du choix de langue et de la période, impression des
-   codes, confirmation des commandes (data-pd-confirm). La page reste
-   utilisable sans JavaScript. */
+   d'écran : repli du menu latéral (tablette, téléphone), raccourci Ctrl+K
+   (⌘K) vers la recherche, impression des codes, confirmation des commandes
+   (data-pd-confirm). Aucun envoi de formulaire au changement d'une liste
+   (WCAG 3.2.2) : langue, période et catégorie ont leur bouton « Appliquer ».
+   La page reste utilisable sans JavaScript. */
 (function () {
   "use strict";
   var KEY = "partiduo.menu.collapsed";
@@ -53,13 +54,6 @@
     if (target.closest("[data-pd-print]")) { window.print(); }
   });
 
-  document.addEventListener("change", function (event) {
-    var target = event.target;
-    if (target instanceof HTMLSelectElement && target.hasAttribute("data-pd-autosubmit") && target.form) {
-      target.form.submit();
-    }
-  });
-
   document.addEventListener("submit", function (event) {
     var form = event.target;
     if (!(form instanceof HTMLFormElement)) return;
@@ -78,9 +72,9 @@
       }
       return;
     }
-    if (event.key !== "/" || event.ctrlKey || event.metaKey || event.altKey) return;
-    var active = document.activeElement;
-    if (active && (active.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(active.tagName))) return;
+    // Raccourci avec modificateur (WCAG 2.1.4) : jamais une touche de
+    // caractère seule, qui gênerait la commande vocale et les lecteurs d'écran.
+    if (!(event.key === "k" || event.key === "K") || !(event.ctrlKey || event.metaKey) || event.altKey || event.shiftKey) return;
     var search = document.querySelector("[data-pd-search]");
     if (search) { event.preventDefault(); search.focus(); }
   });
