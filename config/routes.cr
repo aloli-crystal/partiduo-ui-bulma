@@ -156,6 +156,8 @@ ACCOUNTING_ROUTES = Marten::Routing::Map.draw do
   path "/vat/returns/<id:int>/delete", PartiduoUi::VatReturnDeleteHandler, name: "vat_return_delete"
   path "/vat/returns/<id:int>/file", PartiduoUi::VatReturnFileHandler, name: "vat_return_file"
   path "/vat/settings", PartiduoUi::VatSettingsHandler, name: "vat_settings"
+  # Comptes des registres de la micro-entreprise (ADR-007 D2).
+  path "/micro-accounts", PartiduoUi::MicroAccountsHandler, name: "micro_accounts"
   path "/vat/rules/<regime:str>/<box:str>", PartiduoUi::VatRulesHandler, name: "vat_rules"
   path "/vat/reset-rules/<regime:str>", PartiduoUi::VatRulesResetHandler, name: "vat_rules_reset"
 end
@@ -285,6 +287,38 @@ FOLLOWUP_ROUTES = Marten::Routing::Map.draw do
   path "/tags/<id:int>/delete", PartiduoUi::FollowupTagDeleteHandler, name: "tag_delete"
 end
 
+# Module micro-entreprise (ADR-007 D1, D3 ; menus `micro:receipts`,
+# `purchases`, `urssaf`, `tax_return`, `thresholds`, `settings`) : livre des
+# recettes, registre des achats (saisie en quelques champs, annulation par
+# contre-passation, éditions `?format=csv|pdf`), aide URSSAF, 2042-C-PRO,
+# seuils, paramètres (natures, paramètres datés, natures des articles,
+# bascules guidées vers la TVA et le régime réel, republication vers la
+# Comptabilité), facture allégée. Module inactif : 404.
+MICRO_ROUTES = Marten::Routing::Map.draw do
+  path "/receipts", PartiduoUi::ReceiptsHandler, name: "receipts"
+  path "/receipts/new", PartiduoUi::ReceiptNewHandler, name: "receipt_new"
+  path "/receipts/<id:int>", PartiduoUi::ReceiptHandler, name: "receipt"
+  path "/receipts/<id:int>/reverse", PartiduoUi::ReceiptReverseHandler, name: "receipt_reverse"
+  path "/purchases", PartiduoUi::PurchasesHandler, name: "purchases"
+  path "/purchases/new", PartiduoUi::PurchaseNewHandler, name: "purchase_new"
+  path "/purchases/<id:int>", PartiduoUi::PurchaseHandler, name: "purchase"
+  path "/purchases/<id:int>/reverse", PartiduoUi::PurchaseReverseHandler, name: "purchase_reverse"
+  path "/urssaf", PartiduoUi::UrssafHandler, name: "urssaf"
+  path "/urssaf/declare", PartiduoUi::UrssafDeclareHandler, name: "urssaf_declare"
+  path "/tax-return", PartiduoUi::TaxReturnHandler, name: "tax_return"
+  path "/thresholds", PartiduoUi::ThresholdsHandler, name: "thresholds"
+  path "/settings", PartiduoUi::MicroSettingsHandler, name: "settings"
+  path "/natures", PartiduoUi::MicroNaturesHandler, name: "natures"
+  path "/natures/<id:int>", PartiduoUi::MicroNatureHandler, name: "nature"
+  path "/parameters", PartiduoUi::MicroParametersHandler, name: "parameters"
+  path "/parameters/<id:int>/delete", PartiduoUi::MicroParameterDeleteHandler, name: "parameter_delete"
+  path "/items", PartiduoUi::MicroItemNaturesHandler, name: "items"
+  path "/switch/vat", PartiduoUi::MicroVatSwitchHandler, name: "switch_vat"
+  path "/switch/real", PartiduoUi::MicroRealSwitchHandler, name: "switch_real"
+  path "/republish", PartiduoUi::MicroRepublishHandler, name: "republish"
+  path "/invoices/new", PartiduoUi::MicroInvoiceNewHandler, name: "invoice_new"
+end
+
 Marten.routes.draw do
   path "", CORE_ROUTES, name: "core"
   path "/cards", CARDS_ROUTES, name: "cards"
@@ -294,6 +328,9 @@ Marten.routes.draw do
   path "/analytic", ANALYTIC_ROUTES, name: "analytic"
   path "/stock", STOCK_ROUTES, name: "stock"
   path "/followup", FOLLOWUP_ROUTES, name: "followup"
+  path "/micro", MICRO_ROUTES, name: "micro"
+  # Mode simplifié ou complet, au choix du comptable (ADR-007 D3).
+  path "/mode", PartiduoUi::MicroModeHandler, name: "micro_mode"
 
   # Connexion (ADR-002).
   path "/login", PartiduoUi::LoginHandler, name: "login"

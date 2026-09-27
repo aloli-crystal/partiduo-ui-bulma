@@ -1,0 +1,61 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Tableau de bord du mode simplifié (ADR-007 D3) : boutons de saisie en tête (téléphone d'abord), chiffre d'affaires encaissé, dépensé, prochaine échéance URSSAF, jauges des seuils, dernières recettes, « À traiter ». Même charte que la maquette (tuiles, panneaux, liste « À traiter »). #}{% extend "ui/base.html" %}
+{% block title %}{% translate "ui.micro.menu.dashboard" %}{% endblock title %}
+{% block heading %}{% translate "ui.micro.menu.dashboard" %}{% endblock heading %}
+{% block actions %}{% if board.new_receipt_url %}<a class="button is-primary pd-touch" href="{{ board.new_receipt_url }}">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "ui.micro.receipt.new" %}</span></a><a class="button pd-touch" href="{{ board.new_purchase_url }}">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "ui.micro.purchase.new" %}</span></a>{% endif %}{% if board.new_invoice_url %}<a class="button pd-touch" href="{{ board.new_invoice_url }}">{% include "ui/_icon.html" with name="file-text" %}<span>{% translate "ui.micro.invoice.title" %}</span></a>{% endif %}{% endblock actions %}
+{% block content %}
+{% if suggest_passkey %}
+<div class="notification is-info is-light pd-callout" role="status">
+  {% include "ui/_icon.html" with name="key-round" %}
+  <div><p>{% translate "ui.dashboard.passkey_hint" %}</p><p><a href="{% url 'account_security' %}">{% translate "ui.security.title" %}</a></p></div>
+</div>
+{% endif %}
+{% if board.listed_tiles %}
+<div class="pd-tiles">
+  {% for tile in board.listed_tiles %}{% if tile.url %}<a class="pd-panel pd-tile" href="{{ tile.url }}" data-module="{{ tile.module_code }}">{% else %}<div class="pd-panel pd-tile" data-module="{{ tile.module_code }}">{% endif %}
+    <span class="lbl">{{ tile.label }}</span>
+    <span class="val">{{ tile.value }}</span>
+    {% if tile.alert %}<span class="sub"><span class="tag is-danger is-light">{{ tile.alert }}</span></span>{% endif %}
+    {% if tile.sub %}<span class="sub">{{ tile.sub }}</span>{% endif %}
+  {% if tile.url %}</a>{% else %}</div>{% endif %}{% endfor %}
+</div>
+{% endif %}
+<div class="pd-grid2">
+  <div>
+    <section class="pd-panel" aria-labelledby="pd-thresholds-title">
+      <header><h2 id="pd-thresholds-title">{% translate "ui.micro.dashboard.thresholds" year: board.year %}</h2><a class="is-size-7" href="{% url 'micro:thresholds' %}">{% translate "ui.dashboard.see_all" %}</a></header>
+      <div class="pd-body">
+      {% if board.listed_gauges %}
+        <ul class="pd-gauges">{% for gauge in board.listed_gauges %}<li>
+          <div class="pd-gauge-head"><span>{{ gauge.label }}</span><span class="pd-mono">{{ gauge.percent }}</span></div>
+          <div class="pd-gauge" role="img" aria-label="{{ gauge.label }} : {{ gauge.detail }}, {{ gauge.status }}"><span class="pd-gauge-bar pd-gauge-{{ gauge.tone }}" style="width: {{ gauge.width }}%"></span></div>
+          <small class="pd-muted">{{ gauge.detail }} · {{ gauge.status }}</small>
+        </li>{% endfor %}</ul>
+      {% else %}
+        <p class="pd-muted">{% translate "ui.micro.dashboard.no_threshold" %}</p>
+      {% endif %}
+      </div>
+    </section>
+    <section class="pd-panel" aria-labelledby="pd-recent-receipts">
+      <header><h2 id="pd-recent-receipts">{% translate "ui.micro.dashboard.recent_receipts" %}</h2><a class="is-size-7" href="{% url 'micro:receipts' %}">{% translate "ui.dashboard.see_all" %}</a></header>
+      {% if board.receipts %}
+      <div class="pd-scroll"><table class="table is-fullwidth is-hoverable is-narrow">
+        <caption class="is-sr-only">{% translate "ui.micro.dashboard.recent_receipts" %}</caption>
+        <thead><tr><th scope="col">{% translate "ui.micro.columns.date" %}</th><th scope="col">{% translate "ui.micro.receipt.party" %}</th><th scope="col" class="amount">{% translate "ui.micro.receipt.amount" %}</th></tr></thead>
+        <tbody>{% for row in board.receipts %}<tr><td class="pd-mono"><a class="pd-link" href="{{ row.url }}">{{ row.c0 }}</a></td><td>{{ row.c1 }}</td><td class="amount">{{ row.c2 }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      {% else %}
+      <div class="pd-body"><p class="pd-muted">{% translate "ui.micro.receipt.empty" %}</p></div>
+      {% endif %}
+    </section>
+  </div>
+  <section class="pd-panel" aria-labelledby="pd-todo-title">
+    <header><h2 id="pd-todo-title">{% translate "ui.dashboard.todo_title" %}</h2></header>
+    {% if board.listed_todos %}
+    <ul class="pd-todo">{% for todo in board.listed_todos %}<li>{% if todo.url %}<a href="{{ todo.url }}">{% else %}<span class="pd-todo-item">{% endif %}<span class="pd-dot pd-dot-{{ todo.tone }}" aria-hidden="true"></span><span><span>{{ todo.text }}</span>{% if todo.detail %}<small>{{ todo.detail }}</small>{% endif %}</span>{% if todo.url %}</a>{% else %}</span>{% endif %}</li>{% endfor %}</ul>
+    {% else %}
+    <div class="pd-body"><p>{% include "ui/_icon.html" with name="shield-check" %} {% translate "ui.dashboard.nothing_todo" %}</p></div>
+    {% endif %}
+    {% if board.deadline %}<div class="pd-body pd-muted is-size-7">{% translate "ui.micro.dashboard.deadline_note" period: board.deadline.period, date: board.deadline.due_on %}</div>{% endif %}
+  </section>
+</div>
+{% endblock content %}

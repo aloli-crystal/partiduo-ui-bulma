@@ -428,7 +428,9 @@ module PartiduoUi
       actions = [] of Screen::Action
       if can?(WRITE)
         actions << link_action("ui.invoicing.new_quote", "#{reverse("invoicing:document_new")}?kind=quote", icon: "plus")
-        actions << link_action("ui.invoicing.new_invoice", reverse("invoicing:invoice_new"), "primary", "plus")
+        # Mode simplifié (ADR-007 D3) : facture allégée, mêmes commandes.
+        invoice_url = SimpleMode.enabled?(request) ? reverse("micro:invoice_new") : reverse("invoicing:invoice_new")
+        actions << link_action("ui.invoicing.new_invoice", invoice_url, "primary", "plus")
       end
       list_page(I18n.t("invoicing.menu.inv_documents"), table, [crumb("core.menu.billing")], "ui.invoicing.csv_name", actions,
         tabs: tabs, tabs_label: I18n.t("ui.invoicing.kind"), filters: filters)

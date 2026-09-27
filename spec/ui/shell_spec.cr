@@ -81,7 +81,7 @@ describe "Coquille de l'écran (maquette, ADR-005 D5)" do
       body = browser.get("/").html
       body.should contain(%(<html lang="#{locale}">))
       body.should contain("<h1>#{title}</h1>")
-      body.should_not contain("translation missing")
+      body.should_not contain("missing translation")
     end
     browser.post("/language", {"locale" => "nl", "next" => "/"})
     browser.get("/").html.should contain("Hoofdnavigatie")

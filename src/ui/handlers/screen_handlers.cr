@@ -9,7 +9,10 @@ module PartiduoUi
       actor = current.actor
       active = Partiduo::Api::Modules.list(actor).select(&.active).map(&.code).to_set
       overview = Partiduo::Api::Auth.security_overview(actor)
-      board = Dashboard.new(actor, fmt, active).build
+      # Mode simplifié de la micro-entreprise (ADR-007 D3) : tableau de bord
+      # centré sur le chiffre d'affaires, les seuils et l'échéance URSSAF.
+      simple = SimpleMode.enabled?(request)
+      board = simple ? MicroDashboard.new(actor, fmt, active).build : Dashboard.new(actor, fmt, active).build
       # Compteurs des extensions (justificatifs à traiter…), en tête de « À traiter ».
       counts = Extensions.counts(actor)
       Extensions.counters.each do |counter|
@@ -23,7 +26,7 @@ module PartiduoUi
       modules = Partiduo::Api::Modules.list(actor).select { |item| item.active && item.kind != "socle" }.map do |item|
         {"code" => item.code, "name_key" => item.name_key, "extension" => item.kind == "extension"}
       end
-      page("ui/dashboard.html", {
+      page(simple ? "ui/micro/dashboard.html" : "ui/dashboard.html", {
         "board"           => board,
         "modules"         => listed(modules),
         "suggest_passkey" => overview.suggest_passkey,

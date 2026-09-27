@@ -1,0 +1,42 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Aide à la déclaration URSSAF (ADR-007 D1, D3) : prochaine déclaration et montants à reporter par catégorie (euros entiers), cotisations estimées, bouton « J'ai déclaré » ; échéances de l'année ; liens vers la 2042-C-PRO et les seuils. Variables : upcoming (UrssafHandler::Period), table, tabs, year, periodicity, flat_tax, declare_url, tax_return_url, thresholds_url. #}{% extend "ui/base.html" %}
+{% block title %}{{ title }}{% endblock title %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{{ title }}{% endblock heading %}
+{% block actions %}<a class="button pd-touch" href="{{ tax_return_url }}">{% include "ui/_icon.html" with name="file-text" %}<span>{% translate "ui.micro.menu.tax_return" %}</span></a><a class="button pd-touch" href="{{ thresholds_url }}">{% include "ui/_icon.html" with name="chart-pie" %}<span>{% translate "ui.micro.menu.thresholds" %}</span></a>{% endblock actions %}
+{% block content %}
+<p class="pd-muted mb-3">{% translate "ui.micro.urssaf.intro" %} {% translate "ui.micro.urssaf.periodicity" periodicity: periodicity %}</p>
+{% if upcoming %}
+<section class="pd-panel" aria-labelledby="pd-urssaf-next">
+  <header><h2 id="pd-urssaf-next">{% translate "ui.micro.urssaf.next" %} · {{ upcoming.label }}</h2><span class="tag {% if upcoming.late %}is-danger{% else %}is-info{% endif %} is-light">{{ upcoming.status_label }}</span></header>
+  <div class="pd-body">
+    <p class="mb-3">{% translate "ui.micro.urssaf.due_before" date: upcoming.due_on %}</p>
+    <div class="pd-scroll"><table class="table is-fullwidth is-narrow pd-table">
+      <caption class="is-sr-only">{% translate "ui.micro.urssaf.to_report" %}</caption>
+      <thead><tr><th scope="col">{% translate "ui.micro.urssaf.category" %}</th><th scope="col" class="amount">{% translate "ui.micro.urssaf.to_report" %}</th><th scope="col" class="amount pd-hide-s">{% translate "ui.micro.urssaf.exact" %}</th><th scope="col" class="amount">{% translate "ui.micro.urssaf.estimated" %}</th></tr></thead>
+      <tbody>{% for line in upcoming.lines %}<tr><th scope="row">{{ line.label }}</th><td class="amount pd-mono"><strong>{{ line.report }}</strong></td><td class="amount pd-mono pd-hide-s">{{ line.exact }}</td><td class="amount pd-mono">{{ line.contribution }}{% if line.rates %}<br><small class="pd-muted">{{ line.rates }}</small>{% endif %}</td></tr>{% endfor %}</tbody>
+      <tfoot><tr class="pd-class"><th scope="row">{% translate "ui.micro.urssaf.total" %}</th><td class="amount pd-mono">{{ upcoming.turnover }}</td><td class="pd-hide-s"></td><td class="amount pd-mono">{{ upcoming.total }}</td></tr></tfoot>
+    </table></div>
+    <p class="pd-muted is-size-7 mt-2">{% translate "ui.micro.urssaf.estimate_note" %}{% if flat_tax %} {% translate "ui.micro.urssaf.flat_tax_note" %}{% endif %}</p>
+    {% if upcoming.missing %}<div class="notification is-warning is-light pd-alert mt-3" role="status">{% include "ui/_icon.html" with name="triangle-alert" %}<p>{{ upcoming.missing }}</p></div>{% endif %}
+    {% if upcoming.can_declare %}
+    <form method="post" action="{{ declare_url }}" class="pd-form mt-3">
+      {% csrf_input %}
+      <input type="hidden" name="starts_on" value="{{ upcoming.starts_on }}">
+      <div class="field"><label class="label" for="pd-urssaf-reference">{% translate "ui.micro.urssaf.reference" %}</label>
+        <div class="control"><input class="input" type="text" id="pd-urssaf-reference" name="reference" maxlength="100" aria-describedby="pd-urssaf-reference-help"></div>
+        <p class="help" id="pd-urssaf-reference-help">{% translate "ui.micro.urssaf.reference_help" %}</p></div>
+      <div class="pd-form-actions"><button class="button is-primary pd-touch" type="submit">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.micro.urssaf.declare" %}</span></button></div>
+    </form>
+    {% endif %}
+  </div>
+</section>
+{% else %}
+<div class="notification is-success is-light pd-callout" role="status">{% include "ui/_icon.html" with name="check" %}<p>{% translate "ui.micro.urssaf.nothing" %}</p></div>
+{% endif %}
+<section class="pd-panel" aria-label="{{ table.caption }}">
+  <header class="pd-list-head">
+    <nav class="pd-tabs" aria-label="{% translate 'ui.micro.year' %}">{% for tab in tabs %}<a href="{{ tab.url }}"{% if tab.current %} aria-current="page"{% endif %}>{{ tab.label }}</a>{% endfor %}</nav>
+  </header>
+  {% include "ui/_table.html" %}
+</section>
+{% endblock content %}

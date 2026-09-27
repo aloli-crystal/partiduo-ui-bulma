@@ -392,3 +392,31 @@ img.pd-attachment-preview { min-height: 0; height: auto; object-fit: contain; }
 .pd-table td.pd-indent-1 { padding-inline-start: 1.5rem; }
 .pd-table td.pd-indent-2 { padding-inline-start: 2.5rem; }
 .pd-table td.pd-indent-3 { padding-inline-start: 3.5rem; }
+
+/* Mode simplifié de la micro-entreprise (ADR-007 D3) : saisie en quelques
+   champs sur une colonne au téléphone, montant en grand ; jauges des seuils. */
+.pd-quick { max-width: 44rem; }
+.pd-quick-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .75rem 1rem; }
+.pd-quick-grid .field { margin: 0; }
+.pd-quick-grid .pd-wide { grid-column: 1 / -1; }
+.pd-quick-line-grid { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr) minmax(0, 1.5fr); }
+.pd-quick-line-grid .pd-wide { grid-column: auto; }
+.pd-quick-line { margin-block-start: .75rem; }
+.pd-quick #pd-f-amount { font-size: 1.5rem; font-weight: 600; min-height: 3rem; }
+.pd-quick .input, .pd-quick select { min-height: 44px; }
+.pd-more { margin-block: 1rem; }
+.pd-more > summary { cursor: pointer; min-height: 44px; display: flex; align-items: center; font-weight: 600; color: var(--bulma-link); }
+.pd-more > summary:focus-visible { outline: 3px solid var(--pd-focus); outline-offset: 2px; }
+.pd-gauges { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 1rem; }
+.pd-gauge-head { display: flex; justify-content: space-between; gap: 1rem; font-size: .9rem; }
+.pd-gauge { height: .6rem; border-radius: .3rem; background: var(--pd-rule); overflow: hidden; margin-block: .3rem; }
+.pd-gauge-bar { display: block; height: 100%; background: var(--pd-ok); }
+.pd-gauge-warn { background: var(--pd-warn); }
+.pd-gauge-gap { background: var(--pd-gap); }
+
+@media (max-width: 767.98px) {
+  .pd-quick-grid, .pd-quick-line-grid { grid-template-columns: minmax(0, 1fr); }
+  .pd-quick-actions .button { width: 100%; }
+  .pd-simple .pd-actions { width: 100%; }
+  .pd-simple .pd-actions .button { flex: 1 1 100%; }
+}

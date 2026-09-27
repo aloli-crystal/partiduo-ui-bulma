@@ -1,0 +1,60 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Facture allégée du mode simplifié (ADR-007 D3) : client existant ou nouveau, trois lignes (désignation, quantité, prix), échéance ; mention 293 B apposée par la Facturation en franchise en base, taux choisi après la bascule vers la TVA. Le brouillon enregistré s'ouvre sur l'écran de la facture (validation, envoi, règlement). #}{% extend "ui/base.html" %}
+{% block title %}{{ title }}{% endblock title %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{{ title }}{% endblock heading %}
+{% block actions %}{% if full_url %}<a class="button pd-touch" href="{{ full_url }}">{% include "ui/_icon.html" with name="file-text" %}<span>{% translate "ui.micro.invoice.full_form" %}</span></a>{% endif %}{% endblock actions %}
+{% block content %}
+<section class="pd-panel pd-quick" aria-label="{{ title }}"><div class="pd-body">
+<form method="post" action="{{ form_action }}" class="pd-form" novalidate>
+  {% csrf_input %}
+  {% if base_errors %}<div class="notification is-danger is-light pd-alert" role="alert">{% include "ui/_icon.html" with name="triangle-alert" %}<div>{% for message in base_errors %}<p>{{ message }}</p>{% endfor %}</div></div>{% endif %}
+  <fieldset class="pd-fieldset">
+    <legend>{% translate "ui.micro.invoice.customer" %}</legend>
+    <div class="pd-quick-grid">
+      <div class="field">
+        <label class="label" for="pd-mi-customer">{% translate "ui.micro.invoice.customer_choice" %}</label>
+        <div class="control"><div class="select is-fullwidth"><select id="pd-mi-customer" name="customer_id"{% if customer_errors %} aria-invalid="true" aria-describedby="pd-mi-customer-errors"{% endif %}>{% for option in customer_options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div></div>
+        {% include "ui/_errors.html" with messages=customer_errors, id="pd-mi-customer-errors" %}
+      </div>
+      <div class="field">
+        <label class="label" for="pd-mi-customer-name">{% translate "ui.micro.invoice.customer_name" %}</label>
+        <div class="control"><input class="input" type="text" id="pd-mi-customer-name" name="customer_name" value="{{ customer_name }}" maxlength="100" aria-describedby="pd-mi-customer-name-help{% if customer_name_errors %} pd-mi-customer-name-errors{% endif %}"{% if customer_name_errors %} aria-invalid="true"{% endif %}></div>
+        <p class="help" id="pd-mi-customer-name-help">{% translate "ui.micro.invoice.customer_name_help" %}</p>
+        {% include "ui/_errors.html" with messages=customer_name_errors, id="pd-mi-customer-name-errors" %}
+      </div>
+    </div>
+  </fieldset>
+  {% for line in lines %}
+  <fieldset class="pd-fieldset pd-quick-line">
+    <legend>{% translate "ui.micro.invoice.line" number: line.number %}</legend>
+    <div class="pd-quick-grid pd-quick-line-grid">
+      <div class="field pd-wide"><label class="label" for="pd-ml{{ line.index }}-description">{% translate "ui.micro.invoice.description" %}</label>
+        <div class="control"><input class="input" type="text" id="pd-ml{{ line.index }}-description" name="line-{{ line.index }}-description" value="{{ line.description }}" maxlength="500"{% if line.errors %} aria-invalid="true" aria-describedby="{{ line.error_id }}"{% endif %}></div></div>
+      <div class="field"><label class="label" for="pd-ml{{ line.index }}-quantity">{% translate "ui.micro.invoice.quantity" %}</label>
+        <div class="control"><input class="input pd-mono" type="text" inputmode="decimal" id="pd-ml{{ line.index }}-quantity" name="line-{{ line.index }}-quantity" value="{{ line.quantity }}"></div></div>
+      <div class="field"><label class="label" for="pd-ml{{ line.index }}-price">{% if franchise %}{% translate "ui.micro.invoice.price" %}{% else %}{% translate "ui.micro.invoice.price_net" %}{% endif %}</label>
+        <div class="control"><input class="input pd-mono" type="text" inputmode="decimal" id="pd-ml{{ line.index }}-price" name="line-{{ line.index }}-price" value="{{ line.price }}"></div></div>
+    </div>
+    {% include "ui/_errors.html" with messages=line.errors, id=line.error_id %}
+  </fieldset>
+  {% endfor %}
+  <fieldset class="pd-fieldset">
+    <legend>{% translate "ui.micro.invoice.terms" %}</legend>
+    <div class="pd-quick-grid">
+      <div class="field"><label class="label" for="pd-mi-due">{% translate "ui.micro.invoice.due_date" %}</label>
+        <div class="control"><input class="input" type="date" id="pd-mi-due" name="due_date" value="{{ due_date }}" aria-describedby="pd-mi-due-help{% if due_errors %} pd-mi-due-errors{% endif %}"{% if due_errors %} aria-invalid="true"{% endif %}></div>
+        <p class="help" id="pd-mi-due-help">{% translate "ui.micro.invoice.due_help" %}</p>
+        {% include "ui/_errors.html" with messages=due_errors, id="pd-mi-due-errors" %}</div>
+      {% if rate_options %}<div class="field"><label class="label" for="pd-mi-rate">{% translate "ui.micro.invoice.vat_rate" %}</label>
+        <div class="control"><div class="select is-fullwidth"><select id="pd-mi-rate" name="vat_rate_id"{% if rate_errors %} aria-invalid="true" aria-describedby="pd-mi-rate-errors"{% endif %}>{% for option in rate_options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div></div>
+        {% include "ui/_errors.html" with messages=rate_errors, id="pd-mi-rate-errors" %}</div>{% endif %}
+    </div>
+    {% if franchise %}<p class="help pd-muted">{% include "ui/_icon.html" with name="percent" %} {% translate "ui.micro.invoice.franchise_note" %}</p>{% endif %}
+  </fieldset>
+  <div class="pd-form-actions pd-quick-actions">
+    <button class="button is-primary pd-touch" type="submit">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.micro.invoice.save" %}</span></button>
+    <a href="{% url 'invoicing:documents' %}">{% translate "ui.forms.cancel" %}</a>
+  </div>
+</form>
+</div></section>
+{% endblock content %}

@@ -71,8 +71,29 @@ describe "Accessibilité (WCAG 2.2 AA)" do
       response = browser.get(path)
       response.status.should eq(200), "#{path} : #{response.status}"
       check_accessibility(response.html, path)
-      response.html.should_not contain("translation missing")
+      response.html.should_not contain("missing translation")
     end
+  end
+
+  it "respecte les règles automatisables sur les écrans du mode simplifié (ADR-007 D3)" do
+    browser = PartiduoUi::Books.admin
+    system = PartiduoUi::Books.system
+    Partiduo::Api::Modules.activate(system, "MICRO").success?.should be_true
+    Partiduo::Api::Micro.load_defaults(system)
+    nature = Partiduo::Api::Micro.natures(system, "receipt").first
+    line = Partiduo::Api::Micro.record_receipt(system, Partiduo::Api::Micro::ReceiptInput.new(
+      date: PartiduoUi::Books.date("2026-03-10"), nature_id: nature.id, amount: PartiduoUi::Books.d("50"), method: "cash")).value!
+    ["/", "/micro/receipts", "/micro/receipts/new", "/micro/receipts/#{line.id}", "/micro/purchases", "/micro/purchases/new",
+     "/micro/urssaf", "/micro/tax-return", "/micro/thresholds", "/micro/settings", "/micro/invoices/new"].each do |path|
+      response = browser.get(path)
+      response.status.should eq(200), "#{path} : #{response.status}"
+      check_accessibility(response.html, path)
+      response.html.should_not contain("missing translation")
+    end
+    refused = browser.post("/micro/receipts/new", {"amount" => "x", "date" => "2026-03-10", "nature_id" => nature.id.to_s, "method" => "cash"})
+    refused.status.should eq(422)
+    check_accessibility(refused.html, "/micro/receipts/new (refus)")
+    refused.html.should contain(%(aria-invalid="true"))
   end
 
   it "respecte les règles automatisables sur l'enrôlement" do

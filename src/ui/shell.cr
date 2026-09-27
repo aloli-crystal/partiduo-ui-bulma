@@ -58,6 +58,13 @@ module PartiduoUi
     getter fiscal_year : String?
     getter period : String?
     getter period_groups : Array(PeriodGroup)?
+    # Mode simplifié de la micro-entreprise (`SimpleMode`, ADR-007 D3) ;
+    # `mode_target` : mode proposé au comptable (`simple` ou `full`) ;
+    # `settings_url` : paramètres de la micro-entreprise, dans le menu de
+    # l'utilisateur en mode simplifié.
+    property simple : Bool = false
+    property mode_target : String? = nil
+    property settings_url : String? = nil
 
     # Une période proposée dans la barre supérieure.
     class PeriodOption
@@ -119,9 +126,11 @@ module PartiduoUi
       end
 
       period = period_values(request, actor, format)
-      new(
-        sections: sections(Partiduo::Api::Modules.menu(actor), extension_codes(actor), request.path,
-          Extensions.counts(actor)),
+      simple = SimpleMode.enabled?(request)
+      menu = Partiduo::Api::Modules.menu(actor)
+      counts = Extensions.counts(actor)
+      shell = new(
+        sections: simple ? SimpleMode.sections(menu, request.path, counts) : sections(menu, extension_codes(actor), request.path, counts),
         company_name: settings.try(&.company_name.presence),
         company_detail: detail,
         user_name: session.full_name,
@@ -134,6 +143,10 @@ module PartiduoUi
         period: period[:period],
         period_groups: period[:period_groups],
       )
+      shell.simple = simple
+      shell.mode_target = SimpleMode.switch_target(request)
+      shell.settings_url = resolve("micro:settings") if simple && actor.can?("micro.settings.write")
+      shell
     end
 
     # Exercice et période de travail, et les périodes des exercices

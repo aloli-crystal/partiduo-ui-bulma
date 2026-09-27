@@ -208,6 +208,32 @@ D-UI-047).
 
 Décisions D-UI-051 à D-UI-056 (DECISIONS du cœur).
 
+== Mode simplifié de la micro-entreprise (ADR-007 D3)
+
+Quand le module `MICRO` est actif, un utilisateur de la société voit un
+menu réduit (Tableau de bord, Recettes, Achats, Factures, URSSAF,
+Justificatifs), un tableau de bord centré sur le chiffre d'affaires
+encaissé, les seuils et la prochaine échéance URSSAF, et un vocabulaire
+courant (« encaissé », « dépensé »). Le comptable (rôle `accountant`) reste
+en mode complet et passe d'un mode à l'autre par le menu de l'utilisateur
+(`POST /mode`). Code : `src/ui/simple_mode.cr`, `src/ui/micro_dashboard.cr`,
+`src/ui/handlers/micro/`, gabarits `templates/ui/micro/`.
+
+[cols="2,5",options="header"]
+|===
+|Adresse |Écran
+
+|`/micro/receipts`, `/micro/purchases` |Livre des recettes, registre des achats : année, total, éditions CSV et PDF du contrat
+|`/micro/receipts/new`, `/micro/purchases/new` |Saisie en quelques champs pensée pour le téléphone (montant, date, nature, règlement, nom, photo du justificatif)
+|`/micro/receipts/<id>`, `…/reverse` |Consultation, annulation par contre-passation datée du jour
+|`/micro/urssaf`, `…/declare` |Montants à reporter, cotisations estimées, échéances, déclaration notée
+|`/micro/tax-return`, `/micro/thresholds` |Montants de la 2042-C-PRO, seuils de l'année
+|`/micro/settings` |Périodicité, versement libératoire, début d'activité, nature par défaut
+|`/micro/invoices/new` |Facture allégée (commandes de la Facturation ; taux de franchise, donc mention 293 B, d'office)
+|===
+
+Décisions D-UI-061 à D-UI-067 (DECISIONS du cœur).
+
 == Authentification (ADR-002)
 
 [cols="2,3",options="header"]
