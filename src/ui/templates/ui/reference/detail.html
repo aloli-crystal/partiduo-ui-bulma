@@ -1,0 +1,19 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Écran de consultation d'un élément du référentiel : rubriques (définitions, tableaux, notes), actions, formulaire facultatif. #}{% extend "ui/base.html" %}
+{% block title %}{{ title }}{% endblock title %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{{ title }}{% if status %} <span class="tag is-light pd-status-tag">{{ status }}</span>{% endif %}{% endblock heading %}
+{% block actions %}{% for action in actions %}{% include "ui/_action.html" %}{% endfor %}{% endblock actions %}
+{% block content %}
+{% if intro %}<p class="pd-muted mb-3">{{ intro }}</p>{% endif %}
+<div class="pd-sections">
+{% for section in sections %}
+<section class="pd-panel" aria-labelledby="{{ section.anchor }}">
+  <header><h2 id="{{ section.anchor }}">{{ section.title }}</h2>{% if section.actions %}<div class="pd-row-actions">{% for action in section.actions %}{% include "ui/_action.html" %}{% endfor %}</div>{% endif %}</header>
+  {% if section.items %}<div class="pd-body"><dl class="pd-dl pd-detail">{% for item in section.items %}<dt>{{ item.label }}</dt><dd{% if item.mono %} class="pd-mono"{% endif %}>{% if item.url %}<a class="pd-link" href="{{ item.url }}">{{ item.value }}</a>{% else %}{{ item.value }}{% endif %}</dd>{% endfor %}</dl></div>{% endif %}
+  {% if section.note %}<div class="pd-body"><p class="pd-muted">{{ section.note }}</p></div>{% endif %}
+  {% if section.table %}{% include "ui/_table.html" with table=section.table %}{% endif %}
+</section>
+{% endfor %}
+</div>
+{% if form %}{% include "ui/_form_panel.html" %}{% endif %}
+{% endblock content %}

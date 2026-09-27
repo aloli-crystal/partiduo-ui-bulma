@@ -15,6 +15,23 @@
           <strong>{{ shell.company_name|default:"—" }}</strong>
           {% if shell.company_detail %}<span>{{ shell.company_detail }}</span>{% endif %}
         </div>
+        {% if shell.period_groups %}
+        <form class="pd-period" method="post" action="{% url 'core:current_period' %}" aria-label="{% translate 'ui.shell.period_group' %}">
+          {% csrf_input %}
+          <input type="hidden" name="next" value="{{ shell.current_path }}">
+          <div>
+            <span class="pd-period-label">{% translate "ui.shell.fiscal_year" %}</span>
+            <span class="pd-period-value">{{ shell.fiscal_year|default:"—" }}</span>
+          </div>
+          <div>
+            <label class="pd-period-label" for="pd-period">{% translate "ui.shell.period" %}</label>
+            <div class="select is-small"><select id="pd-period" name="period" data-pd-autosubmit>
+              {% for group in shell.period_groups %}<optgroup label="{{ group.label }}">{% for option in group.options %}<option value="{{ option.id }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</optgroup>{% endfor %}
+            </select></div>
+          </div>
+          <button class="button is-small pd-nojs" type="submit">{% translate "ui.shell.apply" %}</button>
+        </form>
+        {% else %}
         <div class="pd-period" role="group" aria-label="{% translate 'ui.shell.period_group' %}">
           <div>
             <span class="pd-period-label">{% translate "ui.shell.fiscal_year" %}</span>
@@ -25,6 +42,7 @@
             <span class="pd-period-value">{% if shell.period %}{{ shell.period }}{% else %}—{% endif %}</span>
           </div>
         </div>
+        {% endif %}
         <form class="pd-grow pd-search" role="search" action="{% url 'search' %}" method="get">
           <label class="is-sr-only" for="pd-search">{% translate "ui.shell.search_label" %}</label>
           <input class="input" id="pd-search" name="q" type="search" placeholder="{% translate 'ui.shell.search_placeholder' %}" autocomplete="off" data-pd-search>

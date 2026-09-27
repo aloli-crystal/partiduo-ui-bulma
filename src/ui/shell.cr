@@ -51,23 +51,54 @@ module PartiduoUi
     getter locale : String
     getter locales : Array(String)
     getter current_path : String
+    getter fiscal_year : String?
+    getter period : String?
+    getter period_groups : Array(PeriodGroup)?
+
+    # Une période proposée dans la barre supérieure.
+    class PeriodOption
+      include Marten::Template::Object::Auto
+
+      getter id : Int64
+      getter label : String
+      getter selected : Bool
+
+      def initialize(@id, @label, @selected)
+      end
+    end
+
+    # Les périodes d'un exercice (`<optgroup>`).
+    class PeriodGroup
+      include Marten::Template::Object::Auto
+
+      getter label : String
+      getter options : Array(PeriodOption)
+
+      def initialize(@label, @options)
+      end
+    end
+
+    # Cookie de la période choisie dans la barre supérieure.
+    PERIOD_COOKIE = "partiduo_period"
 
     def initialize(@sections, @company_name, @company_detail, @user_name, @user_email, @user_role_key,
-                   @locale, @locales, @current_path)
+                   @locale, @locales, @current_path, @fiscal_year = nil, @period = nil, @period_groups = nil)
       @user_initials = initials(@user_name.presence || @user_email)
     end
 
-    # Exercice et période courants (ADR-005 D5). Le contrat n'expose pas
-    # encore les exercices (lot 1) : la barre affiche « aucun exercice ».
-    def fiscal_year : String?
-      nil
+    # Période de travail : celle choisie dans la barre supérieure (cookie),
+    # sinon la période courante du socle (`Api::Core.current_period`).
+    def self.working_period(request : Marten::HTTP::Request, actor : Partiduo::Api::Actor) : Partiduo::Api::Core::PeriodView?
+      if chosen = request.cookies[PERIOD_COOKIE]?.try(&.to_i64?)
+        begin
+          return Partiduo::Api::Core.period(actor, chosen)
+        rescue Partiduo::Api::NotFound
+        end
+      end
+      Partiduo::Api::Core.current_period(actor)
     end
 
-    def period : String?
-      nil
-    end
-
-    def self.build(request : Marten::HTTP::Request, current : Current) : Shell
+    def self.build(request : Marten::HTTP::Request, current : Current, format : Format = Format.new(I18n.locale)) : Shell
       actor = current.actor
       session = current.session!
       settings = begin
@@ -83,6 +114,7 @@ module PartiduoUi
         parts.join(" · ").presence
       end
 
+      period = period_values(request, actor, format)
       new(
         sections: sections(Partiduo::Api::Modules.menu(actor), extension_codes(actor), request.path),
         company_name: settings.try(&.company_name.presence),
@@ -93,7 +125,36 @@ module PartiduoUi
         locale: I18n.locale,
         locales: Locale.available,
         current_path: request.full_path,
+        fiscal_year: period[:fiscal_year],
+        period: period[:period],
+        period_groups: period[:period_groups],
       )
+    end
+
+    # Exercice et période de travail, et les périodes des exercices
+    # ouverts pour le choix dans la barre supérieure (ADR-005 D5).
+    private def self.period_values(request : Marten::HTTP::Request, actor : Partiduo::Api::Actor, format : Format)
+      working = begin
+        working_period(request, actor)
+      rescue Partiduo::Api::AccessDenied
+        return {fiscal_year: nil.as(String?), period: nil.as(String?), period_groups: nil.as(Array(PeriodGroup)?)}
+      end
+      groups = Partiduo::Api::Core.fiscal_years(actor).reject(&.closed?).compact_map do |year|
+        next if year.periods.empty?
+        PeriodGroup.new(year.label, year.periods.map do |item|
+          label = format.period(item.starts_on, item.ends_on)
+          label = I18n.t("ui.shell.period_closed", period: label) if item.closed?
+          PeriodOption.new(item.id, label, item.id == working.try(&.id))
+        end)
+      end
+      if working && groups.none?(&.options.any?(&.selected))
+        groups.unshift(PeriodGroup.new(working.fiscal_year_label, [PeriodOption.new(working.id, format.period(working.starts_on, working.ends_on), true)]))
+      end
+      {
+        fiscal_year:   working.try(&.fiscal_year_label).as(String?),
+        period:        working.try { |item| format.period(item.starts_on, item.ends_on) }.as(String?),
+        period_groups: (groups.empty? ? nil : groups).as(Array(PeriodGroup)?),
+      }
     end
 
     # Rubriques du menu : d'abord les domaines, puis les extensions (ADR-005 D5).

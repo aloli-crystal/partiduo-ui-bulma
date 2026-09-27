@@ -7,7 +7,10 @@ module PartiduoUi
     before_dispatch :activate_user_locale
 
     rescue_from Partiduo::Api::AccessDenied do
-      if error.is_a?(Partiduo::Api::Auth::ElevationRequired)
+      if error.is_a?(Partiduo::Api::ModuleDisabled)
+        # Module inactif : l'écran n'existe pas sur cette instance (ADR-006).
+        ErrorPage.render(request, 404)
+      elsif error.is_a?(Partiduo::Api::Auth::ElevationRequired)
         flash["warning"] = I18n.t(error.as(Partiduo::Api::AccessDenied).key)
         Navigation.redirect(request, reverse("account_security"))
       else
@@ -102,8 +105,62 @@ module PartiduoUi
     private def add_shell
       current = self.current
       return if current.enrollment? || !current.authenticated?
-      context["shell"] = Shell.build(request, current)
+      context["shell"] = Shell.build(request, current, fmt)
       nil
+    end
+
+    @fmt : Format?
+    @settings_country : String?
+    @active_modules : Set(String)?
+
+    # Présentation des nombres et des dates : langue de l'utilisateur, pays
+    # de la société.
+    def fmt : Format
+      @fmt ||= Format.new(I18n.locale, company_country)
+    end
+
+    def company_country : String
+      @settings_country ||= begin
+        Partiduo::Api::Core.settings(current.actor).country_code
+      rescue Partiduo::Api::NotFound | Partiduo::Api::AccessDenied
+        ""
+      end
+    end
+
+    def can?(permission : String) : Bool
+      current.actor.can?(permission)
+    end
+
+    # Module ou extension actif sur l'instance (`Api::Modules.list`).
+    def module_active?(code : String) : Bool
+      (@active_modules ||= Partiduo::Api::Modules.list(current.actor).select(&.active).map(&.code).to_set).includes?(code)
+    end
+
+    def id_param(name : String = "id") : Int64
+      params[name].to_s.to_i64
+    end
+
+    # Liste préparée : filtre `q`, tri `sort`, puis export CSV
+    # (`format=csv`) ou page `page`.
+    def prepare(table : Table, filter : Bool = true) : Table
+      table.filter!(query("q")) if filter
+      table.sort!(query("sort")) unless query("sort").empty?
+      table.paginate!(query("page").to_i? || 1) unless csv?
+      table
+    end
+
+    def csv? : Bool
+      query("format") == "csv"
+    end
+
+    def csv_response(table : Table, name : String) : Marten::HTTP::Response
+      response = Marten::HTTP::Response.new(content: table.to_csv(fmt), content_type: "text/csv; charset=utf-8")
+      response["Content-Disposition"] = %(attachment; filename="#{name}-#{Time.local.to_s("%Y%m%d")}.csv")
+      response
+    end
+
+    def crumb(label_key : String, url : String? = nil) : Screen::Crumb
+      Screen::Crumb.new(I18n.t(label_key), url)
     end
   end
 end

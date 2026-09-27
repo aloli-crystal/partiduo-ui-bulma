@@ -5,3 +5,12 @@ Globs:
 
 Excluded:
   - lib/
+
+# Objets exposés aux gabarits Marten : un attribut booléen doit s'appeler sans
+# `?` pour être lu dans un gabarit (`{% if field.checked %}`), DECISIONS D-UI-016.
+Naming/QueryBoolMethods:
+  Excluded:
+    - src/ui/form.cr
+    - src/ui/table.cr
+    - src/ui/screen.cr
+    - src/ui/shell.cr

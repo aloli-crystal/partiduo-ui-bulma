@@ -51,6 +51,30 @@ describe "Accessibilité (WCAG 2.2 AA)" do
     end
   end
 
+  it "respecte les règles automatisables sur les écrans du référentiel" do
+    PartiduoUi::Reference.provision
+    PartiduoUi::Accounts.create
+    browser = PartiduoUi::Accounts.signed_in
+    year = PartiduoUi::Reference.fiscal_year(2026)
+    customer = PartiduoUi::Reference.category("CUSTOMER")
+    card = Partiduo::Api::Cards.create_card(Partiduo::Api::Actor.system,
+      Partiduo::Api::Cards::CardInput.new(category_id: customer.id, name: "Morel")).value!
+    account = Partiduo::Api::Accounting.account(Partiduo::Api::Actor.system, "400")
+    ledger = Partiduo::Api::Accounting.ledgers(Partiduo::Api::Actor.system).first
+    rate = Partiduo::Api::Vat.rates(Partiduo::Api::Actor.system).first
+    paths = ["/fiscal-years", "/fiscal-years/#{year.id}", "/accounting/chart", "/accounting/chart/new",
+             "/accounting/chart/#{account.id}", "/accounting/chart/#{account.id}/edit", "/accounting/ledgers",
+             "/accounting/ledgers/new", "/accounting/ledgers/#{ledger.id}", "/accounting/ledgers/#{ledger.id}/edit",
+             "/vat/rates", "/vat/rates/new", "/vat/rates/#{rate.id}", "/vat/rates/#{rate.id}/edit", "/cards", "/cards/items",
+             "/cards/new", "/cards/new?category=#{customer.id}", "/cards/#{card.id}", "/cards/#{card.id}/edit"]
+    paths.each do |path|
+      response = browser.get(path)
+      response.status.should eq(200), "#{path} : #{response.status}"
+      check_accessibility(response.html, path)
+      response.html.should_not contain("translation missing")
+    end
+  end
+
   it "respecte les règles automatisables sur l'enrôlement" do
     created = PartiduoUi::Accounts.create(email: "bob@example.com", password: nil)
     browser = PartiduoUi::Browser.new

@@ -1,0 +1,20 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Tableau d'une liste (PartiduoUi::Table, variable table) : en-têtes triables (aria-sort), lignes, pages, export CSV. Les liens de tri et de page passent par HTMX (hx-boost sur l'en-tête et les pages) et ne remplacent que le tableau ; sans JavaScript, ce sont des liens ordinaires. #}<div class="pd-table-region" id="{{ table.id }}-region" hx-target="#{{ table.id }}-region" hx-select="#{{ table.id }}-region" hx-swap="outerHTML" hx-push-url="true">
+  <div class="pd-scroll">
+    <table class="table is-fullwidth is-hoverable is-narrow pd-table" id="{{ table.id }}">
+      <caption class="is-sr-only">{{ table.caption }}</caption>
+      <thead hx-boost="true"><tr>{% for header in table.headers %}<th scope="col"{% if header.css %} class="{{ header.css }}"{% endif %}{% if header.aria_sort %} aria-sort="{{ header.aria_sort }}"{% endif %}>{% if header.url %}<a class="pd-sort" href="{{ header.url }}" title="{{ header.sort_hint }}">{{ header.label }}</a>{% else %}{{ header.label }}{% endif %}</th>{% endfor %}</tr></thead>
+      <tbody>
+      {% if table.visible_rows %}{% for row in table.visible_rows %}
+        <tr{% if row.css %} class="{{ row.css }}"{% endif %}>{% for cell in row.cells %}<td{% if cell.css %} class="{{ cell.css }}"{% endif %}>{% if cell.actions %}<div class="pd-row-actions">{% for action in cell.actions %}{% include "ui/_action.html" %}{% endfor %}</div>{% elsif cell.url %}<a class="pd-link" href="{{ cell.url }}">{{ cell.text }}</a>{% else %}{{ cell.text }}{% endif %}{% if cell.tag %} <span class="tag is-light">{{ cell.tag }}</span>{% endif %}</td>{% endfor %}</tr>{% endfor %}
+      {% else %}
+        <tr><td colspan="{{ table.columns|size }}" class="pd-muted pd-empty">{{ table.empty_message }}</td></tr>
+      {% endif %}
+      </tbody>
+    </table>
+  </div>
+  <footer class="pd-table-foot">
+    <span class="pd-muted" role="status">{{ table.summary }}</span>
+    {% if table.pages %}<nav class="pd-pages" hx-boost="true" aria-label="{% translate 'ui.table.pages' %}"><ul>{% for link in table.pages %}<li>{% if link.current %}<span class="pd-page is-current" aria-current="page">{{ link.number }}</span>{% else %}<a class="pd-page" href="{{ link.url }}">{{ link.number }}</a>{% endif %}</li>{% endfor %}</ul></nav>{% endif %}
+    <a class="button is-small" href="{{ table.csv_url }}" download>{% include "ui/_icon.html" with name="download" %}<span>{% translate "ui.table.export_csv" %}</span></a>
+  </footer>
+</div>

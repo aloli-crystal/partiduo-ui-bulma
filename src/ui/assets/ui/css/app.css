@@ -157,6 +157,59 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
 .pd-code-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .4rem 1.5rem; margin: 1rem 0; padding-inline-start: 1.5rem; }
 .pd-code-list code { font-size: 1rem; letter-spacing: .06em; background: transparent; color: var(--pd-ink); }
 
+/* Écrans du référentiel : listes, filtres, tableaux triables, formulaires, consultations */
+.pd-list-head { flex-wrap: wrap; }
+.pd-tabs { display: flex; gap: .35rem; flex-wrap: wrap; }
+.pd-tabs a { border: 1px solid var(--pd-rule); background: var(--pd-surface); color: var(--pd-ink); border-radius: 1rem; padding: .2rem .8rem;
+  font-size: .85rem; min-height: 32px; display: inline-flex; align-items: center; }
+.pd-tabs a[aria-current="page"] { background: var(--bulma-primary); border-color: var(--bulma-primary); color: #fff; font-weight: 600; }
+.pd-filters { display: flex; gap: .5rem; flex-wrap: wrap; align-items: center; margin-inline-start: auto; }
+.pd-filter-text { flex: 0 1 16rem; }
+.pd-filter.checkbox { font-size: .85rem; display: inline-flex; gap: .35rem; align-items: center; }
+.pd-table th a.pd-sort { color: inherit; display: inline-flex; gap: .25rem; align-items: center; }
+.pd-table th a.pd-sort::after { content: "↕"; opacity: .35; font-size: .8em; }
+.pd-table th[aria-sort="ascending"] a.pd-sort::after { content: "▲"; opacity: 1; }
+.pd-table th[aria-sort="descending"] a.pd-sort::after { content: "▼"; opacity: 1; }
+.pd-table td.pd-mono { white-space: nowrap; }
+.pd-table .pd-empty { text-align: center; padding-block: 1.5rem; }
+.pd-table tr.pd-class { font-weight: 600; background: var(--pd-row-alt); }
+.pd-table tr.pd-depth-1 td:first-child { padding-inline-start: 1.4rem; }
+.pd-table tr.pd-depth-2 td:first-child { padding-inline-start: 2.2rem; }
+.pd-table tr.pd-depth-3 td:first-child { padding-inline-start: 3rem; }
+.pd-table tr.pd-depth-4 td:first-child { padding-inline-start: 3.8rem; }
+.pd-table tr.pd-depth-5 td:first-child, .pd-table tr.pd-depth-6 td:first-child { padding-inline-start: 4.6rem; }
+.pd-table tr.pd-row-closed td { color: var(--pd-muted); }
+.pd-link { color: var(--bulma-link); text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 2px; }
+.pd-table-foot { display: flex; gap: .75rem 1rem; align-items: center; flex-wrap: wrap; justify-content: space-between; padding: .6rem 1rem;
+  border-block-start: 1px solid var(--pd-rule); font-size: .85rem; }
+.pd-pages ul { display: flex; gap: .25rem; flex-wrap: wrap; list-style: none; margin: 0; padding: 0; }
+.pd-page { display: inline-grid; place-items: center; min-width: 2rem; min-height: 2rem; border: 1px solid var(--pd-rule); border-radius: var(--bulma-radius-small); }
+.pd-page.is-current { background: var(--bulma-primary); border-color: var(--bulma-primary); color: #fff; font-weight: 600; }
+.pd-row-actions { display: flex; gap: .35rem; flex-wrap: wrap; align-items: center; }
+.pd-action-form { display: inline-flex; margin: 0; }
+.pd-actions .pd-action-form + .pd-action-form, .pd-actions > * { margin-block-end: 0; }
+.pd-form { display: grid; gap: 1rem; }
+.pd-fieldset { border: 0; margin: 0; padding: 0; min-width: 0; }
+.pd-fieldset legend { font-size: .9rem; font-weight: 600; color: var(--pd-ink); margin-block-end: .5rem; padding: 0; }
+.pd-form-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr)); gap: .75rem 1rem; }
+.pd-form-grid .field { margin: 0; }
+.pd-form-grid .pd-wide { grid-column: 1 / -1; }
+.pd-required { color: var(--pd-gap); }
+.pd-check { display: inline-flex; gap: .45rem; align-items: center; min-height: 44px; }
+.pd-sections { display: grid; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); gap: 0 1rem; align-items: start; }
+.pd-sections > .pd-panel:has(.pd-table) { grid-column: 1 / -1; }
+.pd-detail { margin-block-start: 0; }
+.pd-detail dd { overflow-wrap: anywhere; }
+.pd-status-tag { vertical-align: middle; font-size: .8rem; }
+.pd-period .select select { min-height: 32px; }
+
+@media (max-width: 767.98px) {
+  .pd-filters { margin-inline-start: 0; width: 100%; }
+  .pd-filter-text { flex: 1 1 100%; }
+  .pd-sections { grid-template-columns: minmax(0, 1fr); }
+  .pd-form-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
 /* Tablette : menu latéral repliable */
 @media (max-width: 1279.98px) {
   .pd-burger { display: inline-flex; }

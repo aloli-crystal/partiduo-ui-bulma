@@ -4,10 +4,57 @@
 # manifestes (`core:dashboard`) : le cœur n'a aucune route (ADR-005 D1).
 CORE_ROUTES = Marten::Routing::Map.draw do
   path "/", PartiduoUi::DashboardHandler, name: "dashboard"
+  # Exercices et périodes (lot 1) ; période de travail de la barre supérieure.
+  path "/fiscal-years", PartiduoUi::FiscalYearsHandler, name: "fiscal_years"
+  path "/fiscal-years/<id:int>", PartiduoUi::FiscalYearHandler, name: "fiscal_year"
+  path "/fiscal-years/<id:int>/close", PartiduoUi::FiscalYearCloseHandler, name: "fiscal_year_close"
+  path "/fiscal-years/<id:int>/delete", PartiduoUi::FiscalYearDeleteHandler, name: "fiscal_year_delete"
+  path "/periods/<id:int>/close", PartiduoUi::PeriodCloseHandler, name: "period_close"
+  path "/periods/<id:int>/reopen", PartiduoUi::PeriodReopenHandler, name: "period_reopen"
+  path "/periods/<id:int>/delete", PartiduoUi::PeriodDeleteHandler, name: "period_delete"
+  path "/period", PartiduoUi::CurrentPeriodHandler, name: "current_period"
+end
+
+# Fiches du socle : tiers, articles et services (menu `cards:index`).
+CARDS_ROUTES = Marten::Routing::Map.draw do
+  path "", PartiduoUi::CardsHandler, name: "index"
+  path "/items", PartiduoUi::ItemsHandler, name: "items"
+  path "/new", PartiduoUi::CardNewHandler, name: "new"
+  path "/<id:int>", PartiduoUi::CardHandler, name: "show"
+  path "/<id:int>/edit", PartiduoUi::CardEditHandler, name: "edit"
+  path "/<id:int>/enable", PartiduoUi::CardEnableHandler, name: "enable"
+  path "/<id:int>/delete", PartiduoUi::CardDeleteHandler, name: "delete"
+end
+
+# Taux de TVA du socle (menu `vat:rates`).
+VAT_ROUTES = Marten::Routing::Map.draw do
+  path "/rates", PartiduoUi::VatRatesHandler, name: "rates"
+  path "/rates/new", PartiduoUi::VatRateNewHandler, name: "rate_new"
+  path "/rates/<id:int>", PartiduoUi::VatRateHandler, name: "rate"
+  path "/rates/<id:int>/edit", PartiduoUi::VatRateEditHandler, name: "rate_edit"
+  path "/rates/<id:int>/delete", PartiduoUi::VatRateDeleteHandler, name: "rate_delete"
+end
+
+# Module Comptabilité : plan comptable et journaux (menus `accounting:chart`,
+# `accounting:ledgers`). Module inactif : le contrat refuse, l'écran répond 404.
+ACCOUNTING_ROUTES = Marten::Routing::Map.draw do
+  path "/chart", PartiduoUi::ChartHandler, name: "chart"
+  path "/chart/new", PartiduoUi::AccountNewHandler, name: "account_new"
+  path "/chart/<id:int>", PartiduoUi::AccountShowHandler, name: "account"
+  path "/chart/<id:int>/edit", PartiduoUi::AccountEditHandler, name: "account_edit"
+  path "/chart/<id:int>/delete", PartiduoUi::AccountDeleteHandler, name: "account_delete"
+  path "/ledgers", PartiduoUi::LedgersHandler, name: "ledgers"
+  path "/ledgers/new", PartiduoUi::LedgerNewHandler, name: "ledger_new"
+  path "/ledgers/<id:int>", PartiduoUi::LedgerHandler, name: "ledger"
+  path "/ledgers/<id:int>/edit", PartiduoUi::LedgerEditHandler, name: "ledger_edit"
+  path "/ledgers/<id:int>/delete", PartiduoUi::LedgerDeleteHandler, name: "ledger_delete"
 end
 
 Marten.routes.draw do
   path "", CORE_ROUTES, name: "core"
+  path "/cards", CARDS_ROUTES, name: "cards"
+  path "/vat", VAT_ROUTES, name: "vat"
+  path "/accounting", ACCOUNTING_ROUTES, name: "accounting"
 
   # Connexion (ADR-002).
   path "/login", PartiduoUi::LoginHandler, name: "login"

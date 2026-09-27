@@ -1,8 +1,9 @@
 /* SPDX-License-Identifier: AGPL-3.0-or-later
    Liaison de la coquille au navigateur (DECISIONS D-UI-005), sans logique
    d'écran : repli du menu latéral (tablette, téléphone), raccourci « / » vers
-   la recherche, envoi du choix de langue, impression des codes. La page
-   reste utilisable sans JavaScript. */
+   la recherche, envoi du choix de langue et de la période, impression des
+   codes, confirmation des commandes (data-pd-confirm). La page reste
+   utilisable sans JavaScript. */
 (function () {
   "use strict";
   var KEY = "partiduo.menu.collapsed";
@@ -58,6 +59,13 @@
       target.form.submit();
     }
   });
+
+  document.addEventListener("submit", function (event) {
+    var form = event.target;
+    if (!(form instanceof HTMLFormElement)) return;
+    var message = form.getAttribute("data-pd-confirm");
+    if (message && !window.confirm(message)) event.preventDefault();
+  }, true);
 
   document.addEventListener("keydown", function (event) {
     if (event.key === "Escape") {

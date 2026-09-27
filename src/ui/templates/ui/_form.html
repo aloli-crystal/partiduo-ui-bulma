@@ -1,0 +1,14 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Formulaire d'un écran du référentiel (variables form, form_action, form_submit, cancel_url) : erreurs d'ensemble en alerte, groupes de champs (fieldset), envoi. #}<form method="post" action="{{ form_action }}" class="pd-form" novalidate>
+  {% csrf_input %}
+  {% if form.base_errors %}<div class="notification is-danger is-light pd-alert" role="alert" id="pd-form-errors">{% include "ui/_icon.html" with name="triangle-alert" %}<div>{% for message in form.base_errors %}<p>{{ message }}</p>{% endfor %}</div></div>{% endif %}
+  {% for group in form.groups %}
+  <fieldset class="pd-fieldset">
+    {% if group.legend %}<legend>{{ group.legend }}</legend>{% endif %}
+    <div class="pd-form-grid">{% for field in group.fields %}{% include "ui/_field.html" %}{% endfor %}</div>
+  </fieldset>
+  {% endfor %}
+  <div class="pd-form-actions">
+    <button class="button is-primary pd-touch" type="submit">{{ form_submit }}</button>
+    {% if cancel_url %}<a href="{{ cancel_url }}">{% translate "ui.forms.cancel" %}</a>{% endif %}
+  </div>
+</form>

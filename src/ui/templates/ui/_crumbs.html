@@ -1,0 +1,1 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Fil d'Ariane d'un écran (variable crumbs : PartiduoUi::Screen::Crumb). #}{% for crumb in crumbs %}<li>{% if crumb.url %}<a href="{{ crumb.url }}">{{ crumb.label }}</a>{% else %}{{ crumb.label }}{% endif %}</li>{% endfor %}

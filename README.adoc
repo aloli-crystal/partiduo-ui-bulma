@@ -28,7 +28,9 @@ src/
 ├── server.cr            # serveur HTTP (Marten.start)
 ├── cli.cr               # ligne de commande (migrations du cœur comprises)
 └── ui/                  # application Marten « ui » (PartiduoUi)
-    ├── handlers/        # handlers HTTP
+    ├── format.cr        # montants et dates selon la langue et le pays
+    ├── table.cr, form.cr, screen.cr  # listes triables, formulaires, consultations
+    ├── handlers/        # handlers HTTP (reference/ : référentiel du lot 1)
     ├── templates/ui/    # gabarits (base.html, _icon.html…)
     ├── locales/         # libellés d'écran fr, en, nl (ADR-005 D7)
     └── assets/ui/
