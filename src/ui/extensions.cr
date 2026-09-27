@@ -96,6 +96,39 @@ module PartiduoUi
       @@mounts[code]?
     end
 
+    # Compteur d'une entrée de menu d'extension (ADR-005 D8 : nombre de
+    # justificatifs à traiter) : affiché à côté de l'entrée du menu et, s'il
+    # est positif, repris dans « À traiter » du tableau de bord
+    # (`todo` : clé i18n à pluriel, paramètre `count` ; `route` : écran
+    # ouvert par la ligne). Le bloc lit le contrat de l'extension et rend
+    # `nil` quand l'acteur ne doit rien voir (extension inactive, sans droit).
+    record Counter, menu_code : String, route : String, todo : String?, tone : String,
+      block : Proc(Partiduo::Api::Actor, Int64?)
+
+    @@counters = {} of String => Counter
+
+    def self.counter(menu_code : String, route : String, todo : String? = nil, tone : String = "primary",
+                     &block : Partiduo::Api::Actor -> Int64?) : Counter
+      @@counters[menu_code] = Counter.new(menu_code, route, todo, tone, block)
+    end
+
+    def self.counters : Array(Counter)
+      @@counters.values
+    end
+
+    # Valeurs des compteurs pour l'acteur, par code d'entrée de menu ; un
+    # compteur refusé (droit, module inactif) est omis.
+    def self.counts(actor : Partiduo::Api::Actor) : Hash(String, Int64)
+      @@counters.each_value.with_object({} of String => Int64) do |counter, counts|
+        value = begin
+          counter.block.call(actor)
+        rescue Partiduo::Api::AccessDenied | Partiduo::Api::NotFound
+          nil
+        end
+        counts[counter.menu_code] = value if value
+      end
+    end
+
     # Ajoute aux routes de l'interface celles des extensions montées (appelé
     # par `PartiduoUi::App#setup`, avant la préparation des routes par Marten).
     def self.draw(map : Marten::Routing::Map = Marten.routes) : Nil

@@ -10,6 +10,13 @@ module PartiduoUi
       active = Partiduo::Api::Modules.list(actor).select(&.active).map(&.code).to_set
       overview = Partiduo::Api::Auth.security_overview(actor)
       board = Dashboard.new(actor, fmt, active).build
+      # Compteurs des extensions (justificatifs à traiter…), en tête de « À traiter ».
+      counts = Extensions.counts(actor)
+      Extensions.counters.each do |counter|
+        count = counts[counter.menu_code]?
+        next if count.nil? || count.zero? || (todo = counter.todo).nil?
+        board.todos.unshift(Dashboard::Todo.new(I18n.t(todo, count: count), nil, Shell.resolve(counter.route), counter.tone))
+      end
       overview.missing.each do |item|
         board.add_todo(Dashboard::Todo.new(I18n.t("auth.missing.#{item}"), nil, reverse("account_security"), "warn"))
       end

@@ -13,6 +13,8 @@ CORE_ROUTES = Marten::Routing::Map.draw do
   path "/periods/<id:int>/reopen", PartiduoUi::PeriodReopenHandler, name: "period_reopen"
   path "/periods/<id:int>/delete", PartiduoUi::PeriodDeleteHandler, name: "period_delete"
   path "/period", PartiduoUi::CurrentPeriodHandler, name: "current_period"
+  # Pièce jointe du socle affichée dans la page (aperçu d'une facture reçue).
+  path "/attachments/<id:int>", PartiduoUi::AttachmentHandler, name: "attachment"
   # Paramètres du dossier (D-UI-051, D-UI-052) : société, modules, devises,
   # utilisateurs, profils et droits par journal.
   path "/settings/company", PartiduoUi::CompanyHandler, name: "company"
@@ -81,6 +83,11 @@ ACCOUNTING_ROUTES = Marten::Routing::Map.draw do
   path "/ledgers/<id:int>/delete", PartiduoUi::LedgerDeleteHandler, name: "ledger_delete"
   # Saisie (lot 2) : quatre formes, contrôle instantané, ajout de ligne.
   path "/entries/purchase", PartiduoUi::PurchaseEntryHandler, name: "entry_purchase"
+  # Facture d'achat reçue hors plateforme, pièce jointe à côté (ADR-004 D9) ;
+  # avant `/entries/<kind>/…`.
+  path "/entries/received-invoice", PartiduoUi::ReceivedInvoiceHandler, name: "entry_received"
+  path "/entries/received-invoice/check", PartiduoUi::ReceivedInvoiceCheckHandler, name: "entry_received_check"
+  path "/entries/received-invoice/upload", PartiduoUi::ReceivedInvoiceUploadHandler, name: "entry_received_upload"
   path "/entries/sale", PartiduoUi::SaleEntryHandler, name: "entry_sale"
   path "/entries/financial", PartiduoUi::FinancialEntryHandler, name: "entry_financial"
   path "/entries/misc", PartiduoUi::MiscEntryHandler, name: "entry_misc"
@@ -170,6 +177,9 @@ INVOICING_ROUTES = Marten::Routing::Map.draw do
   path "/documents/<id:int>/decide", PartiduoUi::DocumentDecideHandler, name: "document_decide"
   path "/documents/<id:int>/delete", PartiduoUi::DocumentDeleteHandler, name: "document_delete"
   path "/documents/<id:int>/payment", PartiduoUi::DocumentPaymentHandler, name: "document_payment"
+  # Canal d'émission et envoi hors courriel (ADR-004 D9).
+  path "/documents/<id:int>/channel", PartiduoUi::DocumentChannelHandler, name: "document_channel"
+  path "/documents/<id:int>/mark-sent", PartiduoUi::DocumentMarkSentHandler, name: "document_mark_sent"
   path "/payments", PartiduoUi::PaymentsHandler, name: "payments"
   path "/reminders", PartiduoUi::RemindersHandler, name: "reminders"
   path "/reminders/propose", PartiduoUi::RemindersProposeHandler, name: "reminders_propose"

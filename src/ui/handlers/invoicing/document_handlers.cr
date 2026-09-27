@@ -52,11 +52,37 @@ module PartiduoUi
       form.category_options = Inv::OPERATION_CATEGORIES.map do |code|
         Form::Option.new(code, I18n.t("ui.invoicing.categories.#{code}"), code == form.operation_category)
       end
+      decorate_channel(form) if form.fiscal
       form.each_row do |line|
         line.vat_options = [Form::Option.new("", I18n.t("ui.invoicing.vat_default"), line.vat_rate_id.empty?)] +
                            vat_rates.map { |rate| Form::Option.new(rate.id.to_s, "#{rate.code} · #{fmt.percent(rate.rate)}", rate.id.to_s == line.vat_rate_id) }
       end
       form
+    end
+
+    # Canal d'émission et marquage B2C (ADR-004 D9) : choix vide = proposition
+    # du cœur selon le client, rappelée sous le champ.
+    def decorate_channel(form : DocumentForm) : Nil
+      form.channel_options = [Form::Option.new("", I18n.t("ui.invoicing.channel_proposed"), form.issue_channel.empty?)] +
+                             Inv::ISSUE_CHANNELS.map { |code| Form::Option.new(code, I18n.t("invoicing.channels.#{code}"), code == form.issue_channel) }
+      form.b2c_options = [
+        Form::Option.new("", I18n.t("ui.invoicing.b2c_proposed"), form.b2c.empty?),
+        Form::Option.new("1", I18n.t("ui.forms.answer_yes"), form.b2c == "1"),
+        Form::Option.new("0", I18n.t("ui.forms.answer_no"), form.b2c == "0"),
+      ]
+      form.channel_hint = channel_hint(form.customer)
+    end
+
+    # « Proposé : Plateforme agréée · B2C — raison » pour un client connu.
+    def channel_hint(code : String) : String?
+      customer = card_id(code)
+      return unless customer
+      proposal = Inv.propose_channel(current.actor, customer)
+      label = I18n.t("invoicing.channels.#{proposal.channel}")
+      label = "#{label} · B2C" if proposal.b2c
+      I18n.t("ui.invoicing.channel_hint", channel: label, reason: I18n.t(proposal.reason_key))
+    rescue Partiduo::Api::NotFound | Partiduo::Api::AccessDenied
+      nil
     end
 
     # --- Lecture de la saisie ----------------------------------------------------
@@ -130,6 +156,8 @@ module PartiduoUi
         currency_code: existing.try(&.currency_code), locale: existing.try(&.locale), layout_id: existing.try(&.layout_id),
         deposit_ids: existing.try(&.deductions.map(&.deposit_id)) || [] of Int64,
         credited_document_id: existing.try(&.credited.try(&.id)),
+        issue_channel: form.fiscal ? form.issue_channel.presence : nil,
+        b2c: form.fiscal ? {"1" => true, "0" => false}[form.b2c]? : nil,
       )
     end
 
@@ -178,6 +206,10 @@ module PartiduoUi
       form.order_reference = document.order_reference
       form.notes = document.notes
       form.global_discount = document.global_discount_kind == "percent" ? fmt.input_number(document.global_discount_value) : ""
+      if document.fiscal?
+        form.issue_channel = document.issue_channel
+        form.b2c = document.b2c ? "1" : "0"
+      end
       document.lines.each_with_index { |line, index| form.lines << form_line(line, index) }
       form.add_line if form.lines.empty?
       form
@@ -601,6 +633,7 @@ module PartiduoUi
       context["events"] = events(document)
       context["payment_note"] = payment_note(document)
       context["customer_url"] = customer_url(document)
+      context["channel"] = document.fiscal? ? ChannelDisplay.new(document, fmt, self) : nil
       page("ui/invoicing/show.html")
     end
 
@@ -686,6 +719,56 @@ module PartiduoUi
       if module_active?("ACCOUNTING") && can?("accounting.entry.read") && !document.customer.code.empty?
         "#{reverse("accounting:accounts")}?#{URI::Params.encode({"q" => document.customer.code})}"
       end
+    end
+  end
+
+  # Canal d'émission d'un document fiscal (ADR-004 D9) : canal, marquage B2C,
+  # date d'envoi ; changement tant que le document n'est pas envoyé, « Marquer
+  # comme envoyé » pour un envoi hors courriel (papier, plateforme).
+  class ChannelDisplay
+    include Marten::Template::Object::Auto
+
+    getter label : String
+    getter b2c : Bool
+    getter sent_at : String?
+    getter change_url : String?
+    getter mark_sent_url : String?
+    getter options : Array(Form::Option)
+    getter platform_note : Bool
+
+    def initialize(view : Partiduo::Api::Invoicing::DocumentView, fmt : Format, handler : InvoicingScreen)
+      @label = I18n.t(view.channel_key)
+      @b2c = view.b2c
+      @sent_at = view.sent_at.try { |time| fmt.datetime(time) }
+      @change_url = view.channel_editable? && handler.can?(InvoicingScreen::WRITE) ? handler.reverse("invoicing:document_channel", id: view.id) : nil
+      @mark_sent_url = !view.draft? && view.sent_at.nil? && handler.can?("invoicing.invoice.send") ? handler.reverse("invoicing:document_mark_sent", id: view.id) : nil
+      @options = Partiduo::Api::Invoicing::ISSUE_CHANNELS.map do |code|
+        Form::Option.new(code, I18n.t("invoicing.channels.#{code}"), code == view.issue_channel)
+      end
+      # Plateforme choisie : la transmission revient à une extension ; sans
+      # elle, le document reste à remettre et à marquer envoyé.
+      @platform_note = view.issue_channel == "platform" && view.sent_at.nil?
+    end
+  end
+
+  # Changement du canal d'émission (champ `issue_channel`, case `b2c`).
+  class DocumentChannelHandler < InvoicingScreen
+    def post
+      require!(MODULE, WRITE)
+      document = Inv.document(current.actor, id_param)
+      input = Inv::ChannelInput.new(field("issue_channel"), b2c: field("b2c") == "1")
+      flash_result(Inv.set_issue_channel(current.actor, document.id, input), "ui.invoicing.channel_saved")
+      go(document_url(document))
+    end
+  end
+
+  # Document remis hors du courriel de la Facturation : marqué envoyé.
+  class DocumentMarkSentHandler < InvoicingScreen
+    def post
+      require!(MODULE, "invoicing.invoice.send")
+      document = Inv.document(current.actor, id_param)
+      flash_result(Inv.mark_sent(current.actor, document.id), "ui.invoicing.marked_sent")
+      go(document_url(document))
     end
   end
 

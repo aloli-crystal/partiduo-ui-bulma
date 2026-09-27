@@ -71,7 +71,7 @@
         {% if section.label_key %}<p class="menu-label" id="pd-menu-{{ section.code }}">{% translate section.label_key %}</p>{% endif %}
         <ul class="menu-list"{% if section.label_key %} aria-labelledby="pd-menu-{{ section.code }}"{% endif %}>
           {% for item in section.items %}
-          <li>{% if item.disabled %}<span class="pd-menu-off" aria-disabled="true"><span>{% translate item.label_key %}<span class="is-sr-only"> ({% translate "ui.shell.unavailable" %})</span></span>{% if item.badge %}<span class="pd-ext">{{ item.badge }}</span>{% endif %}</span>{% else %}<a href="{{ item.url }}"{% if item.active %} class="is-active" aria-current="page"{% endif %}><span>{% translate item.label_key %}</span>{% if item.badge %}<span class="pd-ext">{{ item.badge }}</span>{% endif %}</a>{% endif %}</li>
+          <li>{% if item.disabled %}<span class="pd-menu-off" aria-disabled="true"><span>{% translate item.label_key %}<span class="is-sr-only"> ({% translate "ui.shell.unavailable" %})</span></span>{% if item.badge %}<span class="pd-ext">{{ item.badge }}</span>{% endif %}</span>{% else %}<a href="{{ item.url }}"{% if item.active %} class="is-active" aria-current="page"{% endif %}><span>{% translate item.label_key %}</span>{% if item.count %}<span class="pd-count" data-pd-count="{{ item.code }}">{{ item.count }}</span>{% endif %}{% if item.badge %}<span class="pd-ext">{{ item.badge }}</span>{% endif %}</a>{% endif %}</li>
           {% endfor %}
         </ul>
         {% endfor %}

@@ -156,12 +156,27 @@ module PartiduoUi
       end
       title = I18n.t("ui.entries.entry_title", receipt: entry.receipt || entry.internal_code)
       sections = [Screen::Section.new(I18n.t("ui.entries.summary"), items(entry)), Screen::Section.new(I18n.t("ui.entries.lines"), table: lines(entry))]
+      # Facture d'achat reçue derrière l'écriture (ADR-004 D9).
+      received_section(entry).try { |section| sections.insert(1, section) }
       # Ventilation analytique (lot 5), si le module est actif.
       AnalyticEntrySection.build(self, entry).try { |section| sections << section }
       # Actions de suivi qui citent l'écriture (lot 6), si le Suivi est actif.
       FollowupLinkedSection.build(self, "entry:#{entry.id}").try { |section| sections << section }
       detail_page(title, [crumb("core.menu.consult"), crumb("accounting.menu.acc_entries", reverse("accounting:entries"))],
         sections, actions, status_tag: status(entry))
+    end
+
+    private def received_section(entry : Acc::EntryView) : Screen::Section?
+      invoice = Acc.received_invoice_for_entry(current.actor, entry.id)
+      return unless invoice
+      attachment_url = invoice.attachment_id.try { |id| can?("core.attachment.read") ? reverse("core:attachment", id: id) : nil }
+      Screen::Section.new(I18n.t("ui.received_invoice.section"), [
+        Screen::Item.new(I18n.t("ui.entries.origin"), I18n.t(invoice.origin_key)),
+        Screen::Item.new(I18n.t("ui.received_invoice.number"), invoice.number, mono: true),
+        Screen::Item.new(I18n.t("ui.received_invoice.invoice_date"), fmt.date(invoice.invoice_date), mono: true),
+        Screen::Item.new(I18n.t("ui.received_invoice.amount"), "#{fmt.amount(invoice.total_amount)} #{invoice.currency_code}", mono: true),
+        Screen::Item.new(I18n.t("ui.received_invoice.file"), attachment_url ? I18n.t("ui.received_invoice.open_file") : "", attachment_url),
+      ])
     end
 
     private def status(entry : Acc::EntryView) : String?

@@ -68,6 +68,8 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
 .pd-menu-off { opacity: .7; cursor: default; }
 .pd-ext { font-size: .65rem; opacity: .85; border: 1px solid currentColor; border-radius: .25rem; padding: 0 .3rem; font-family: var(--bulma-family-code); }
 .pd-ext-light { color: var(--pd-muted); }
+.pd-count { margin-inline-start: auto; background: #7fd0e2; color: #08323c; border-radius: 1rem; font-size: .7rem; font-weight: 700; padding: 0 .45rem; font-variant-numeric: tabular-nums; }
+.pd-count + .pd-ext { margin-inline-start: .35rem; }
 
 /* Contenu */
 .pd-main { padding: 1.25rem 1.5rem 3rem; min-width: 0; }
@@ -277,6 +279,11 @@ kbd { font-family: var(--bulma-family-code); font-size: .72rem; border: 1px soli
 .pd-side-panel dl { display: grid; grid-template-columns: auto 1fr; gap: .35rem .75rem; font-size: .85rem; }
 .pd-side-panel dt { color: var(--pd-muted); }
 .pd-side-panel dd { margin: 0; text-align: end; overflow-wrap: anywhere; }
+
+/* Facture d'achat reçue hors plateforme (ADR-004 D9, maquette « Facture reçue ») */
+.pd-origin { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; font-size: .85rem; padding: .6rem 1rem; background: var(--pd-row-alt); border-bottom: 1px solid var(--pd-rule); }
+.pd-attachment-preview { display: block; width: 100%; min-height: 28rem; border: 1px solid var(--pd-rule); border-radius: .25rem; background: var(--pd-row-alt); }
+img.pd-attachment-preview { min-height: 0; height: auto; object-fit: contain; }
 
 /* Comptes et tiers, lettrage (ADR-005 D9) */
 .pd-acc-head { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }

@@ -67,8 +67,10 @@ module PartiduoUi
       end
     end
 
+    # `issue_channel` : vide = proposition du cœur selon le client ;
+    # `b2c` : vide (selon le client), `1`, `0` (ADR-004 D9).
     HEADER = %w[customer issue_date delivery_date due_date validity_date operation_category buyer_reference order_reference
-      notes global_discount]
+      notes global_discount issue_channel b2c]
 
     getter kind : String
     getter lines : Array(Line)
@@ -76,6 +78,10 @@ module PartiduoUi
       property {{ name.id }} : String = ""
     {% end %}
     property category_options : Array(Form::Option)? = nil
+    property channel_options : Array(Form::Option)? = nil
+    property b2c_options : Array(Form::Option)? = nil
+    # Canal proposé pour le client saisi (« Proposé : … »), `nil` sans client.
+    property channel_hint : String? = nil
     property customer_name : String = ""
     getter base_errors : Array(String)? = nil
     @field_errors = {} of String => Array(String)

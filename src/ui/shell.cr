@@ -10,7 +10,9 @@ module PartiduoUi
     include Marten::Template::Object::Auto
 
     # Une entrée du menu latéral. `url` nil : écran pas encore livré par
-    # l'interface (entrée affichée, désactivée). `badge` : code d'extension.
+    # l'interface (entrée affichée, désactivée). `badge` : code d'extension ;
+    # `count` : compteur d'une extension (`Extensions.counter`), affiché s'il
+    # est positif.
     class Item
       include Marten::Template::Object::Auto
 
@@ -19,8 +21,10 @@ module PartiduoUi
       getter url : String?
       getter active : Bool # ameba:disable Naming/QueryBoolMethods
       getter badge : String?
+      getter count : Int64?
 
-      def initialize(@code, @label_key, @url, @active, @badge)
+      def initialize(@code, @label_key, @url, @active, @badge, count : Int64? = nil)
+        @count = count.try { |value| value > 0 ? value : nil }
       end
 
       def disabled : Bool
@@ -116,7 +120,8 @@ module PartiduoUi
 
       period = period_values(request, actor, format)
       new(
-        sections: sections(Partiduo::Api::Modules.menu(actor), extension_codes(actor), request.path),
+        sections: sections(Partiduo::Api::Modules.menu(actor), extension_codes(actor), request.path,
+          Extensions.counts(actor)),
         company_name: settings.try(&.company_name.presence),
         company_detail: detail,
         user_name: session.full_name,
@@ -158,15 +163,17 @@ module PartiduoUi
     end
 
     # Rubriques du menu : d'abord les domaines, puis les extensions (ADR-005 D5).
-    def self.sections(menu : Array(Partiduo::Api::Modules::MenuView), extensions : Set(String), path : String) : Array(Section)
+    def self.sections(menu : Array(Partiduo::Api::Modules::MenuView), extensions : Set(String), path : String,
+                      counts : Hash(String, Int64) = {} of String => Int64) : Array(Section)
       menu.compact_map do |entry|
         if entry.children.empty?
           url = resolve(entry.route)
-          Section.new(entry.code, nil, [Item.new(entry.code, entry.label_key, url, active?(url, path), badge(entry, extensions))])
+          Section.new(entry.code, nil, [Item.new(entry.code, entry.label_key, url, active?(url, path),
+            badge(entry, extensions), counts[entry.code]?)])
         else
           items = entry.children.map do |child|
             url = resolve(child.route)
-            Item.new(child.code, child.label_key, url, active?(url, path), badge(child, extensions))
+            Item.new(child.code, child.label_key, url, active?(url, path), badge(child, extensions), counts[child.code]?)
           end
           Section.new(entry.code, entry.label_key, items)
         end

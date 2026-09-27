@@ -1,0 +1,84 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Facture d'achat reçue hors plateforme (ADR-004 D9 ; maquette, écran « Écriture d'achat » avec le panneau « Facture reçue ») : l'écriture d'achat à gauche (formulaire de la saisie, contrôle instantané par check_received_invoice, doublon compris), la facture du fournisseur à droite — numéro, date, fichier joint et son aperçu. Le fichier se dépose dès qu'il est choisi (HTMX) ; sans JavaScript, il part avec le formulaire (multipart). #}{% extend "ui/base.html" %}
+{% block title %}{{ title }}{% endblock title %}
+{% block scripts %}<script src="{% asset 'ui/js/opal/runtime.js' %}" defer></script>
+    <script src="{% asset 'ui/js/opal/entry.js' %}" defer></script>{% endblock scripts %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{{ title }}{% endblock heading %}
+{% block actions %}{% unless no_ledger %}<button class="button is-primary pd-touch" type="submit" form="pd-entry-form">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.forms.save" %}</span></button>{% endunless %}{% endblock actions %}
+{% block content %}
+{% if no_ledger %}
+<div class="notification is-warning is-light" role="status">{% translate "ui.entries.no_ledger" %} <a href="{% url 'accounting:ledgers' %}">{% translate "accounting.menu.acc_ledgers" %}</a></div>
+{% else %}
+{% if analytic_warning %}<div class="notification is-warning is-light" role="status" id="pd-entry-analytic-warning">{% translate "ui.received_invoice.analytic_warning" %}</div>{% endif %}
+<div class="pd-grid2">
+<form class="pd-panel pd-entry" id="pd-entry-form" method="post" action="{{ form_action }}" enctype="multipart/form-data" autocomplete="off" novalidate data-pd-entry aria-describedby="pd-entry-keys">
+  {% csrf_input %}
+  <div class="pd-origin"><span class="tag is-warning is-light">{% translate "accounting.received_invoice.origins.off_platform" %}</span><span>{% translate "ui.received_invoice.origin_note" %}</span></div>
+  {% include "ui/_errors.html" with messages=form.base_errors, id="pd-entry-base-errors" %}
+  <div class="pd-body">
+    <div class="pd-entry-grid">
+      <div class="field"><label class="label" for="pd-e-ledger">{% translate "ui.entries.ledger" %}</label>
+        <div class="select is-fullwidth"><select id="pd-e-ledger" name="ledger_id"{% if form.ledger_id_errors %} aria-invalid="true" aria-describedby="pd-e-ledger-errors"{% endif %}>{% for option in form.ledger_options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div>
+        {% include "ui/_errors.html" with messages=form.ledger_id_errors, id="pd-e-ledger-errors" %}</div>
+      <div class="field"><label class="label" for="pd-e-date">{% translate "ui.entries.date" %}</label>
+        <input class="input pd-mono" id="pd-e-date" name="date" value="{{ form.date }}" inputmode="numeric" aria-describedby="pd-e-date-help{% if form.date_errors %} pd-e-date-errors{% endif %}"{% if form.date_errors %} aria-invalid="true"{% endif %}>
+        <p class="help" id="pd-e-date-help">{% translate "ui.entries.date_help" %}</p>
+        {% include "ui/_errors.html" with messages=form.date_errors, id="pd-e-date-errors" %}</div>
+      <div class="field"><label class="label" for="pd-e-receipt">{% translate "ui.entries.receipt" %}</label>
+        <input class="input pd-mono" id="pd-e-receipt" name="receipt" value="{{ form.receipt }}" placeholder="{{ form.receipt_placeholder }}" aria-describedby="pd-e-receipt-help"{% if form.receipt_errors %} aria-invalid="true"{% endif %}>
+        <p class="help" id="pd-e-receipt-help">{% translate "ui.entries.receipt_help" %}</p>
+        {% include "ui/_errors.html" with messages=form.receipt_errors, id="pd-e-receipt-errors" %}</div>
+      <div class="field pd-wide"><label class="label" for="pd-e-third">{% translate "ui.entries.supplier" %}</label>
+        <input class="input" id="pd-e-third" name="third_party" value="{{ form.third_party }}" list="pd-dl-thirds" autocomplete="off" spellcheck="false"{% if form.third_party_errors %} aria-invalid="true" aria-describedby="pd-e-third-errors"{% endif %} hx-get="{% url 'cards:complete' %}?kind=supplier" hx-trigger="input changed delay:150ms" hx-target="#pd-dl-thirds" hx-sync="this:replace">
+        {% include "ui/_errors.html" with messages=form.third_party_errors, id="pd-e-third-errors" %}</div>
+      <div class="field"><label class="label" for="pd-e-due">{% translate "ui.entries.due_date" %}</label>
+        <input class="input pd-mono" id="pd-e-due" name="due_date" value="{{ form.due_date }}" inputmode="numeric"{% if form.due_date_errors %} aria-invalid="true" aria-describedby="pd-e-due-errors"{% endif %}>
+        {% include "ui/_errors.html" with messages=form.due_date_errors, id="pd-e-due-errors" %}</div>
+      <div class="field pd-wide"><label class="label" for="pd-e-label">{% translate "ui.entries.label" %}</label>
+        <input class="input" id="pd-e-label" name="label" value="{{ form.label }}">
+        {% include "ui/_errors.html" with messages=form.label_errors, id="pd-e-label-errors" %}</div>
+    </div>
+  </div>
+  <div class="pd-scroll">
+    <table class="table is-fullwidth pd-lines" aria-label="{% translate 'ui.entries.lines' %}">
+      <thead><tr>
+        <th scope="col" class="pd-col-account">{% translate "ui.entries.item" %}</th>
+        <th scope="col">{% translate "ui.entries.label" %}</th>
+        <th scope="col" class="amount pd-col-amount">{% translate "ui.entries.amount_excl" %}</th><th scope="col" class="pd-col-vat">{% translate "ui.entries.vat" %}</th>
+        <th scope="col" class="pd-col-del"><span class="is-sr-only">{% translate "ui.forms.delete" %}</span></th>
+      </tr></thead>
+      <tbody id="pd-lines">{% for line in form.lines %}{% include "ui/entries/_line.html" %}{% endfor %}</tbody>
+    </table>
+  </div>
+  <div class="pd-body pd-entry-foot">
+    <input type="hidden" id="pd-line-next" name="line_next" value="{{ form.next_index }}">
+    <button class="button is-small is-ghost" type="submit" name="add_line" value="1" formnovalidate data-pd-add-line hx-get="{% url 'accounting:entry_line' kind: kind %}" hx-include="#pd-line-next" hx-target="#pd-lines" hx-swap="beforeend">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "ui.entries.add_line" %}</span></button>
+    <div class="pd-keys" id="pd-entry-keys">
+      <span><kbd>Tab</kbd> / <kbd>{% translate "ui.entries.key_enter" %}</kbd> {% translate "ui.entries.key_next" %}</span>
+      <span><kbd>Alt</kbd>+<kbd>↓</kbd> {% translate "ui.entries.key_add" %}</span>
+      <span><kbd>Ctrl</kbd>+<kbd>{% translate "ui.entries.key_enter" %}</kbd> {% translate "ui.entries.key_save" %}</span>
+    </div>
+  </div>
+  <div class="pd-entry-check" id="pd-entry-check" aria-live="polite" hx-post="{% url 'accounting:entry_received_check' %}" hx-trigger="load, input from:#pd-entry-form delay:300ms, change from:#pd-entry-form, input from:#pd-received-panel delay:300ms, change from:#pd-received-panel, pd:lines from:#pd-entry-form" hx-include="#pd-entry-form" hx-params="not attachment_file" hx-swap="innerHTML"><div class="pd-balance"><span class="pd-state">{% translate "ui.entries.waiting" %}</span></div></div>
+</form>
+<aside class="pd-panel pd-side-panel" id="pd-received-panel" aria-labelledby="pd-received-title">
+  <header><h2 id="pd-received-title">{% translate "ui.received_invoice.panel" %}</h2></header>
+  <div class="pd-body">
+    <div class="field"><label class="label" for="pd-r-number">{% translate "ui.received_invoice.number" %}<span class="pd-required" aria-hidden="true"> *</span></label>
+      <input class="input pd-mono" id="pd-r-number" name="invoice_number" form="pd-entry-form" value="{{ panel.invoice_number }}" maxlength="100" required{% if panel.invoice_number_errors %} aria-invalid="true" aria-describedby="pd-r-number-errors"{% endif %}>
+      {% include "ui/_errors.html" with messages=panel.invoice_number_errors, id="pd-r-number-errors" %}</div>
+    <div class="field"><label class="label" for="pd-r-date">{% translate "ui.received_invoice.invoice_date" %}</label>
+      <input class="input pd-mono" id="pd-r-date" name="invoice_date" form="pd-entry-form" value="{{ panel.invoice_date }}" inputmode="numeric" aria-describedby="pd-r-date-help{% if panel.invoice_date_errors %} pd-r-date-errors{% endif %}"{% if panel.invoice_date_errors %} aria-invalid="true"{% endif %}>
+      <p class="help" id="pd-r-date-help">{% translate "ui.received_invoice.invoice_date_help" %}</p>
+      {% include "ui/_errors.html" with messages=panel.invoice_date_errors, id="pd-r-date-errors" %}</div>
+    <div class="field"><label class="label" for="pd-r-file">{% translate "ui.received_invoice.file" %}<span class="pd-required" aria-hidden="true"> *</span></label>
+      <input class="input" type="file" id="pd-r-file" name="attachment_file" form="pd-entry-form" accept="application/pdf,image/png,image/jpeg" capture="environment" aria-describedby="pd-r-file-help" hx-post="{% url 'accounting:entry_received_upload' %}" hx-encoding="multipart/form-data" hx-trigger="change" hx-include="this" hx-target="#pd-received-attachment" hx-swap="innerHTML">
+      <p class="help" id="pd-r-file-help">{% translate "ui.received_invoice.file_help" %}</p></div>
+    <div id="pd-received-attachment" aria-live="polite">{% include "ui/entries/_received_attachment.html" with attachment=panel.attachment, attachment_errors=panel.attachment_errors %}</div>
+    <p class="is-size-7 pd-muted mt-4">{% translate "ui.received_invoice.note" %}</p>
+  </div>
+</aside>
+</div>
+<datalist id="pd-dl-entry"></datalist><datalist id="pd-dl-items"></datalist><datalist id="pd-dl-parties"></datalist><datalist id="pd-dl-thirds"></datalist>
+{% endif %}
+{% endblock content %}

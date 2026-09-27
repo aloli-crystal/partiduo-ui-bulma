@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Consultation d'un devis ou d'une facture : état, actions selon l'état (valider, transformer, avoir, acompte, décision sur un devis, règlement, relance, aperçu, PDF), lignes et totaux, mentions obligatoires, documents liés, règlements, trace. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Consultation d'un devis ou d'une facture : état, actions selon l'état (valider, transformer, avoir, acompte, décision sur un devis, règlement, relance, aperçu, PDF), canal d'émission (ADR-004 D9), lignes et totaux, mentions obligatoires, documents liés, règlements, trace. #}{% extend "ui/base.html" %}
 {% block title %}{{ title }}{% endblock title %}
 {% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
 {% block heading %}{{ title }} <span class="tag is-light pd-status-tag pd-status-{{ document.status }}">{{ document.status_label }}</span>{% endblock heading %}
@@ -37,6 +37,23 @@
     </div>
   </section>
   <div>
+    {% if channel %}<aside class="pd-panel pd-side-panel" aria-labelledby="pd-channel-title">
+      <header><h2 id="pd-channel-title">{% translate "ui.invoicing.channel" %}</h2>{% if channel.b2c %}<span class="tag is-light">B2C</span>{% endif %}</header>
+      <div class="pd-body">
+        <dl class="pd-dl"><dt>{% translate "ui.invoicing.channel" %}</dt><dd>{{ channel.label }}</dd>
+          <dt>{% translate "ui.invoicing.b2c" %}</dt><dd>{% if channel.b2c %}{% translate "ui.forms.answer_yes" %}{% else %}{% translate "ui.forms.answer_no" %}{% endif %}</dd>
+          {% if channel.sent_at %}<dt>{% translate "ui.invoicing.sent_at" %}</dt><dd class="pd-mono">{{ channel.sent_at }}</dd>{% endif %}</dl>
+        {% if channel.change_url %}<form method="post" action="{{ channel.change_url }}" class="mt-3">{% csrf_input %}
+          <div class="field"><label class="label" for="pd-channel-select">{% translate "ui.invoicing.channel_change" %}</label>
+            <div class="select is-fullwidth"><select id="pd-channel-select" name="issue_channel">{% for option in channel.options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div></div>
+          <div class="field"><label class="checkbox"><input type="checkbox" name="b2c" value="1"{% if channel.b2c %} checked{% endif %}> {% translate "ui.invoicing.b2c" %}</label></div>
+          <button class="button pd-touch" type="submit">{% translate "ui.forms.save" %}</button>
+        </form>{% endif %}
+        {% if channel.mark_sent_url %}<form method="post" action="{{ channel.mark_sent_url }}" class="mt-3">{% csrf_input %}<button class="button pd-touch" type="submit">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.invoicing.mark_sent" %}</span></button></form>{% endif %}
+        {% if channel.platform_note %}<p class="is-size-7 pd-muted mt-3">{% translate "ui.invoicing.platform_note" %}</p>{% endif %}
+        <p class="is-size-7 pd-muted mt-3">{% translate "ui.invoicing.channel_note" %}</p>
+      </div>
+    </aside>{% endif %}
     <aside class="pd-panel pd-side-panel" aria-labelledby="pd-mentions-title">
       <header><h2 id="pd-mentions-title">{% translate "ui.invoicing.mentions" %}</h2></header>
       <div class="pd-body">{% if document.mentions %}<ul class="pd-mentions">{% for mention in document.mentions %}<li>{{ mention }}</li>{% endfor %}</ul>{% else %}<p class="pd-muted is-size-7">{% translate "ui.invoicing.mentions_at_issue" %}</p>{% endif %}</div>
