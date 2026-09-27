@@ -996,3 +996,171 @@ fr:
         one: "%{count} compte n'est repris par aucune rubrique."
         other: "%{count} comptes ne sont repris par aucune rubrique."
         zero: "Aucun compte non repris."
+    vat_returns:
+      accounts: Comptes
+      accounts_help: 'Préfixes séparés par des virgules (70, 706) ; vide : tous les comptes.'
+      adjusted: Correction
+      adjusted_boxes: 'Cases corrigées à la main : %{boxes}.'
+      adjusted_yes: corrigée
+      all_forms: Tous les formulaires
+      amount: Montant
+      ask_restitution: Demande de restitution
+      back: Retour à la déclaration
+      base: Montant hors TVA
+      box: Case
+      box_label: Libellé
+      changed: modifiée depuis le calcul
+      client_listing_nihil: Listing néant
+      close: Clore la déclaration
+      close_intro: 'Période %{period}. Une déclaration close est figée : elle ne se corrige plus et ne se supprime plus.'
+      close_title: 'Clôture : %{name}'
+      closed: Déclaration close.
+      closed_at: Close le
+      closed_settled: Déclaration close ; écriture de liquidation passée.
+      comparison: Montants calculés et déclarés
+      compute: Calculer
+      computed: Calculé
+      computed_help: 'Calculé : %{amount}. Laissez vide pour déclarer le montant calculé.'
+      control: Contrôler
+      control_intro: Apport de chaque règle de calcul, relu dans les écritures ; cases corrigées ou dont le calcul a changé depuis l'enregistrement.
+      control_title: 'Contrôle : %{name}'
+      created: Déclaration « %{name} » enregistrée en brouillon.
+      created_at: Enregistrée le
+      criteria: Déclaration à préparer
+      csv_name: declarations-tva
+      customer: Client
+      date_from: Du (facultatif)
+      date_to: Au (facultatif)
+      dates_help: 'Bornes d''un exercice décalé (CA12) ; vides : celles de la période.'
+      declared: Déclaré
+      default_ledger: Premier journal d'opérations diverses
+      default_rules: 'Paramétrage par défaut : rien n''est encore enregistré pour ce régime.'
+      delete_confirm: Supprimer ce brouillon de déclaration ?
+      deleted: Brouillon « %{name} » supprimé.
+      details: Détail du calcul
+      edit: Corriger
+      edit_intro: 'Montant déclaré de chaque case ; vide : le montant calculé. Les totaux sont recalculés.'
+      edit_title: 'Correction : %{name}'
+      empty: Aucune déclaration enregistrée.
+      excluded_accounts: Comptes exclus
+      exigibilities:
+        operation: Date de l'opération (débits)
+        payment: Date du paiement (encaissements)
+        rates: Selon les taux
+      exigibility: Exigibilité
+      exigibility_help: 'Selon les taux : débits ou encaissements, comme chaque taux le prévoit.'
+      export_xml: Fichier Intervat (XML)
+      form: Formulaire
+      history_title: Déclarations de TVA
+      intra_code: Code
+      intra_codes:
+        l: livraisons de biens
+        s: services
+        t: opérations triangulaires
+      lines: Relevé
+      movements: Lignes
+      new: Préparer une déclaration
+      new_rule: Nouvelle règle
+      next_step: Enregistrement
+      no_boxes: Aucune case.
+      no_details: Aucune écriture ne contribue à cette déclaration.
+      no_lines: Aucun client à déclarer.
+      no_rules: 'Aucune règle : case sans calcul.'
+      number: Mois ou trimestre
+      number_help: Mois (1 à 12) ou trimestre (1 à 4) de l'année.
+      operation: Opération
+      operations:
+        add: ajoute
+        subtract: retranche
+      options: Indicateurs
+      payable_account: Compte de TVA à payer
+      payable_help: 'Vide : compte de TVA par défaut du dossier.'
+      period: Période
+      periodicities:
+        month: Mensuelle
+        quarter: Trimestrielle
+        year: Annuelle
+      periodicity: Périodicité
+      periodicity_help: Le formulaire n'admet que certaines périodicités.
+      prepare_intro: 'Choisissez le formulaire et la période : la déclaration est calculée depuis les écritures, sans être enregistrée.'
+      quarter: T%{number} %{year}
+      rate: Taux de TVA
+      receivable_account: Compte de crédit de TVA
+      receivable_help: 'Vide : 411 en Belgique, 44567 en France.'
+      recompute: Recalculer
+      recomputed: Déclaration recalculée depuis les écritures ; les corrections sont gardées.
+      remove_rule: Retirer cette règle
+      representative: Mandataire (fichiers Intervat)
+      reset_confirm: Revenir au paramétrage par défaut de ce régime ?
+      reset_rules: Paramétrage par défaut
+      rule: Règle
+      rule_accounts: comptes %{accounts}
+      rule_all_rates: tous les taux
+      rule_excluded: sauf %{accounts}
+      rule_ledger: journal %{code}
+      rule_ledger_kind: 'journaux : %{kind}'
+      rule_number: Règle %{number}
+      rule_rate: taux %{code}
+      rules: Règles de calcul
+      rules_edit_title: Case %{box} (%{regime})
+      rules_intro: Chaque règle ajoute (ou retranche) à la case les montants des écritures qu'elle retient. Une ligne vide n'est pas enregistrée.
+      rules_reset: Paramétrage par défaut rétabli.
+      rules_saved: Règles de la case %{box} enregistrées.
+      rules_title: Règles de calcul — régime %{regime}
+      save_draft: Enregistrer le brouillon
+      save_help: Le brouillon se corrige et se recalcule jusqu'à sa clôture.
+      settings_fields:
+        country_help: Code ISO à deux lettres (BE).
+        id_type_help: NVAT (numéro de TVA), TIN, NISS…
+        representative_city: Localité
+        representative_country_code: Pays
+        representative_email: Courriel
+        representative_id: Identifiant
+        representative_id_type: Type d'identifiant
+        representative_issued_by: Pays émetteur
+        representative_name: Nom
+        representative_phone: Téléphone
+        representative_postcode: Code postal
+        representative_street: Rue
+      settings_intro: Mandataire des fichiers Intervat et règles de calcul des cases. Le déclarant est la société du dossier.
+      settings_saved: Paramètres de TVA enregistrés.
+      settings_title: Paramètres de TVA
+      settle: Passer l'écriture de liquidation
+      settle_help: 'Solde les comptes de TVA de la période vers la dette ou la créance de TVA ; en France, pour les montants déclarés (écart d''arrondi en 658 ou 758, acomptes en 44581, remboursement en 44583). Une case calculée corrigée se liquide à la main.'
+      settle_intro: Période %{period}. L'écriture solde les comptes de TVA de la période.
+      settle_now: Passer l'écriture de liquidation
+      settle_title: 'Liquidation : %{name}'
+      settled: Liquidée
+      settled_message: Écriture de liquidation passée.
+      settlement: Liquidation
+      settlement_date: Date de l'écriture
+      settlement_entry: Écriture n° %{id}
+      sign: Montants retenus
+      signs:
+        all: tous les montants
+        negative: montants négatifs seulement
+        positive: montants positifs seulement
+      source: Source
+      sources:
+        balance: Solde des comptes
+        base: Base hors TVA
+        collected: TVA due
+        deductible: TVA déductible
+      stale: 'Le calcul a changé depuis l''enregistrement (écritures passées ou modifiées) : %{boxes}. Recalculez avant de clore.'
+      state: État
+      status: État
+      statuses:
+        closed: Close
+        draft: Brouillon
+      tabs:
+        history: Historique
+        label: Déclarations de TVA
+        prepare: Préparation
+        settings: Paramètres
+      threshold: Seuil par client
+      threshold_help: 'Listing des clients : chiffre d''affaires minimal (250 par défaut).'
+      updated: Déclaration corrigée.
+      vat: TVA
+      vat_number: N° de TVA
+      year: Année %{year}
+      year_label: Année

@@ -1,0 +1,38 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Écran des déclarations de TVA (lot 4) : onglets (préparation, historique, paramètres), critères (formulaire GET), avertissements, synthèse, rubriques (cases par cadre, relevés, détail du calcul), formulaire facultatif (correction, clôture, paramètres). Tout vient de Partiduo::Api::Accounting. #}{% extend "ui/base.html" %}
+{% block title %}{{ title }}{% endblock title %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{{ title }}{% if status %} <span class="tag is-light pd-status-tag">{{ status }}</span>{% endif %}{% endblock heading %}
+{% block actions %}{% for action in actions %}{% include "ui/_action.html" %}{% endfor %}{% endblock actions %}
+{% block content %}
+{% if tabs %}<nav class="pd-tabs mb-3" aria-label="{{ tabs_label }}">{% for tab in tabs %}<a href="{{ tab.url }}"{% if tab.current %} aria-current="page"{% endif %}>{{ tab.label }}</a>{% endfor %}</nav>{% endif %}
+{% if intro %}<p class="pd-muted mb-3">{{ intro }}</p>{% endif %}
+{% if filters %}<section class="pd-panel pd-report-filters" aria-labelledby="pd-report-filters-title">
+  <header><h2 id="pd-report-filters-title">{{ filters_title }}</h2></header>
+  <div class="pd-body">
+    <form method="get" action="{{ filters_path }}" class="pd-form" aria-labelledby="pd-report-filters-title" novalidate>
+      <input type="hidden" name="f" value="1">
+      {% if filters.base_errors %}<div class="notification is-danger is-light pd-alert" role="alert">{% include "ui/_icon.html" with name="triangle-alert" %}<div>{% for message in filters.base_errors %}<p>{{ message }}</p>{% endfor %}</div></div>{% endif %}
+      <div class="pd-form-grid pd-report-grid">{% for field in filters.fields %}{% include "ui/_field.html" %}{% endfor %}</div>
+      <div class="pd-form-actions">
+        <button class="button is-primary pd-touch" type="submit">{{ submit_label }}</button>
+      </div>
+    </form>
+  </div>
+</section>{% endif %}
+{% if warnings %}<div class="notification is-warning is-light pd-alert" role="status">{% include "ui/_icon.html" with name="triangle-alert" %}<div>{% for message in warnings %}<p>{{ message }}</p>{% endfor %}</div></div>{% endif %}
+{% if summary %}<section class="pd-panel" aria-labelledby="pd-vat-summary-title">
+  <header><h2 id="pd-vat-summary-title">{{ summary_title }}</h2></header>
+  <div class="pd-body"><dl class="pd-dl pd-detail">{% for item in summary %}<dt>{{ item.label }}</dt><dd{% if item.mono %} class="pd-mono"{% endif %}>{% if item.url %}<a class="pd-link" href="{{ item.url }}">{{ item.value }}</a>{% else %}{{ item.value }}{% endif %}</dd>{% endfor %}</dl></div>
+</section>{% endif %}
+<div class="pd-sections" id="pd-vat">
+{% for section in sections %}
+<section class="pd-panel" aria-labelledby="{{ section.anchor }}">
+  <header><h2 id="{{ section.anchor }}">{{ section.title }}</h2>{% if section.actions %}<div class="pd-row-actions">{% for action in section.actions %}{% include "ui/_action.html" %}{% endfor %}</div>{% endif %}</header>
+  {% if section.items %}<div class="pd-body"><dl class="pd-dl pd-detail">{% for item in section.items %}<dt>{{ item.label }}</dt><dd{% if item.mono %} class="pd-mono"{% endif %}>{% if item.url %}<a class="pd-link" href="{{ item.url }}">{{ item.value }}</a>{% else %}{{ item.value }}{% endif %}</dd>{% endfor %}</dl></div>{% endif %}
+  {% if section.note %}<div class="pd-body"><p class="pd-muted">{{ section.note }}</p></div>{% endif %}
+  {% if section.table %}{% include "ui/_table.html" with table=section.table %}{% endif %}
+</section>
+{% endfor %}
+</div>
+{% if form %}{% include "ui/_form_panel.html" %}{% endif %}
+{% endblock content %}

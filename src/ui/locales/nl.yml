@@ -996,3 +996,171 @@ nl:
         one: "%{count} rekening komt in geen enkele rubriek voor."
         other: "%{count} rekeningen komen in geen enkele rubriek voor."
         zero: "Geen ontbrekende rekeningen."
+    vat_returns:
+      accounts: Rekeningen
+      accounts_help: 'Prefixen gescheiden door komma''s (70, 706); leeg: alle rekeningen.'
+      adjusted: Correctie
+      adjusted_boxes: 'Handmatig gecorrigeerde roosters: %{boxes}.'
+      adjusted_yes: gecorrigeerd
+      all_forms: Alle formulieren
+      amount: Bedrag
+      ask_restitution: Teruggaaf gevraagd
+      back: Terug naar de aangifte
+      base: Bedrag exclusief btw
+      box: Rooster
+      box_label: Omschrijving
+      changed: gewijzigd sinds de berekening
+      client_listing_nihil: Nihil-listing
+      close: Aangifte afsluiten
+      close_intro: 'Periode %{period}. Een afgesloten aangifte ligt vast: ze kan niet meer gecorrigeerd of verwijderd worden.'
+      close_title: 'Afsluiting: %{name}'
+      closed: Aangifte afgesloten.
+      closed_at: Afgesloten op
+      closed_settled: Aangifte afgesloten; vereffeningsboeking geboekt.
+      comparison: Berekende en aangegeven bedragen
+      compute: Berekenen
+      computed: Berekend
+      computed_help: 'Berekend: %{amount}. Leeg laten om het berekende bedrag aan te geven.'
+      control: Controleren
+      control_intro: Bijdrage van elke berekeningsregel, opnieuw gelezen in de boekingen; gecorrigeerde roosters of roosters waarvan de berekening sinds het opslaan veranderde.
+      control_title: 'Controle: %{name}'
+      created: Aangifte “%{name}” als ontwerp opgeslagen.
+      created_at: Opgeslagen op
+      criteria: Voor te bereiden aangifte
+      csv_name: btw-aangiften
+      customer: Klant
+      date_from: Van (facultatief)
+      date_to: Tot (facultatief)
+      dates_help: 'Grenzen van een verschoven boekjaar (CA12); leeg: die van de periode.'
+      declared: Aangegeven
+      default_ledger: Eerste dagboek diverse verrichtingen
+      default_rules: 'Standaardinstellingen: voor dit stelsel is nog niets opgeslagen.'
+      delete_confirm: Dit ontwerp van aangifte verwijderen?
+      deleted: Ontwerp “%{name}” verwijderd.
+      details: Detail van de berekening
+      edit: Corrigeren
+      edit_intro: 'Aangegeven bedrag van elk rooster; leeg: het berekende bedrag. De totalen worden herberekend.'
+      edit_title: 'Correctie: %{name}'
+      empty: Geen opgeslagen aangifte.
+      excluded_accounts: Uitgesloten rekeningen
+      exigibilities:
+        operation: Datum van de verrichting (facturatie)
+        payment: Datum van betaling (ontvangsten)
+        rates: Volgens de tarieven
+      exigibility: Opeisbaarheid
+      exigibility_help: 'Volgens de tarieven: facturatie of betaling, zoals elk tarief bepaalt.'
+      export_xml: Intervat-bestand (XML)
+      form: Formulier
+      history_title: Btw-aangiften
+      intra_code: Code
+      intra_codes:
+        l: leveringen van goederen
+        s: diensten
+        t: driehoeksverrichtingen
+      lines: Opgave
+      movements: Lijnen
+      new: Een aangifte voorbereiden
+      new_rule: Nieuwe regel
+      next_step: Opslaan
+      no_boxes: Geen rooster.
+      no_details: Geen enkele boeking draagt bij tot deze aangifte.
+      no_lines: Geen klant aan te geven.
+      no_rules: 'Geen regel: rooster zonder berekening.'
+      number: Maand of kwartaal
+      number_help: Maand (1 tot 12) of kwartaal (1 tot 4) van het jaar.
+      operation: Bewerking
+      operations:
+        add: telt op
+        subtract: trekt af
+      options: Aanduidingen
+      payable_account: Rekening te betalen btw
+      payable_help: 'Leeg: standaard btw-rekening van het dossier.'
+      period: Periode
+      periodicities:
+        month: Maandelijks
+        quarter: Driemaandelijks
+        year: Jaarlijks
+      periodicity: Periodiciteit
+      periodicity_help: Elk formulier aanvaardt slechts bepaalde periodiciteiten.
+      prepare_intro: 'Kies het formulier en de periode: de aangifte wordt berekend uit de boekingen, zonder opgeslagen te worden.'
+      quarter: "%{number}e kwartaal %{year}"
+      rate: Btw-tarief
+      receivable_account: Rekening btw-tegoed
+      receivable_help: 'Leeg: 411 in België, 44567 in Frankrijk.'
+      recompute: Herberekenen
+      recomputed: Aangifte herberekend uit de boekingen; de correcties blijven behouden.
+      remove_rule: Deze regel verwijderen
+      representative: Gevolmachtigde (Intervat-bestanden)
+      reset_confirm: Terug naar de standaardinstellingen van dit stelsel?
+      reset_rules: Standaardinstellingen
+      rule: Regel
+      rule_accounts: rekeningen %{accounts}
+      rule_all_rates: alle tarieven
+      rule_excluded: behalve %{accounts}
+      rule_ledger: dagboek %{code}
+      rule_ledger_kind: 'dagboeken: %{kind}'
+      rule_number: Regel %{number}
+      rule_rate: tarief %{code}
+      rules: Berekeningsregels
+      rules_edit_title: Rooster %{box} (%{regime})
+      rules_intro: Elke regel telt de bedragen van de geselecteerde boekingen op bij het rooster (of trekt ze af). Een lege lijn wordt niet opgeslagen.
+      rules_reset: Standaardinstellingen hersteld.
+      rules_saved: Regels van rooster %{box} opgeslagen.
+      rules_title: Berekeningsregels — stelsel %{regime}
+      save_draft: Ontwerp opslaan
+      save_help: Het ontwerp kan gecorrigeerd en herberekend worden tot het afgesloten wordt.
+      settings_fields:
+        country_help: ISO-code van twee letters (BE).
+        id_type_help: NVAT (btw-nummer), TIN, NISS…
+        representative_city: Gemeente
+        representative_country_code: Land
+        representative_email: E-mail
+        representative_id: Identificatie
+        representative_id_type: Soort identificatie
+        representative_issued_by: Land van uitgifte
+        representative_name: Naam
+        representative_phone: Telefoon
+        representative_postcode: Postcode
+        representative_street: Straat
+      settings_intro: Gevolmachtigde voor de Intervat-bestanden en berekeningsregels van de roosters. De aangever is de onderneming van het dossier.
+      settings_saved: Btw-instellingen opgeslagen.
+      settings_title: Btw-instellingen
+      settle: Vereffeningsboeking boeken
+      settle_help: 'Vereffent de btw-rekeningen van de periode naar de btw-schuld of het btw-tegoed; in Frankrijk voor de aangegeven bedragen (afrondingsverschil op 658 of 758, voorschotten op 44581, terugbetaling op 44583). Een gecorrigeerd berekend rooster wordt manueel vereffend.'
+      settle_intro: Periode %{period}. De boeking vereffent de btw-rekeningen van de periode.
+      settle_now: Vereffeningsboeking boeken
+      settle_title: 'Vereffening: %{name}'
+      settled: Vereffend
+      settled_message: Vereffeningsboeking geboekt.
+      settlement: Vereffening
+      settlement_date: Datum van de boeking
+      settlement_entry: Boeking nr. %{id}
+      sign: Geselecteerde bedragen
+      signs:
+        all: alle bedragen
+        negative: enkel negatieve bedragen
+        positive: enkel positieve bedragen
+      source: Bron
+      sources:
+        balance: Saldo van de rekeningen
+        base: Maatstaf exclusief btw
+        collected: Verschuldigde btw
+        deductible: Aftrekbare btw
+      stale: 'De berekening veranderde sinds het opslaan (boekingen toegevoegd of gewijzigd): %{boxes}. Herbereken vóór het afsluiten.'
+      state: Toestand
+      status: Status
+      statuses:
+        closed: Afgesloten
+        draft: Ontwerp
+      tabs:
+        history: Historiek
+        label: Btw-aangiften
+        prepare: Voorbereiding
+        settings: Instellingen
+      threshold: Drempel per klant
+      threshold_help: 'Klantenlisting: minimale omzet (standaard 250).'
+      updated: Aangifte gecorrigeerd.
+      vat: Btw
+      vat_number: Btw-nummer
+      year: Jaar %{year}
+      year_label: Jaar

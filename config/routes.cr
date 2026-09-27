@@ -86,6 +86,22 @@ ACCOUNTING_ROUTES = Marten::Routing::Map.draw do
   path "/reports/custom/<id:int>/edit", PartiduoUi::CustomReportEditHandler, name: "report_edit"
   path "/reports/custom/<id:int>/delete", PartiduoUi::CustomReportDeleteHandler, name: "report_delete"
   path "/reports/fec", PartiduoUi::FecHandler, name: "fec"
+  # Déclarations de TVA (lot 4, menu `accounting:vat_return`) : préparation,
+  # déclaration enregistrée, contrôle, historique, exports, paramètres.
+  path "/vat", PartiduoUi::VatPrepareHandler, name: "vat_return"
+  path "/vat/returns", PartiduoUi::VatReturnsHandler, name: "vat_returns"
+  path "/vat/returns/new", PartiduoUi::VatReturnCreateHandler, name: "vat_return_create"
+  path "/vat/returns/<id:int>", PartiduoUi::VatReturnHandler, name: "vat_return_show"
+  path "/vat/returns/<id:int>/edit", PartiduoUi::VatReturnEditHandler, name: "vat_return_edit"
+  path "/vat/returns/<id:int>/recompute", PartiduoUi::VatReturnRecomputeHandler, name: "vat_return_recompute"
+  path "/vat/returns/<id:int>/control", PartiduoUi::VatReturnControlHandler, name: "vat_return_control"
+  path "/vat/returns/<id:int>/close", PartiduoUi::VatReturnCloseHandler, name: "vat_return_close"
+  path "/vat/returns/<id:int>/settle", PartiduoUi::VatReturnSettleHandler, name: "vat_return_settle"
+  path "/vat/returns/<id:int>/delete", PartiduoUi::VatReturnDeleteHandler, name: "vat_return_delete"
+  path "/vat/returns/<id:int>/file", PartiduoUi::VatReturnFileHandler, name: "vat_return_file"
+  path "/vat/settings", PartiduoUi::VatSettingsHandler, name: "vat_settings"
+  path "/vat/rules/<regime:str>/<box:str>", PartiduoUi::VatRulesHandler, name: "vat_rules"
+  path "/vat/reset-rules/<regime:str>", PartiduoUi::VatRulesResetHandler, name: "vat_rules_reset"
 end
 
 # Module Facturation (menus `invoicing:documents`, `invoice_new`, `payments`,

@@ -996,3 +996,171 @@ en:
         one: "%{count} account is not included in any heading."
         other: "%{count} accounts are not included in any heading."
         zero: "No unmapped accounts."
+    vat_returns:
+      accounts: Accounts
+      accounts_help: 'Comma-separated prefixes (70, 706); empty: all accounts.'
+      adjusted: Adjustment
+      adjusted_boxes: 'Boxes adjusted by hand: %{boxes}.'
+      adjusted_yes: adjusted
+      all_forms: All forms
+      amount: Amount
+      ask_restitution: Refund requested
+      back: Back to the return
+      base: Amount excluding VAT
+      box: Box
+      box_label: Label
+      changed: changed since computed
+      client_listing_nihil: Nil listing
+      close: Close the return
+      close_intro: 'Period %{period}. A closed return is frozen: it can no longer be adjusted or deleted.'
+      close_title: 'Closing: %{name}'
+      closed: Return closed.
+      closed_at: Closed on
+      closed_settled: Return closed; settlement entry posted.
+      comparison: Computed and declared amounts
+      compute: Compute
+      computed: Computed
+      computed_help: 'Computed: %{amount}. Leave empty to declare the computed amount.'
+      control: Check
+      control_intro: Contribution of each computation rule, read again from the entries; boxes adjusted or whose computation changed since saving.
+      control_title: 'Check: %{name}'
+      created: Return “%{name}” saved as a draft.
+      created_at: Saved on
+      criteria: Return to prepare
+      csv_name: vat-returns
+      customer: Customer
+      date_from: From (optional)
+      date_to: To (optional)
+      dates_help: 'Bounds of a non-calendar financial year (CA12); empty: those of the period.'
+      declared: Declared
+      default_ledger: First miscellaneous operations ledger
+      default_rules: 'Default settings: nothing is saved yet for this regime.'
+      delete_confirm: Delete this draft return?
+      deleted: Draft “%{name}” deleted.
+      details: Computation details
+      edit: Adjust
+      edit_intro: 'Declared amount of each box; empty: the computed amount. Totals are recomputed.'
+      edit_title: 'Adjustment: %{name}'
+      empty: No saved return.
+      excluded_accounts: Excluded accounts
+      exigibilities:
+        operation: Operation date (invoicing)
+        payment: Payment date (cash)
+        rates: According to rates
+      exigibility: Chargeability
+      exigibility_help: 'According to rates: invoicing or payment, as each rate specifies.'
+      export_xml: Intervat file (XML)
+      form: Form
+      history_title: VAT returns
+      intra_code: Code
+      intra_codes:
+        l: supplies of goods
+        s: services
+        t: triangular transactions
+      lines: Listing
+      movements: Lines
+      new: Prepare a return
+      new_rule: New rule
+      next_step: Saving
+      no_boxes: No box.
+      no_details: No entry contributes to this return.
+      no_lines: No customer to declare.
+      no_rules: 'No rule: box not computed.'
+      number: Month or quarter
+      number_help: Month (1 to 12) or quarter (1 to 4) of the year.
+      operation: Operation
+      operations:
+        add: adds
+        subtract: subtracts
+      options: Flags
+      payable_account: VAT payable account
+      payable_help: 'Empty: the default VAT account of the company.'
+      period: Period
+      periodicities:
+        month: Monthly
+        quarter: Quarterly
+        year: Yearly
+      periodicity: Frequency
+      periodicity_help: Each form only accepts some frequencies.
+      prepare_intro: 'Choose the form and the period: the return is computed from the entries, without being saved.'
+      quarter: Q%{number} %{year}
+      rate: VAT rate
+      receivable_account: VAT credit account
+      receivable_help: 'Empty: 411 in Belgium, 44567 in France.'
+      recompute: Recompute
+      recomputed: Return recomputed from the entries; adjustments are kept.
+      remove_rule: Remove this rule
+      representative: Representative (Intervat files)
+      reset_confirm: Go back to the default settings of this regime?
+      reset_rules: Default settings
+      rule: Rule
+      rule_accounts: accounts %{accounts}
+      rule_all_rates: all rates
+      rule_excluded: except %{accounts}
+      rule_ledger: ledger %{code}
+      rule_ledger_kind: 'ledgers: %{kind}'
+      rule_number: Rule %{number}
+      rule_rate: rate %{code}
+      rules: Computation rules
+      rules_edit_title: Box %{box} (%{regime})
+      rules_intro: Each rule adds (or subtracts) to the box the amounts of the entries it selects. An empty line is not saved.
+      rules_reset: Default settings restored.
+      rules_saved: Rules of box %{box} saved.
+      rules_title: Computation rules — %{regime} regime
+      save_draft: Save the draft
+      save_help: The draft can be adjusted and recomputed until it is closed.
+      settings_fields:
+        country_help: Two-letter ISO code (BE).
+        id_type_help: NVAT (VAT number), TIN, NISS…
+        representative_city: City
+        representative_country_code: Country
+        representative_email: Email
+        representative_id: Identifier
+        representative_id_type: Identifier type
+        representative_issued_by: Issuing country
+        representative_name: Name
+        representative_phone: Phone
+        representative_postcode: Postcode
+        representative_street: Street
+      settings_intro: Representative for Intervat files and box computation rules. The declarant is the company of the file.
+      settings_saved: VAT settings saved.
+      settings_title: VAT settings
+      settle: Post the settlement entry
+      settle_help: 'Clears the VAT accounts of the period to the VAT payable or receivable; in France, for the declared amounts (rounding difference to 658 or 758, instalments to 44581, refund to 44583). A corrected computed box is settled manually.'
+      settle_intro: Period %{period}. The entry clears the VAT accounts of the period.
+      settle_now: Post the settlement entry
+      settle_title: 'Settlement: %{name}'
+      settled: Settled
+      settled_message: Settlement entry posted.
+      settlement: Settlement
+      settlement_date: Entry date
+      settlement_entry: Entry no. %{id}
+      sign: Amounts selected
+      signs:
+        all: all amounts
+        negative: negative amounts only
+        positive: positive amounts only
+      source: Source
+      sources:
+        balance: Account balance
+        base: Base excluding VAT
+        collected: VAT due
+        deductible: Deductible VAT
+      stale: 'The computation changed since saving (entries posted or changed): %{boxes}. Recompute before closing.'
+      state: State
+      status: Status
+      statuses:
+        closed: Closed
+        draft: Draft
+      tabs:
+        history: History
+        label: VAT returns
+        prepare: Preparation
+        settings: Settings
+      threshold: Threshold per customer
+      threshold_help: 'Customer listing: minimum turnover (250 by default).'
+      updated: Return adjusted.
+      vat: VAT
+      vat_number: VAT number
+      year: Year %{year}
+      year_label: Year
