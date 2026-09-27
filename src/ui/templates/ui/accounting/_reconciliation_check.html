@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Sélection du rapprochement contrôlée (PartiduoUi::ReconciliationCheck, variable check) : écart du relevé, montant coché, reste à cocher. #}<div class="pd-balance">
+  <div class="fig"><span>{% translate "ui.reconciliation.selected_count" %}</span><b>{{ check.count }}</b></div>
+  <div class="fig"><span>{% translate "ui.reconciliation.delta" %}</span><b>{{ check.delta }}</b></div>
+  <div class="fig"><span>{% translate "ui.reconciliation.selected" %}</span><b>{{ check.selected }}</b></div>
+  <div class="fig"><span>{% translate "ui.reconciliation.remaining" %}</span><b>{{ check.remaining }}</b></div>
+  {% if check.balanced %}<span class="pd-state ok">{% translate "ui.reconciliation.balanced" %}</span>{% else %}<span class="pd-state gap">{% translate "ui.reconciliation.unbalanced" %}</span>{% endif %}
+</div>

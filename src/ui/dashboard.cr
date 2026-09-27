@@ -67,6 +67,7 @@ module PartiduoUi
     def build : self
       accounting if @active.includes?("ACCOUNTING") && @actor.can?("accounting.entry.read")
       invoicing if @active.includes?("INVOICING") && @actor.can?("invoicing.invoice.read")
+      followup if @active.includes?("FOLLOWUP") && @actor.can?("followup.action.read")
       if @active.includes?("ACCOUNTING") && @actor.can?("accounting.entry.post")
         @new_entry_url = Marten.routes.reverse("accounting:entry_purchase")
       end
@@ -94,6 +95,20 @@ module PartiduoUi
 
     private def accounts_url(query : String) : String
       "#{reverse("accounting:accounts")}?#{URI::Params.encode({"q" => query})}"
+    end
+
+    # --- Suivi ------------------------------------------------------------------------
+
+    # Rappels du jour et en retard du Suivi (lot 6), dans « À traiter ».
+    private def followup : Nil
+      reminders = Partiduo::Api::Followup.reminders(@actor, @today)
+      due = reminders.late + reminders.today
+      return if due.empty?
+      detail = due.first(3).map { |action| "#{action.reference} · #{action.title}" }.join(" · ")
+      @todos << Todo.new(I18n.t("ui.dashboard.todo.followup_reminders", count: due.size), detail,
+        reverse("followup:reminders"), reminders.late.empty? ? "primary" : "gap")
+    rescue Partiduo::Api::AccessDenied
+      nil
     end
 
     # --- Comptabilité -------------------------------------------------------------

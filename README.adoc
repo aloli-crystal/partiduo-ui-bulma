@@ -189,6 +189,25 @@ celle d'un article suivi à l'historique de son stock ; la consultation
 d'une écriture liste les actions qui la citent (DECISIONS D-UI-045 à
 D-UI-047).
 
+== Paramètres, fin d'exercice et rapprochement (critique de complétude)
+
+[cols="2,5",options="header"]
+|===
+|Adresse |Écran
+
+|`/settings/company`, `…/edit` |Société : identité, coordonnées, langue, domaine, méthodes et niveau d'authentification (régime fiscal figé)
+|`/settings/modules` |Modules et extensions : activer, désactiver (données conservées), dépendances (ADR-006 D2)
+|`/settings/currencies`, `…/<code>` |Devises et cours datés
+|`/settings/users`, `…/new`, `…/<id>` |Utilisateurs : invitation (courriel et lien affiché), rôle `comptable`, profil, fin d'accès, révocation, déblocage, droits par journal
+|`/settings/profiles` |Profils et permissions par pièce ; profils par défaut dont « Comptable invité (lecture) » (ADR-006 D4)
+|`/settings/audit` |Journal d'audit nominatif
+|`/cards/categories` |Catégories de fiches et leurs attributs propres
+|`/accounting/closing` |Fin d'exercice : clôture des comptes 6 et 7, à-nouveaux de l'exercice suivant
+|`/accounting/reconciliation` |Rapprochement bancaire : opérations d'un journal financier cochées d'après le relevé, écart contrôlé (HTMX), relevés rapprochés
+|===
+
+Décisions D-UI-051 à D-UI-056 (DECISIONS du cœur).
+
 == Authentification (ADR-002)
 
 [cols="2,3",options="header"]

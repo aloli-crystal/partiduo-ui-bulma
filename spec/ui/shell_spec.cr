@@ -63,10 +63,13 @@ describe "Coquille de l'écran (maquette, ADR-005 D5)" do
     body.should_not contain(">Facturation</p>")
   end
 
-  it "montre désactivées les entrées dont l'écran n'est pas encore livré" do
+  it "relie chaque entrée de menu des pièces livrées à son écran (aucune entrée désactivée)" do
     PartiduoUi::Accounts.create
     body = PartiduoUi::Accounts.signed_in.get("/").html
-    body.should contain(%(<span class="pd-menu-off" aria-disabled="true"><span>Clôture<span class="is-sr-only"> (bientôt disponible)</span>))
+    body.should_not contain(%(class="pd-menu-off"))
+    body.should contain(%(<a href="/accounting/closing"><span>Clôture</span></a>))
+    # Une route que l'interface ne fournit pas reste désactivée (`Shell.resolve`).
+    PartiduoUi::Shell.resolve("accounting:absent").should be_nil
   end
 
   it "traduit les libellés d'écran en fr, en et nl, et garde le choix de langue" do

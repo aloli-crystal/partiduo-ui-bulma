@@ -70,6 +70,28 @@ describe "Devis et factures (ADR-006 D5)" do
     Inv.document(Books.system, document.id).totals.total_net.should eq(Books.d("400"))
   end
 
+  it "saisit des lignes de titre et de sous-total (ADR-006 D5)" do
+    browser = Books.admin
+    customer = Books.card("CUSTOMER", "Atelier Morel", "CLI-MOREL")
+    item
+    browser.get("/invoicing/documents/new?kind=quote").html.should contain(%(name="line-0-layout"))
+    values = quote_values(customer.code, {
+      "line-0-item" => "", "line-0-description" => "Phase 1", "line-0-quantity" => "", "line-0-layout" => "title",
+      "line-1-item" => "CONSEIL", "line-1-description" => "", "line-1-quantity" => "10", "line-1-unit" => "",
+      "line-1-unit_price" => "", "line-1-discount" => "", "line-1-vat_rate_id" => "", "line-1-layout" => "",
+      "line-2-item" => "", "line-2-description" => "", "line-2-quantity" => "", "line-2-layout" => "subtotal",
+    })
+    response = browser.post("/invoicing/documents/new", values)
+    response.status.should eq(302)
+    document = Inv.documents(Books.system, Inv::DocumentQuery.new(kind: "quote")).first
+    document.lines.map(&.kind).should eq(["title", "item", "subtotal"])
+    document.lines.first.description.should eq("Phase 1")
+    document.totals.total_net.should eq(Books.d("800"))
+    edit = browser.get("/invoicing/documents/#{document.id}/edit").html
+    edit.should contain(%(<option value="title" selected>))
+    edit.should contain(%(<option value="subtotal" selected>))
+  end
+
   it "valide un devis, le transforme en facture, valide la facture et fournit PDF Factur-X et aperçu" do
     browser = Books.admin
     customer = Books.card("CUSTOMER", "Atelier Morel", "CLI-MOREL")

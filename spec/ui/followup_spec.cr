@@ -90,6 +90,10 @@ describe "Suivi (lot 6)" do
     list.should contain("pd-row-warning")
     browser.get("/followup/actions?q=absent").html.should_not contain(%(href="/followup/actions/#{action.id}"))
     browser.get("/followup/reminders").html.should contain("DI-1")
+    # Rappel en retard repris dans « À traiter » du tableau de bord.
+    dashboard = browser.get("/").html
+    dashboard.should contain("1 rappel du suivi à traiter")
+    dashboard.should contain("DI-1 · Relance devis")
     browser.get("/cards/#{customer.id}").html.should contain("/followup/actions?card=CLI-MOREL&state=all")
 
     csv = browser.get("/followup/actions?format=csv")

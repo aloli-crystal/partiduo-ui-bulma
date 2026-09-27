@@ -20,4 +20,5 @@ Naming/QueryBoolMethods:
     - src/ui/dashboard.cr
     - src/ui/handlers/accounting/statement_handlers.cr
     - src/ui/handlers/accounting/matching_handlers.cr
+    - src/ui/handlers/accounting/reconciliation_handlers.cr
     - src/ui/handlers/invoicing/document_handlers.cr

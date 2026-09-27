@@ -1,0 +1,20 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Fin d'exercice : choix de l'exercice et de l'écriture (clôture ou à-nouveaux), écriture proposée par le cœur, passage dans un journal d'opérations diverses. #}{% extend "ui/base.html" %}
+{% block title %}{{ title }}{% endblock title %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{{ title }}{% endblock heading %}
+{% block actions %}{% if posted_url %}<a class="button pd-touch" href="{{ posted_url }}">{% translate "ui.closing.see_entry" %}</a>{% endif %}{% endblock actions %}
+{% block content %}
+{% if intro %}<p class="pd-muted mb-3">{{ intro }}</p>{% endif %}
+<section class="pd-panel" aria-labelledby="pd-closing-choose">
+  <header><h2 id="pd-closing-choose">{% translate "ui.closing.choose" %}</h2></header>
+  <div class="pd-body">{% include "ui/_form.html" with form=chooser, form_action=chooser_action, form_submit=chooser_submit, form_method="get" %}</div>
+</section>
+{% if note %}<p class="pd-muted">{{ note }}</p>{% endif %}
+{% if refused %}<div class="notification is-danger is-light" role="alert"><ul>{% for message in refused %}<li>{{ message }}</li>{% endfor %}</ul></div>{% endif %}
+{% if notes %}<div class="notification is-warning is-light" role="status"><ul>{% for message in notes %}<li>{{ message }}</li>{% endfor %}</ul>{% if chart_new_url %}<p><a class="pd-link" href="{{ chart_new_url }}">{% translate "ui.closing.create_account" %}</a></p>{% endif %}</div>{% endif %}
+{% if table %}<section class="pd-panel" aria-label="{{ table.caption }}">
+  <header><h2>{{ table.caption }}</h2>{% if result %}<span class="pd-muted">{{ result }}</span>{% endif %}</header>
+  {% include "ui/_table.html" %}
+</section>{% endif %}
+{% if form %}{% include "ui/_form_panel.html" %}{% endif %}
+{% endblock content %}

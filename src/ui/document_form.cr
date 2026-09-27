@@ -11,7 +11,9 @@ module PartiduoUi
   # Une ligne : article (code de fiche, complété), désignation, quantité,
   # unité, prix unitaire HT, remise en %, taux de TVA. Nature déduite :
   # article s'il est donné, sinon désignation chiffrée (`free`) si un prix ou
-  # une quantité est saisi, sinon note (`note`). Champs `line-<n>-<champ>`.
+  # une quantité est saisi, sinon note (`note`) ; ligne de titre ou de
+  # sous-total si la mise en forme le demande (`layout`, ADR-006 D5,
+  # D-UI-055). Champs `line-<n>-<champ>`.
   class DocumentForm
     include Marten::Template::Object::Auto
 
@@ -28,6 +30,8 @@ module PartiduoUi
       property unit_price : String
       property discount : String
       property vat_rate_id : String
+      # Mise en forme : vide (ligne chiffrée ou note), `title`, `subtotal`.
+      property layout : String = ""
       property total : String = ""
       property vat_options : Array(Form::Option)?
       property errors : Array(String)?
@@ -36,8 +40,18 @@ module PartiduoUi
                      @vat_rate_id = "")
       end
 
+      LAYOUTS = %w[title subtotal]
+
       def blank : Bool
-        [item, description, quantity, unit_price, discount].all?(&.strip.empty?)
+        layout != "subtotal" && [item, description, quantity, unit_price, discount].all?(&.strip.empty?)
+      end
+
+      def title : Bool
+        layout == "title"
+      end
+
+      def subtotal : Bool
+        layout == "subtotal"
       end
 
       def number : Int32
@@ -81,8 +95,11 @@ module PartiduoUi
       indices = values.keys.compact_map { |name| name.match(LINE_FIELD).try(&.[1].to_i) }.uniq!.sort!
       indices.each do |index|
         value = ->(name : String) { values["line-#{index}-#{name}"]?.to_s.strip }
-        form.lines << Line.new(index, value.call("item"), value.call("description"), value.call("quantity"), value.call("unit"),
+        line = Line.new(index, value.call("item"), value.call("description"), value.call("quantity"), value.call("unit"),
           value.call("unit_price"), value.call("discount"), value.call("vat_rate_id"))
+        layout = value.call("layout")
+        line.layout = Line::LAYOUTS.includes?(layout) ? layout : ""
+        form.lines << line
       end
       form
     end
@@ -121,6 +138,7 @@ module PartiduoUi
     def renumber! : self
       @lines = lines.map_with_index do |line, position|
         Line.new(position, line.item, line.description, line.quantity, line.unit, line.unit_price, line.discount, line.vat_rate_id)
+          .tap(&.layout=(line.layout))
       end
       self
     end

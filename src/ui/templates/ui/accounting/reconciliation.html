@@ -1,0 +1,59 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Rapprochement bancaire : choix du journal financier, soldes du compte (total, rapproché, non rapproché), relevé et opérations à cocher, contrôle de la sélection à chaque case (HTMX), relevés rapprochés. Utilisable sans JavaScript. #}{% extend "ui/base.html" %}
+{% block title %}{{ title }}{% endblock title %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{% if reconciliation %}{{ reconciliation.title }}{% else %}{{ title }}{% endif %}{% endblock heading %}
+{% block content %}
+<form class="pd-panel" method="get" action="{% url 'accounting:reconciliation' %}" aria-label="{% translate 'ui.reconciliation.choose' %}">
+  <div class="pd-body pd-inline-form">
+    <label class="label" for="pd-rec-ledger">{% translate "ui.reconciliation.ledger" %}</label>
+    <div class="select"><select id="pd-rec-ledger" name="ledger">{% for option in ledgers %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div>
+    <button class="button pd-touch" type="submit">{% translate "ui.forms.choose" %}</button>
+  </div>
+</form>
+{% if refused %}<div class="notification is-danger is-light" role="alert"><ul>{% for message in refused %}<li>{{ message }}</li>{% endfor %}</ul></div>{% endif %}
+{% if reconciliation %}
+<section class="pd-panel" aria-labelledby="pd-rec-balances">
+  <header><h2 id="pd-rec-balances">{% translate "ui.reconciliation.balances" %}</h2>{% if period_note %}<span class="pd-muted">{{ period_note }}</span>{% endif %}</header>
+  <div class="pd-body"><dl class="pd-dl pd-detail">
+    <dt>{% translate "ui.reconciliation.account" %}</dt><dd class="pd-mono">{{ reconciliation.account }}</dd>
+    <dt>{% translate "ui.reconciliation.balance" %}</dt><dd class="pd-mono">{{ reconciliation.balance }}</dd>
+    <dt>{% translate "ui.reconciliation.reconciled_balance" %}</dt><dd class="pd-mono">{{ reconciliation.reconciled }}</dd>
+    <dt>{% translate "ui.reconciliation.unreconciled_balance" %}</dt><dd class="pd-mono">{{ reconciliation.unreconciled }}</dd>
+  </dl></div>
+</section>
+<form class="pd-panel" id="pd-rec-form" method="post" action="{% url 'accounting:reconciliation' %}" aria-labelledby="pd-rec-title">
+  {% csrf_input %}
+  <input type="hidden" name="ledger" value="{{ reconciliation.ledger_id }}">
+  <header><h2 id="pd-rec-title">{% translate "ui.reconciliation.open_operations" %}</h2>{% if can_write %}<button class="button is-primary pd-touch" type="submit">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.reconciliation.submit" %}</span></button>{% endif %}</header>
+  {% if can_write %}<div class="pd-body pd-form-grid">
+    <div class="field"><label class="label" for="pd-rec-reference">{% translate "ui.reconciliation.reference" %}<span class="pd-required" aria-hidden="true"> *</span></label><div class="control"><input class="input pd-mono" id="pd-rec-reference" name="reference" value="{{ reference }}" maxlength="40" required></div></div>
+    <div class="field"><label class="label" for="pd-rec-start">{% translate "ui.reconciliation.start_balance" %}</label><div class="control"><input class="input pd-mono" id="pd-rec-start" name="start_balance" value="{{ start_balance }}" inputmode="decimal"></div></div>
+    <div class="field"><label class="label" for="pd-rec-end">{% translate "ui.reconciliation.end_balance" %}</label><div class="control"><input class="input pd-mono" id="pd-rec-end" name="end_balance" value="{{ end_balance }}" inputmode="decimal"></div><p class="help">{% translate "ui.reconciliation.balances_help" %}</p></div>
+  </div>{% endif %}
+  <div class="pd-scroll">
+    <table class="table is-fullwidth is-hoverable is-narrow pd-table">
+      <caption class="is-sr-only">{% translate "ui.reconciliation.open_operations" %}</caption>
+      <thead><tr>{% if can_write %}<th scope="col"><span class="is-sr-only">{% translate "ui.reconciliation.select" %}</span></th>{% endif %}<th scope="col">{% translate "ui.accounts.columns.date" %}</th><th scope="col" class="pd-hide-s">{% translate "ui.accounts.columns.receipt" %}</th><th scope="col">{% translate "ui.accounts.columns.label" %}</th><th scope="col" class="amount">{% translate "ui.reconciliation.amount" %}</th></tr></thead>
+      <tbody>
+      {% if reconciliation.lines %}{% for line in reconciliation.lines %}<tr>
+        {% if can_write %}<td><input type="checkbox" name="entry" value="{{ line.id }}" id="pd-rec-{{ line.id }}"{% if line.checked %} checked{% endif %}></td>{% endif %}
+        <td class="pd-mono"><label for="pd-rec-{{ line.id }}">{{ line.date }}</label></td>
+        <td class="pd-mono pd-hide-s"><a class="pd-link" href="{{ line.entry_url }}">{{ line.receipt }}</a></td>
+        <td>{{ line.label }}</td>
+        <td class="amount">{{ line.amount }}</td>
+      </tr>{% endfor %}{% else %}<tr><td colspan="5" class="pd-muted pd-empty">{% translate "ui.reconciliation.nothing_open" %}</td></tr>{% endif %}
+      </tbody>
+    </table>
+  </div>
+  {% if can_write %}<div id="pd-rec-check" aria-live="polite" hx-post="{% url 'accounting:reconciliation_check' %}" hx-trigger="change from:#pd-rec-form" hx-include="#pd-rec-form" hx-swap="innerHTML">{% include "ui/accounting/_reconciliation_check.html" %}</div>{% endif %}
+</form>
+<section class="pd-panel" aria-label="{{ statements.caption }}">
+  <header><h2>{{ statements.caption }}</h2></header>
+  {% include "ui/_table.html" with table=statements %}
+</section>
+{% elsif no_ledger %}
+<p class="pd-muted">{% translate "ui.reconciliation.no_ledger" %}</p>
+{% else %}
+<p class="pd-muted">{% translate "ui.reconciliation.intro" %}</p>
+{% endif %}
+{% endblock content %}

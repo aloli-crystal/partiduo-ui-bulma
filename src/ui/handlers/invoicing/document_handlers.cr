@@ -81,27 +81,35 @@ module PartiduoUi
     end
 
     def line_inputs(form : DocumentForm) : Array(Inv::LineInput)
-      form.filled_lines.map do |line|
-        item_id = nil
-        unless line.item.empty?
-          item_id = card_id(line.item)
-          line.add_error(I18n.t("ui.invoicing.unknown_item", code: line.item)) unless item_id
-        end
-        quantity = parse_number(line.quantity, line)
-        price = parse_number(line.unit_price, line)
-        discount = parse_number(line.discount, line)
-        kind = if item_id
-                 "item"
-               elsif price || quantity
-                 "free"
-               else
-                 "note"
-               end
-        Inv::LineInput.new(kind: kind, item_card_id: item_id, description: line.description.presence,
-          quantity: quantity || BigDecimal.new(1), unit_code: line.unit.presence, unit_price: price,
-          discount_kind: discount && !discount.zero? ? "percent" : "none", discount_value: discount || BigDecimal.new(0),
-          vat_rate_id: line.vat_rate_id.to_i64?)
+      form.filled_lines.map { |line| layout_input(line) || priced_input(line) }
+    end
+
+    # Ligne de titre ou de sous-total (D-UI-055) ; `nil` pour une autre.
+    private def layout_input(line : DocumentForm::Line) : Inv::LineInput?
+      return unless line.title || line.subtotal
+      Inv::LineInput.new(kind: line.layout, description: line.title ? line.description.presence : nil)
+    end
+
+    private def priced_input(line : DocumentForm::Line) : Inv::LineInput
+      item_id = nil
+      unless line.item.empty?
+        item_id = card_id(line.item)
+        line.add_error(I18n.t("ui.invoicing.unknown_item", code: line.item)) unless item_id
       end
+      quantity = parse_number(line.quantity, line)
+      price = parse_number(line.unit_price, line)
+      discount = parse_number(line.discount, line)
+      kind = if item_id
+               "item"
+             elsif price || quantity
+               "free"
+             else
+               "note"
+             end
+      Inv::LineInput.new(kind: kind, item_card_id: item_id, description: line.description.presence,
+        quantity: quantity || BigDecimal.new(1), unit_code: line.unit.presence, unit_price: price,
+        discount_kind: discount && !discount.zero? ? "percent" : "none", discount_value: discount || BigDecimal.new(0),
+        vat_rate_id: line.vat_rate_id.to_i64?)
     end
 
     # Document saisi ; `existing` : brouillon modifié (liens d'avoir et
@@ -170,17 +178,25 @@ module PartiduoUi
       form.order_reference = document.order_reference
       form.notes = document.notes
       form.global_discount = document.global_discount_kind == "percent" ? fmt.input_number(document.global_discount_value) : ""
-      document.lines.reject(&.kind.in?("title", "subtotal")).each_with_index do |line, index|
-        item = line.item_card_id.try { |id| card_code(id) } || ""
-        priced = line.priced?
-        form.lines << DocumentForm::Line.new(index, item, line.description,
-          priced ? fmt.input_number(line.quantity) : "", priced ? line.unit_code : "",
-          priced ? fmt.input_number(line.unit_price) : "",
-          line.discount_kind == "percent" ? fmt.input_number(line.discount_value) : "",
-          line.vat_rate_id.try(&.to_s) || "").tap { |copy| copy.total = priced ? fmt.amount(line.net_amount) : "" }
-      end
+      document.lines.each_with_index { |line, index| form.lines << form_line(line, index) }
       form.add_line if form.lines.empty?
       form
+    end
+
+    private def form_line(line : Inv::LineView, index : Int32) : DocumentForm::Line
+      if line.kind.in?("title", "subtotal")
+        layout = DocumentForm::Line.new(index, description: line.kind == "title" ? line.description : "")
+        layout.layout = line.kind
+        layout.total = line.kind == "subtotal" ? fmt.amount(line.net_amount) : ""
+        return layout
+      end
+      item = line.item_card_id.try { |id| card_code(id) } || ""
+      priced = line.priced?
+      DocumentForm::Line.new(index, item, line.description,
+        priced ? fmt.input_number(line.quantity) : "", priced ? line.unit_code : "",
+        priced ? fmt.input_number(line.unit_price) : "",
+        line.discount_kind == "percent" ? fmt.input_number(line.discount_value) : "",
+        line.vat_rate_id.try(&.to_s) || "").tap { |copy| copy.total = priced ? fmt.amount(line.net_amount) : "" }
     end
 
     def card_code(id : Int64) : String

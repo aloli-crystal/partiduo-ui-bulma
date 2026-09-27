@@ -13,6 +13,29 @@ CORE_ROUTES = Marten::Routing::Map.draw do
   path "/periods/<id:int>/reopen", PartiduoUi::PeriodReopenHandler, name: "period_reopen"
   path "/periods/<id:int>/delete", PartiduoUi::PeriodDeleteHandler, name: "period_delete"
   path "/period", PartiduoUi::CurrentPeriodHandler, name: "current_period"
+  # Paramètres du dossier (D-UI-051, D-UI-052) : société, modules, devises,
+  # utilisateurs, profils et droits par journal.
+  path "/settings/company", PartiduoUi::CompanyHandler, name: "company"
+  path "/settings/company/edit", PartiduoUi::CompanyEditHandler, name: "company_edit"
+  path "/settings/modules", PartiduoUi::ModulesHandler, name: "modules"
+  path "/settings/modules/<code:str>/<command:str>", PartiduoUi::ModuleToggleHandler, name: "module_toggle"
+  path "/settings/currencies", PartiduoUi::CurrenciesHandler, name: "currencies"
+  path "/settings/currencies/<code:str>", PartiduoUi::CurrencyHandler, name: "currency"
+  path "/settings/currencies/<code:str>/edit", PartiduoUi::CurrencyEditHandler, name: "currency_edit"
+  path "/settings/currencies/<code:str>/delete", PartiduoUi::CurrencyDeleteHandler, name: "currency_delete"
+  path "/settings/users", PartiduoUi::UsersHandler, name: "users"
+  path "/settings/users/new", PartiduoUi::UserNewHandler, name: "user_new"
+  path "/settings/users/<id:int>", PartiduoUi::UserHandler, name: "user"
+  path "/settings/users/<id:int>/edit", PartiduoUi::UserEditHandler, name: "user_edit"
+  path "/settings/users/<id:int>/ledgers", PartiduoUi::UserLedgersHandler, name: "user_ledgers"
+  path "/settings/users/<id:int>/access/<command:str>", PartiduoUi::UserCommandHandler, name: "user_command"
+  path "/settings/audit", PartiduoUi::AuditHandler, name: "audit"
+  path "/settings/profiles", PartiduoUi::ProfilesHandler, name: "profiles"
+  path "/settings/profiles/new", PartiduoUi::ProfileNewHandler, name: "profile_new"
+  path "/settings/profiles/defaults", PartiduoUi::ProfilesDefaultsHandler, name: "profiles_defaults"
+  path "/settings/profiles/<id:int>", PartiduoUi::ProfileHandler, name: "profile"
+  path "/settings/profiles/<id:int>/edit", PartiduoUi::ProfileEditHandler, name: "profile_edit"
+  path "/settings/profiles/<id:int>/delete", PartiduoUi::ProfileDeleteHandler, name: "profile_delete"
 end
 
 # Fiches du socle : tiers, articles et services (menu `cards:index`).
@@ -26,6 +49,12 @@ CARDS_ROUTES = Marten::Routing::Map.draw do
   path "/<id:int>/delete", PartiduoUi::CardDeleteHandler, name: "delete"
   # Complétion des fiches (saisie, facturation) : options d'une datalist.
   path "/complete", PartiduoUi::CardCompletionHandler, name: "complete"
+  # Catégories de fiches (menu `cards:categories`, D-UI-052).
+  path "/categories", PartiduoUi::CategoriesHandler, name: "categories"
+  path "/categories/new", PartiduoUi::CategoryNewHandler, name: "category_new"
+  path "/categories/<id:int>", PartiduoUi::CategoryHandler, name: "category"
+  path "/categories/<id:int>/edit", PartiduoUi::CategoryEditHandler, name: "category_edit"
+  path "/categories/<id:int>/delete", PartiduoUi::CategoryDeleteHandler, name: "category_delete"
 end
 
 # Taux de TVA du socle (menu `vat:rates`).
@@ -66,6 +95,12 @@ ACCOUNTING_ROUTES = Marten::Routing::Map.draw do
   path "/matching", PartiduoUi::MatchingHandler, name: "matching"
   path "/matching/check", PartiduoUi::MatchingCheckHandler, name: "matching_check"
   path "/matching/<id:int>/unmatch", PartiduoUi::UnmatchHandler, name: "unmatch"
+  # Rapprochement bancaire (D-UI-054) et fin d'exercice (D-UI-053).
+  path "/reconciliation", PartiduoUi::ReconciliationHandler, name: "reconciliation"
+  path "/reconciliation/check", PartiduoUi::ReconciliationCheckHandler, name: "reconciliation_check"
+  path "/reconciliation/statements/<id:int>", PartiduoUi::BankStatementHandler, name: "bank_statement"
+  path "/reconciliation/statements/<id:int>/delete", PartiduoUi::BankStatementDeleteHandler, name: "bank_statement_delete"
+  path "/closing", PartiduoUi::ClosingHandler, name: "closing"
   # Historique de la Facturation à comptabiliser (ADR-006 D2).
   path "/invoicing-history", PartiduoUi::InvoicingHistoryHandler, name: "invoicing_history"
   path "/invoicing-history/post", PartiduoUi::InvoicingHistoryPostHandler, name: "invoicing_history_post"
