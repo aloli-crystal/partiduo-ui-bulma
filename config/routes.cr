@@ -86,6 +86,20 @@ ACCOUNTING_ROUTES = Marten::Routing::Map.draw do
   path "/reports/custom/<id:int>/edit", PartiduoUi::CustomReportEditHandler, name: "report_edit"
   path "/reports/custom/<id:int>/delete", PartiduoUi::CustomReportDeleteHandler, name: "report_delete"
   path "/reports/fec", PartiduoUi::FecHandler, name: "fec"
+  # Prévisions budgétaires (lot 6, menu `accounting:forecasts`).
+  path "/forecasts", PartiduoUi::ForecastsHandler, name: "forecasts"
+  path "/forecasts/new", PartiduoUi::ForecastNewHandler, name: "forecast_new"
+  path "/forecasts/<id:int>", PartiduoUi::ForecastHandler, name: "forecast"
+  path "/forecasts/<id:int>/edit", PartiduoUi::ForecastEditHandler, name: "forecast_edit"
+  path "/forecasts/<id:int>/delete", PartiduoUi::ForecastDeleteHandler, name: "forecast_delete"
+  path "/forecasts/<id:int>/clone", PartiduoUi::ForecastCloneHandler, name: "forecast_clone"
+  path "/forecasts/<id:int>/report", PartiduoUi::ForecastReportHandler, name: "forecast_report"
+  path "/forecasts/<id:int>/categories/new", PartiduoUi::ForecastCategoryNewHandler, name: "forecast_category_new"
+  path "/forecasts/<id:int>/categories/<category_id:int>/edit", PartiduoUi::ForecastCategoryEditHandler, name: "forecast_category_edit"
+  path "/forecasts/<id:int>/categories/<category_id:int>/delete", PartiduoUi::ForecastCategoryDeleteHandler, name: "forecast_category_delete"
+  path "/forecasts/<id:int>/categories/<category_id:int>/items/new", PartiduoUi::ForecastItemNewHandler, name: "forecast_item_new"
+  path "/forecasts/<id:int>/items/<item_id:int>/edit", PartiduoUi::ForecastItemEditHandler, name: "forecast_item_edit"
+  path "/forecasts/<id:int>/items/<item_id:int>/delete", PartiduoUi::ForecastItemDeleteHandler, name: "forecast_item_delete"
   # Déclarations de TVA (lot 4, menu `accounting:vat_return`) : préparation,
   # déclaration enregistrée, contrôle, historique, exports, paramètres.
   path "/vat", PartiduoUi::VatPrepareHandler, name: "vat_return"
@@ -174,6 +188,58 @@ ANALYTIC_ROUTES = Marten::Routing::Map.draw do
   path "/reports/undistributed", PartiduoUi::AnalyticUndistributedHandler, name: "undistributed"
 end
 
+# Module Stock (lot 6, menus `stock:changes`, `inventory`, `state`,
+# `history`, `valuation`, `repositories`, `items`) : dépôts et dépôt par
+# défaut, articles suivis, opérations manuelles, inventaire, éditions
+# (`?format=csv` exporte). Module inactif : 404.
+STOCK_ROUTES = Marten::Routing::Map.draw do
+  path "/repositories", PartiduoUi::StockRepositoriesHandler, name: "repositories"
+  path "/repositories/new", PartiduoUi::StockRepositoryNewHandler, name: "repository_new"
+  path "/repositories/<id:int>", PartiduoUi::StockRepositoryHandler, name: "repository"
+  path "/repositories/<id:int>/edit", PartiduoUi::StockRepositoryEditHandler, name: "repository_edit"
+  path "/repositories/<id:int>/delete", PartiduoUi::StockRepositoryDeleteHandler, name: "repository_delete"
+  path "/settings", PartiduoUi::StockSettingsHandler, name: "settings"
+  path "/items", PartiduoUi::StockItemsHandler, name: "items"
+  path "/items/new", PartiduoUi::StockItemNewHandler, name: "item_new"
+  path "/items/<card_id:int>/edit", PartiduoUi::StockItemEditHandler, name: "item_edit"
+  path "/items/<card_id:int>/delete", PartiduoUi::StockItemDeleteHandler, name: "item_delete"
+  path "/changes", PartiduoUi::StockChangesHandler, name: "changes"
+  path "/changes/new", PartiduoUi::StockChangeNewHandler, name: "change_new"
+  path "/changes/<id:int>", PartiduoUi::StockChangeHandler, name: "change"
+  path "/changes/<id:int>/delete", PartiduoUi::StockChangeDeleteHandler, name: "change_delete"
+  path "/inventory", PartiduoUi::StockInventoryHandler, name: "inventory"
+  path "/state", PartiduoUi::StockStateHandler, name: "state"
+  path "/history", PartiduoUi::StockHistoryHandler, name: "history"
+  path "/valuation", PartiduoUi::StockValuationHandler, name: "valuation"
+end
+
+# Module Suivi (lot 6, menus `followup:actions`, `reminders`, `types`,
+# `tags`) : actions de suivi, commentaires, actions liées, opérations
+# rattachées, rappels, types d'action, étiquettes. Module inactif : 404.
+FOLLOWUP_ROUTES = Marten::Routing::Map.draw do
+  path "/actions", PartiduoUi::FollowupActionsHandler, name: "actions"
+  path "/actions/new", PartiduoUi::FollowupActionNewHandler, name: "action_new"
+  path "/actions/<id:int>", PartiduoUi::FollowupActionHandler, name: "action"
+  path "/actions/<id:int>/edit", PartiduoUi::FollowupActionEditHandler, name: "action_edit"
+  path "/actions/<id:int>/delete", PartiduoUi::FollowupActionDeleteHandler, name: "action_delete"
+  path "/actions/<id:int>/state", PartiduoUi::FollowupActionStateHandler, name: "action_state"
+  path "/actions/<id:int>/comment", PartiduoUi::FollowupActionCommentHandler, name: "action_comment"
+  path "/actions/<id:int>/relate", PartiduoUi::FollowupActionRelateHandler, name: "action_relate"
+  path "/actions/<id:int>/unrelate/<other_id:int>", PartiduoUi::FollowupActionUnrelateHandler, name: "action_unrelate"
+  path "/actions/<id:int>/link", PartiduoUi::FollowupActionLinkHandler, name: "action_link"
+  path "/actions/<id:int>/unlink", PartiduoUi::FollowupActionUnlinkHandler, name: "action_unlink"
+  path "/reminders", PartiduoUi::FollowupRemindersHandler, name: "reminders"
+  path "/types", PartiduoUi::FollowupTypesHandler, name: "types"
+  path "/types/new", PartiduoUi::FollowupTypeNewHandler, name: "type_new"
+  path "/types/defaults", PartiduoUi::FollowupTypesDefaultsHandler, name: "types_defaults"
+  path "/types/<id:int>/edit", PartiduoUi::FollowupTypeEditHandler, name: "type_edit"
+  path "/types/<id:int>/delete", PartiduoUi::FollowupTypeDeleteHandler, name: "type_delete"
+  path "/tags", PartiduoUi::FollowupTagsHandler, name: "tags"
+  path "/tags/new", PartiduoUi::FollowupTagNewHandler, name: "tag_new"
+  path "/tags/<id:int>/edit", PartiduoUi::FollowupTagEditHandler, name: "tag_edit"
+  path "/tags/<id:int>/delete", PartiduoUi::FollowupTagDeleteHandler, name: "tag_delete"
+end
+
 Marten.routes.draw do
   path "", CORE_ROUTES, name: "core"
   path "/cards", CARDS_ROUTES, name: "cards"
@@ -181,6 +247,8 @@ Marten.routes.draw do
   path "/accounting", ACCOUNTING_ROUTES, name: "accounting"
   path "/invoicing", INVOICING_ROUTES, name: "invoicing"
   path "/analytic", ANALYTIC_ROUTES, name: "analytic"
+  path "/stock", STOCK_ROUTES, name: "stock"
+  path "/followup", FOLLOWUP_ROUTES, name: "followup"
 
   # Connexion (ADR-002).
   path "/login", PartiduoUi::LoginHandler, name: "login"

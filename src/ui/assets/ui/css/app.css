@@ -180,6 +180,8 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
 .pd-table tr.pd-depth-4 td:first-child { padding-inline-start: 3.8rem; }
 .pd-table tr.pd-depth-5 td:first-child, .pd-table tr.pd-depth-6 td:first-child { padding-inline-start: 4.6rem; }
 .pd-table tr.pd-row-closed td { color: var(--pd-muted); }
+/* Stock final négatif, action de suivi en retard (lot 6). */
+.pd-table tr.pd-row-warning td { color: var(--bulma-danger-40, #a3001b); }
 .pd-link { color: var(--bulma-link); text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 2px; }
 .pd-table-foot { display: flex; gap: .75rem 1rem; align-items: center; flex-wrap: wrap; justify-content: space-between; padding: .6rem 1rem;
   border-block-start: 1px solid var(--pd-rule); font-size: .85rem; }

@@ -412,6 +412,7 @@ module PartiduoUi
       if !card.item? && module_active?("ACCOUNTING") && can?("accounting.entry.read")
         actions << link_action("accounting.menu.acc_accounts", "#{reverse("accounting:accounts")}?#{URI::Params.encode({"q" => card.code})}", icon: "book-open")
       end
+      actions.concat(lot6_links(card))
       if can?("cards.card.write")
         actions << link_action("ui.forms.edit", reverse("cards:edit", id: card.id), "primary")
         actions << post_action(card.enabled ? "ui.cards.disable" : "ui.cards.enable", reverse("cards:enable", id: card.id))
@@ -419,6 +420,22 @@ module PartiduoUi
       end
       detail_page(I18n.t("ui.cards.title", code: card.code, name: card.name), crumbs(card.item?), sections, actions,
         status_tag: card.enabled ? nil : I18n.t("ui.forms.inactive"))
+    end
+
+    # Lot 6 : actions de suivi de la fiche, historique de son stock.
+    private def lot6_links(card) : Array(Screen::Action)
+      links = [] of Screen::Action
+      if module_active?("FOLLOWUP") && can?("followup.action.read")
+        params = {"card" => card.code, "state" => "all"}
+        links << link_action("ui.followup.card_actions", "#{reverse("followup:actions")}?#{URI::Params.encode(params)}")
+      end
+      if card.item? && module_active?("STOCK") && can?("stock.movement.read")
+        Partiduo::Api::Stock.item(current.actor, card.id).try do |item|
+          params = {"stock_code" => item.stock_code, "f" => "1"}
+          links << link_action("ui.stock.history", "#{reverse("stock:history")}?#{URI::Params.encode(params)}")
+        end
+      end
+      links
     end
 
     private def identification(card) : Screen::Section

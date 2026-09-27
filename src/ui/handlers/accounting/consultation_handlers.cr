@@ -158,6 +158,8 @@ module PartiduoUi
       sections = [Screen::Section.new(I18n.t("ui.entries.summary"), items(entry)), Screen::Section.new(I18n.t("ui.entries.lines"), table: lines(entry))]
       # Ventilation analytique (lot 5), si le module est actif.
       AnalyticEntrySection.build(self, entry).try { |section| sections << section }
+      # Actions de suivi qui citent l'écriture (lot 6), si le Suivi est actif.
+      FollowupLinkedSection.build(self, "entry:#{entry.id}").try { |section| sections << section }
       detail_page(title, [crumb("core.menu.consult"), crumb("accounting.menu.acc_entries", reverse("accounting:entries"))],
         sections, actions, status_tag: status(entry))
     end
