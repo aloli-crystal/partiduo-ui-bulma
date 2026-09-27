@@ -14,3 +14,10 @@ Naming/QueryBoolMethods:
     - src/ui/table.cr
     - src/ui/screen.cr
     - src/ui/shell.cr
+    - src/ui/entry_form.cr
+    - src/ui/entry_check.cr
+    - src/ui/document_form.cr
+    - src/ui/dashboard.cr
+    - src/ui/handlers/accounting/statement_handlers.cr
+    - src/ui/handlers/accounting/matching_handlers.cr
+    - src/ui/handlers/invoicing/document_handlers.cr

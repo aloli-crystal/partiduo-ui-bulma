@@ -1,0 +1,7 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Sélection du lettrage contrôlée (PartiduoUi::MatchingCheck, variable check) : nombre de lignes, totaux, écart, refus du contrat. #}<div class="pd-balance">
+  <div class="fig"><span>{% translate "ui.matching.selected" %}</span><b>{{ check.count }}</b></div>
+  <div class="fig"><span>{% translate "ui.entries.total_debit" %}</span><b>{{ check.debit }}</b></div>
+  <div class="fig"><span>{% translate "ui.entries.total_credit" %}</span><b>{{ check.credit }}</b></div>
+  {% if check.balanced %}<span class="pd-state ok">{% translate "ui.matching.balanced" %}</span>{% elsif check.count > 1 %}<span class="pd-state gap">{% translate "ui.matching.partial" difference: check.difference %}</span>{% else %}<span class="pd-state">{% translate "ui.matching.choose" %}</span>{% endif %}
+</div>
+{% if check.errors %}<ul class="pd-check-errors help is-danger">{% for message in check.errors %}<li>{{ message }}</li>{% endfor %}</ul>{% endif %}

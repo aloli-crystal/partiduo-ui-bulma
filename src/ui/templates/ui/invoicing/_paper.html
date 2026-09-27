@@ -1,0 +1,23 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Document tel qu'imprimé (PartiduoUi::DocumentDisplay, variable document) : vendeur, client, dates, lignes, totaux, TVA par taux, mentions obligatoires générées par le cœur. #}<article class="pd-paper" aria-label="{{ document.title }}">
+  <div class="cols">
+    <div><h3>{{ document.seller_name }}</h3>{% for line in document.seller_lines %}<div>{{ line }}</div>{% endfor %}{% if document.seller_ids %}<div class="pd-mono">{{ document.seller_ids }}</div>{% endif %}</div>
+    <div><strong>{{ document.customer_name }}</strong>{% for line in document.customer_lines %}<div>{{ line }}</div>{% endfor %}{% if document.customer_ids %}<div class="pd-mono">{{ document.customer_ids }}</div>{% endif %}</div>
+  </div>
+  <h3>{{ document.kind_label }} {% if document.draft %}<span class="draft">{% translate "ui.invoicing.draft_mark" %}</span>{% else %}<span class="pd-mono">{{ document.number }}</span>{% endif %}</h3>
+  {% if document.origin %}<p>{{ document.origin }}</p>{% endif %}
+  <dl class="pd-dl">
+    {% if document.issue_date %}<dt>{% translate "ui.invoicing.issue_date" %}</dt><dd>{{ document.issue_date }}</dd>{% endif %}
+    {% if document.delivery_date %}<dt>{% translate "ui.invoicing.delivery_date" %}</dt><dd>{{ document.delivery_date }}</dd>{% endif %}
+    {% if document.due_date %}<dt>{% translate "ui.invoicing.due_date" %}</dt><dd>{{ document.due_date }}</dd>{% endif %}
+    {% if document.validity_date %}<dt>{% translate "ui.invoicing.validity_date" %}</dt><dd>{{ document.validity_date }}</dd>{% endif %}
+    {% if document.structured_reference %}<dt>{% translate "ui.invoicing.structured_reference" %}</dt><dd class="pd-mono">{{ document.structured_reference }}</dd>{% endif %}
+  </dl>
+  <table>
+    <thead><tr><th scope="col">{% translate "ui.invoicing.description" %}</th><th scope="col" class="r">{% translate "ui.invoicing.quantity" %}</th><th scope="col">{% translate "ui.invoicing.unit" %}</th><th scope="col" class="r">{% translate "ui.invoicing.unit_price" %}</th><th scope="col" class="r">{% translate "ui.invoicing.discount" %}</th><th scope="col" class="r">{% translate "ui.invoicing.vat" %}</th><th scope="col" class="r">{% translate "ui.invoicing.line_total" %}</th></tr></thead>
+    <tbody>{% for row in document.rows %}<tr{% if row.heading %} class="pd-paper-heading"{% endif %}><td>{{ row.description }}</td><td class="r">{{ row.quantity }}</td><td>{{ row.unit }}</td><td class="r">{{ row.unit_price }}</td><td class="r">{{ row.discount }}</td><td class="r">{{ row.vat }}</td><td class="r">{{ row.total }}</td></tr>{% endfor %}</tbody>
+  </table>
+  <dl class="pd-totals">{% for amount in document.amounts %}<dt{% if amount.grand %} class="grand"{% endif %}>{{ amount.label }}</dt><dd{% if amount.grand %} class="grand"{% endif %}>{{ amount.value }}</dd>{% endfor %}</dl>
+  {% if document.vat_rows %}<dl class="pd-totals mt-3">{% for amount in document.vat_rows %}<dt>{{ amount.label }}</dt><dd>{{ amount.value }}</dd>{% endfor %}</dl>{% endif %}
+  {% if document.notes %}<p class="mt-3">{{ document.notes }}</p>{% endif %}
+  {% if document.mentions %}<footer>{% for mention in document.mentions %}<span>{{ mention }}</span>{% endfor %}</footer>{% endif %}
+</article>

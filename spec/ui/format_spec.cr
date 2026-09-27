@@ -170,3 +170,33 @@ describe PartiduoUi::Table do
     csv.lchop("﻿").should eq(%(Nom;Montant\n"a;b";0,00\nc;10,00\n))
   end
 end
+
+describe "Dates abrégées de la saisie (ADR-005 D5)" do
+  reference = Time.utc(2026, 9, 1)
+
+  it "complète le jour, le mois et l'année à partir de la période de travail" do
+    format = PartiduoUi::Format.new("fr", "FR")
+    format.parse_short_date("12", reference).should eq(Time.utc(2026, 9, 12))
+    format.parse_short_date("3", reference).should eq(Time.utc(2026, 9, 3))
+    format.parse_short_date("12/3", reference).should eq(Time.utc(2026, 3, 12))
+    format.parse_short_date("12.3", reference).should eq(Time.utc(2026, 3, 12))
+    format.parse_short_date("1203", reference).should eq(Time.utc(2026, 3, 12))
+    format.parse_short_date("12/3/25", reference).should eq(Time.utc(2025, 3, 12))
+    format.parse_short_date("120325", reference).should eq(Time.utc(2025, 3, 12))
+    format.parse_short_date("12/03/2027", reference).should eq(Time.utc(2027, 3, 12))
+    format.parse_short_date("2026-02-28", reference).should eq(Time.utc(2026, 2, 28))
+  end
+
+  it "refuse une date qui n'existe pas plutôt que de la deviner" do
+    format = PartiduoUi::Format.new("fr", "FR")
+    format.parse_short_date("31", reference).should be_nil # 31 septembre
+    format.parse_short_date("30/2", reference).should be_nil
+    format.parse_short_date("12/13", reference).should be_nil
+    format.parse_short_date("abc", reference).should be_nil
+    format.parse_short_date("", reference).should be_nil
+  end
+
+  it "suit l'ordre mois, jour de l'anglais américain" do
+    PartiduoUi::Format.new("en", "US").parse_short_date("3/12", reference).should eq(Time.utc(2026, 3, 12))
+  end
+end

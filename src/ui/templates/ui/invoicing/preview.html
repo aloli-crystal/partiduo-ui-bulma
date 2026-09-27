@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Aperçu d'un document (maquette « Aperçu ») : papier en HTML, impression, téléchargement du PDF/A-3 (Factur-X pour les documents fiscaux). #}{% extend "ui/base.html" %}
+{% block title %}{{ title }}{% endblock title %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{% translate "ui.invoicing.preview" %} · {{ title }}{% endblock heading %}
+{% block actions %}<button class="button pd-touch" type="button" data-pd-print>{% include "ui/_icon.html" with name="printer" %}<span>{% translate "ui.invoicing.print" %}</span></button><a class="button is-primary pd-touch" href="{% url 'invoicing:document_pdf' id: document.id %}">{% include "ui/_icon.html" with name="download" %}<span>{% translate "ui.invoicing.download_pdf" %}</span></a>{% endblock actions %}
+{% block content %}
+{% if document.draft %}<p class="notification is-warning is-light" role="status">{% translate "ui.invoicing.preview_draft" %}</p>{% endif %}
+<div class="pd-paper-wrap">{% include "ui/invoicing/_paper.html" %}</div>
+{% endblock content %}

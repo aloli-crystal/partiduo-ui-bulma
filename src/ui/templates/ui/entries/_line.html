@@ -1,0 +1,15 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Ligne de saisie (PartiduoUi::EntryForm::Line, variable line) : compte ou fiche avec complétion dès le premier caractère (HTMX → datalist), libellé, montants. Le bouton de retrait envoie le formulaire sans JavaScript ; avec lui, le paquet Opal retire la ligne sur place. #}<tr data-pd-line>
+  <td>
+    <input class="pd-mono" type="text" name="line-{{ line.index }}-account" id="pd-l{{ line.index }}-account" value="{{ line.account }}" list="pd-dl-{{ line.completion }}" autocomplete="off" spellcheck="false" aria-label="{% if line.document %}{% translate 'ui.entries.aria.item' line: line.number %}{% elsif line.financial %}{% translate 'ui.entries.aria.counterpart' line: line.number %}{% else %}{% translate 'ui.entries.aria.account' line: line.number %}{% endif %}"{% if line.errors %} aria-invalid="true" aria-describedby="{{ line.error_id }}"{% endif %} hx-get="{% url 'accounting:complete' %}?list={{ line.completion }}" hx-trigger="input changed delay:150ms" hx-target="#pd-dl-{{ line.completion }}" hx-sync="this:replace">
+    {% include "ui/_errors.html" with messages=line.errors, id=line.error_id %}
+  </td>
+  <td><input type="text" name="line-{{ line.index }}-label" id="pd-l{{ line.index }}-label" value="{{ line.label }}" aria-label="{% translate 'ui.entries.aria.label' line: line.number %}"></td>
+  {% if line.document %}
+  <td><input class="amount" type="text" inputmode="decimal" name="line-{{ line.index }}-amount" id="pd-l{{ line.index }}-amount" value="{{ line.amount }}" aria-label="{% translate 'ui.entries.aria.amount' line: line.number %}"></td>
+  <td><select name="line-{{ line.index }}-vat_rate" id="pd-l{{ line.index }}-vat_rate" aria-label="{% translate 'ui.entries.aria.vat' line: line.number %}">{% for option in line.vat_options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></td>
+  {% else %}
+  <td><input class="amount" type="text" inputmode="decimal" name="line-{{ line.index }}-debit" id="pd-l{{ line.index }}-debit" value="{{ line.debit }}" aria-label="{% if line.financial %}{% translate 'ui.entries.aria.receipt_in' line: line.number %}{% else %}{% translate 'ui.entries.aria.debit' line: line.number %}{% endif %}"></td>
+  <td><input class="amount" type="text" inputmode="decimal" name="line-{{ line.index }}-credit" id="pd-l{{ line.index }}-credit" value="{{ line.credit }}" aria-label="{% if line.financial %}{% translate 'ui.entries.aria.payment_out' line: line.number %}{% else %}{% translate 'ui.entries.aria.credit' line: line.number %}{% endif %}"></td>
+  {% endif %}
+  <td><button class="pd-del" type="submit" name="remove_line" value="{{ line.index }}" formnovalidate data-pd-del-line tabindex="-1" title="{% translate 'ui.entries.remove_line' line: line.number %}"><span aria-hidden="true">×</span><span class="is-sr-only">{% translate 'ui.entries.remove_line' line: line.number %}</span></button></td>
+</tr>

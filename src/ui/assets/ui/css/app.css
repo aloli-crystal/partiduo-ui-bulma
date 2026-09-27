@@ -211,6 +211,117 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
   .pd-form-grid { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* Tableau de bord (maquette) : tuiles des modules actifs, « À traiter » */
+.pd-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr)); gap: 1rem; margin-block-end: 1rem; }
+.pd-tile { padding: .9rem 1rem; display: flex; flex-direction: column; gap: .3rem; margin-block-end: 0; }
+.pd-tile .lbl { font-size: .72rem; text-transform: uppercase; letter-spacing: .06em; color: var(--pd-muted); }
+.pd-tile .val { font-family: var(--bulma-family-code); font-size: 1.35rem; font-weight: 600; color: var(--pd-ink); font-variant-numeric: tabular-nums; }
+.pd-tile .sub { font-size: .8rem; color: var(--pd-muted); }
+a.pd-tile { color: inherit; }
+a.pd-tile:hover { border-color: var(--pd-focus); }
+.pd-todo { display: flex; flex-direction: column; list-style: none; margin: 0; padding: 0; }
+.pd-todo a, .pd-todo .pd-todo-item { display: flex; gap: .75rem; align-items: flex-start; padding: .75rem 1rem; min-height: 44px; border-block-end: 1px solid var(--pd-rule); color: var(--pd-ink); }
+.pd-todo li:last-child a, .pd-todo li:last-child .pd-todo-item { border-block-end: 0; }
+.pd-todo a:hover { background: var(--pd-row-alt); }
+.pd-todo small { display: block; color: var(--pd-muted); font-size: .8rem; }
+.pd-dot { flex: none; width: .6rem; height: .6rem; border-radius: 50%; margin-block-start: .4rem; background: var(--bulma-primary); }
+.pd-dot-gap { background: var(--pd-gap); }
+.pd-dot-warn { background: var(--pd-warn); }
+
+/* Saisie au clavier (maquette « Écriture d'achat », ADR-005 D5) */
+.pd-entry-grid { display: grid; grid-template-columns: minmax(10rem, 14rem) 9rem 9rem minmax(0, 1fr); gap: .75rem 1rem; }
+.pd-entry-grid .field { margin: 0; }
+.pd-entry-grid .pd-wide { grid-column: span 2; }
+.pd-lines td, .pd-inv-lines td { padding: .25rem .35rem; vertical-align: top; }
+.pd-lines input, .pd-lines select, .pd-inv-lines input, .pd-inv-lines select { width: 100%; min-height: 36px; border: 1px solid transparent; background: transparent; color: var(--pd-ink);
+  font: inherit; padding: .35rem .45rem; border-radius: var(--bulma-radius-small); }
+.pd-lines input:hover, .pd-lines select:hover, .pd-inv-lines input:hover, .pd-inv-lines select:hover { border-color: var(--pd-rule); }
+.pd-lines input:focus, .pd-lines select:focus, .pd-inv-lines input:focus, .pd-inv-lines select:focus { outline: 2px solid var(--pd-focus); outline-offset: 0; background: var(--pd-surface); }
+.pd-lines input[aria-invalid="true"], .pd-inv-lines input[aria-invalid="true"] { border-color: var(--pd-gap); }
+.pd-lines input.amount, .pd-lines input.pd-mono, .pd-inv-lines .num, .pd-inv-lines .pd-mono { font-family: var(--bulma-family-code); }
+.pd-inv-lines .num { text-align: end; }
+.pd-lines .pd-field-errors, .pd-inv-lines .pd-field-errors { padding-inline-start: .45rem; }
+.pd-col-account { width: 12rem; }
+.pd-col-amount { width: 9rem; }
+.pd-col-vat { width: 9rem; }
+.pd-col-del { width: 2.75rem; }
+.pd-col-item { min-width: 14rem; }
+.pd-col-qty { width: 5.5rem; }
+.pd-col-unit { width: 5rem; }
+.pd-col-price { width: 8rem; }
+.pd-del { background: none; border: 0; color: var(--pd-muted); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: .3rem .5rem; min-width: 32px; min-height: 32px;
+  border-radius: var(--bulma-radius-small); }
+.pd-del:hover, .pd-del:focus-visible { color: var(--pd-gap); background: var(--pd-gap-bg); }
+.pd-entry-foot { padding-block-start: 0; }
+.pd-keys { font-size: .78rem; color: var(--pd-muted); display: flex; gap: 1rem; flex-wrap: wrap; margin-block-start: .75rem; }
+kbd { font-family: var(--bulma-family-code); font-size: .72rem; border: 1px solid var(--pd-rule); border-block-end-width: 2px; border-radius: .25rem; padding: 0 .3rem;
+  background: var(--pd-surface); color: var(--pd-ink); }
+.pd-entry-check { position: sticky; inset-block-end: 0; background: var(--pd-surface); border-radius: 0 0 var(--bulma-radius) var(--bulma-radius); }
+.pd-balance { display: flex; align-items: center; gap: .75rem 1.5rem; flex-wrap: wrap; padding: .75rem 1rem; border-block-start: 1px solid var(--pd-rule); }
+.pd-balance .fig { display: flex; flex-direction: column; }
+.pd-balance .fig span { font-size: .7rem; text-transform: uppercase; letter-spacing: .06em; color: var(--pd-muted); }
+.pd-balance .fig b { font-family: var(--bulma-family-code); font-size: 1.05rem; font-variant-numeric: tabular-nums; }
+.pd-state { padding: .3rem .7rem; border-radius: 1rem; font-weight: 600; font-size: .85rem; background: var(--pd-row-alt); color: var(--pd-muted); }
+.pd-state.ok { background: var(--pd-ok-bg); color: var(--pd-ok); }
+.pd-state.gap { background: var(--pd-gap-bg); color: var(--pd-gap); }
+.pd-check-errors { list-style: none; margin: 0; padding: 0 1rem .75rem; }
+.pd-draft { padding: 0 1rem .75rem; font-size: .85rem; }
+.pd-draft > summary { cursor: pointer; min-height: 32px; color: var(--bulma-link); }
+.pd-side-panel dl { display: grid; grid-template-columns: auto 1fr; gap: .35rem .75rem; font-size: .85rem; }
+.pd-side-panel dt { color: var(--pd-muted); }
+.pd-side-panel dd { margin: 0; text-align: end; overflow-wrap: anywhere; }
+
+/* Comptes et tiers, lettrage (ADR-005 D9) */
+.pd-acc-head { display: flex; gap: 1rem; flex-wrap: wrap; align-items: flex-end; }
+.pd-acc-head .field { margin: 0; }
+.pd-acc-pick { flex: 1 1 18rem; }
+.pd-date-input { width: 8.5rem; }
+.pd-sum { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) minmax(0, 2fr); gap: 1rem; margin-block-end: 1rem; }
+.pd-sum .pd-tile .val { font-size: 1.15rem; }
+.pd-aging { display: flex; height: .7rem; border-radius: 1rem; overflow: hidden; background: var(--pd-row-alt); margin: .35rem 0 .5rem; }
+.pd-aging span { display: block; height: 100%; }
+.pd-legend { display: flex; flex-wrap: wrap; gap: .3rem .9rem; font-size: .76rem; color: var(--pd-muted); list-style: none; margin: 0; padding: 0; }
+.pd-legend i { display: inline-block; width: .6rem; height: .6rem; border-radius: 2px; margin-inline-end: .3rem; }
+.pd-let { font-family: var(--bulma-family-code); font-size: .75rem; font-weight: 600; color: var(--pd-muted); }
+.pd-due-late { color: var(--pd-gap); font-weight: 600; }
+.pd-show-s { display: none; }
+.pd-table tr.pd-row-late td:first-child { box-shadow: inset 3px 0 0 var(--pd-gap); }
+.pd-match-box { width: 1.25rem; height: 1.25rem; }
+
+/* Devis et factures (maquette « Édition », « Aperçu ») */
+.pd-inv-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem 1rem; }
+.pd-inv-grid .field { margin: 0; }
+.pd-inv-grid .span2 { grid-column: span 2; }
+.pd-totals { display: grid; grid-template-columns: 1fr auto; gap: .3rem 1.5rem; font-size: .9rem; max-width: 24rem; margin-inline-start: auto; margin-block-start: .75rem; }
+.pd-totals dt { color: var(--pd-muted); }
+.pd-totals dd { margin: 0; text-align: end; font-family: var(--bulma-family-code); font-variant-numeric: tabular-nums; }
+.pd-totals .grand { font-weight: 700; color: var(--pd-ink); font-size: 1.05rem; border-block-start: 1px solid var(--pd-rule); padding-block-start: .35rem; }
+.pd-status { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; padding: .6rem 1rem; border-block-end: 1px solid var(--pd-rule); background: var(--pd-row-alt); font-size: .85rem; }
+.pd-mentions { font-size: .8rem; color: var(--pd-muted); display: grid; gap: .3rem; list-style: none; margin: 0; padding: 0; }
+.pd-mentions li { padding-inline-start: 1.1rem; position: relative; }
+.pd-mentions li::before { content: "✓"; position: absolute; inset-inline-start: 0; color: var(--pd-ok); }
+.pd-deposit-form .input { max-width: 7rem; }
+.pd-paper-wrap { background: var(--pd-ground); padding: 1rem 0; }
+.pd-paper { background: #fff; color: #1b2a30; width: 100%; max-width: 46rem; margin: 0 auto; padding: 2rem; border-radius: .25rem; font-size: .85rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, .25); }
+.pd-paper h3 { font-size: 1.3rem; font-weight: 700; margin-block-end: .2rem; }
+.pd-paper table { width: 100%; border-collapse: collapse; margin: 1rem 0; }
+.pd-paper th, .pd-paper td { border-block-end: 1px solid #dce3e4; padding: .3rem .25rem; text-align: start; }
+.pd-paper .r { text-align: end; font-family: var(--bulma-family-code); white-space: nowrap; }
+.pd-paper .cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.5rem; margin: 0 0 1rem; }
+.pd-paper .pd-dl dt { color: #445; }
+.pd-paper .pd-totals dt, .pd-paper .pd-totals .grand { color: #1b2a30; }
+.pd-paper footer { border-block-start: 1px solid #1b2a30; margin-block-start: 1.25rem; padding-block-start: .6rem; font-size: .75rem; color: #334; display: grid; gap: .25rem; }
+.pd-paper .draft { color: #a32d2d; font-weight: 700; letter-spacing: .08em; }
+.pd-paper-heading td { font-weight: 600; }
+
+@media (max-width: 1100px) {
+  .pd-sum { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .pd-sum .pd-aging-tile { grid-column: 1 / -1; }
+  .pd-entry-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .pd-entry-grid .pd-wide { grid-column: 1 / -1; }
+}
+
 /* Tablette : menu latéral repliable (avec JavaScript seulement : sans lui,
    le bouton ne ferait rien et le menu reste affiché) */
 @media (max-width: 1279.98px) {
@@ -234,6 +345,13 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
   .pd-period { order: 6; }
   .pd-grow { order: 7; flex-basis: 100%; }
   .pd-hide-s { display: none; }
+  .pd-show-s { display: table-cell; }
+  .pd-sum { grid-template-columns: minmax(0, 1fr); }
+  .pd-tiles { grid-template-columns: minmax(0, 1fr); }
+  .pd-inv-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .pd-inv-grid .span2 { grid-column: 1 / -1; }
+  .pd-paper { padding: 1rem; }
+  .pd-paper .cols { grid-template-columns: minmax(0, 1fr); }
   .pd-levels { grid-template-columns: minmax(0, 1fr); }
   .pd-totp-grid { grid-template-columns: minmax(0, 1fr); }
   .pd-qr-box { max-width: 13rem; }
@@ -243,7 +361,9 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
 }
 
 @media print {
-  .pd-top, .pd-side, .pd-skip, .pd-auth-top, .buttons, .notification { display: none !important; }
+  .pd-top, .pd-side, .pd-skip, .pd-auth-top, .buttons, .notification, .pd-crumb { display: none !important; }
+  .pd-paper { box-shadow: none; max-width: none; padding: 0; }
+  .pd-paper-wrap { background: none; padding: 0; }
   .pd-app { display: block; }
   .pd-panel, .pd-auth-card { border: 0; }
 }

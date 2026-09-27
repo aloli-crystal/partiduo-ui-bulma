@@ -1,5 +1,5 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Formulaire d'un écran du référentiel (variables form, form_action, form_submit, cancel_url) : erreurs d'ensemble en alerte, groupes de champs (fieldset), envoi. #}<form method="post" action="{{ form_action }}" class="pd-form" novalidate>
-  {% csrf_input %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Formulaire d'un écran du référentiel (variables form, form_action, form_submit, cancel_url ; form_method « get » pour un formulaire de consultation, sans jeton CSRF) : erreurs d'ensemble en alerte, groupes de champs (fieldset), envoi. #}<form method="{% if form_method %}{{ form_method }}{% else %}post{% endif %}" action="{{ form_action }}" class="pd-form" novalidate>
+  {% unless form_method %}{% csrf_input %}{% endunless %}
   {% if form.base_errors %}<div class="notification is-danger is-light pd-alert" role="alert" id="pd-form-errors">{% include "ui/_icon.html" with name="triangle-alert" %}<div>{% for message in form.base_errors %}<p>{{ message }}</p>{% endfor %}</div></div>{% endif %}
   {% for group in form.groups %}
   <fieldset class="pd-fieldset">

@@ -93,6 +93,12 @@ Les specs qui *exécutent* le JavaScript compilé utilisent un moteur autonome
 (JavaScriptCore, présent sur macOS ; `PARTIDUO_JS_ENGINE` pour en indiquer un
 autre) ; elles sont en attente s'il n'y en a pas.
 
+Le schéma de la base de test est reconstruit *par les migrations du cœur* au
+début de la suite (`spec/support/database.cr`, DECISIONS D-UI-028) : les
+écritures s'appuient sur les contraintes et déclencheurs posés en SQL
+(équilibre différé, périodes closes, numérotation des factures). Les dossiers
+comptables de test sont provisionnés par le contrat (`spec/support/books.cr`).
+
 == Écran
 
 Coquille de la maquette de référence (ADR-005 D5), gabarit `ui/base.html` :
@@ -112,6 +118,30 @@ Trois tailles : ordinateur (≥ 1280 px), tablette (menu repliable, choix
 mémorisé), téléphone (< 768 px : barre non figée sur trois lignes, menu fermé,
 colonnes secondaires masquées par `pd-hide-s`). Cibles tactiles de 44 px,
 focus visible, lien d'évitement, propriétés CSS logiques.
+
+== Comptabilité et Facturation (lots 2 et F)
+
+[cols="2,3",options="header"]
+|===
+|Route |Écran
+
+|`/` |Tableau de bord : tuiles des modules actifs, dernières factures et écritures, « À traiter »
+|`/accounting/entries/{purchase,sale,financial,misc}` |Saisie au clavier : achats, ventes, extrait financier, opérations diverses ; équilibre et écriture calculée en continu (`check_entry`, `check_document`, `check_financial`)
+|`/accounting/entries`, `/accounting/entries/<id>` |Écritures : recherche, consultation, annulation par extourne
+|`/accounting/accounts?q=` |Comptes et tiers (ADR-005 D9) : synthèse, balance âgée, mouvements, lettrer, relancer, export CSV ; version téléphone
+|`/accounting/matching?q=` |Lettrage : lignes non lettrées à cocher, sélection contrôlée (`check_matching`), délettrage
+|`/invoicing/documents` |Devis et factures : onglets par nature, filtre de statut, export CSV
+|`/invoicing/documents/new?kind=quote`, `/invoicing/invoices/new` |Nouveau brouillon (client et articles complétés, totaux par `check_document`)
+|`/invoicing/documents/<id>` |Consultation : valider, transformer, avoir, acompte, décision sur un devis, règlement, relance
+|`/invoicing/documents/<id>/preview`, `…/pdf` |Aperçu imprimable ; PDF/A-3 (Factur-X pour factures, acomptes, avoirs)
+|`/invoicing/payments`, `/invoicing/reminders`, `/invoicing/export` |Règlements (Comptabilité inactive), relances proposées, transmission au comptable
+|`/invoicing/documents/<id>/send` |Envoi d'un document émis par courriel (PDF Factur-X joint), tracé
+|`/invoicing/settings`, `/invoicing/templates` |Paramètres de facturation ; modèles de mise en page (couleurs, en-tête, pied de page)
+|`/accounting/invoicing-history` |Factures, avoirs et règlements de la Facturation à comptabiliser : tout ou un, écarter, rendre (ADR-006 D2)
+|===
+
+Dates abrégées partout où l'on saisit une date : `12` = le 12 du mois de la
+période de travail, `12/3` = le 12 mars, `120326` = le 12 mars 2026.
 
 == Authentification (ADR-002)
 
@@ -184,6 +214,13 @@ rapprochement). Tout passage d'un écran en Opal est consigné dans DECISIONS.
   npm ni Node. Le JavaScript produit, `src/ui/assets/ui/js/opal/<écran>.js`,
   est *versionné* et servi par Marten comme HTMX.
 * *Exemple* : `opal/demo.rb`, compteur de clics de la page « À propos ».
+* *Saisie au clavier* : `opal/entry.rb` (`entry.js`), monté sur tout
+  formulaire `data-pd-entry` (écritures, devis et factures) : Entrée avance
+  d'un champ (et ajoute une ligne après le dernier), Alt+↓ ajoute une ligne
+  (bouton HTMX `data-pd-add-line`), Ctrl+Entrée enregistre, le bouton
+  `data-pd-del-line` retire la ligne sur place (DECISIONS D-UI-027). La règle
+  des touches (`opal/partiduo_ui/entry/keys.rb`) et le montage sont exécutés
+  sous JavaScriptCore par `spec/opal/build_spec.cr`.
 
 Recompiler après toute modification de `opal/` :
 

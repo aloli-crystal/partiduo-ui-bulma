@@ -1,6 +1,7 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Tableau de bord : assemblera les tuiles de chaque module actif (ADR-005 D5) ; en attendant, modules actifs et sécurité du compte. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Tableau de bord (maquette, ADR-005 D5) : tuiles fournies par chaque module actif (montants cliquables vers leur consultation), dernières factures et écritures, « À traiter » (relances, brouillons, échus, sécurité du compte), modules actifs. #}{% extend "ui/base.html" %}
 {% block title %}{% translate "core.menu.dashboard" %}{% endblock title %}
 {% block heading %}{% translate "core.menu.dashboard" %}{% endblock heading %}
+{% block actions %}{% if board.new_entry_url %}<a class="button pd-touch" href="{{ board.new_entry_url }}">{% include "ui/_icon.html" with name="notebook-pen" %}<span>{% translate "ui.dashboard.new_entry" %}</span></a>{% endif %}{% if board.new_invoice_url %}<a class="button is-primary pd-touch" href="{{ board.new_invoice_url }}">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "invoicing.menu.inv_new_invoice" %}</span></a>{% endif %}{% endblock actions %}
 {% block content %}
 {% if suggest_passkey %}
 <div class="notification is-info is-light pd-callout" role="status">
@@ -8,28 +9,57 @@
   <div><p>{% translate "ui.dashboard.passkey_hint" %}</p><p><a href="{% url 'account_security' %}">{% translate "ui.security.title" %}</a></p></div>
 </div>
 {% endif %}
+{% if board.listed_tiles %}
+<div class="pd-tiles">
+  {% for tile in board.listed_tiles %}{% if tile.url %}<a class="pd-panel pd-tile" href="{{ tile.url }}" data-module="{{ tile.module_code }}">{% else %}<div class="pd-panel pd-tile" data-module="{{ tile.module_code }}">{% endif %}
+    <span class="lbl">{{ tile.label }}</span>
+    <span class="val">{{ tile.value }}</span>
+    {% if tile.alert %}<span class="sub"><span class="tag is-danger is-light">{{ tile.alert }}</span></span>{% endif %}
+    {% if tile.sub %}<span class="sub">{{ tile.sub }}</span>{% endif %}
+  {% if tile.url %}</a>{% else %}</div>{% endif %}{% endfor %}
+</div>
+{% endif %}
 <div class="pd-grid2">
-  <section class="pd-panel" aria-labelledby="pd-modules-title">
-    <header><h2 id="pd-modules-title">{% translate "ui.dashboard.modules_title" %}</h2></header>
-    <div class="pd-body">
-      {% if modules %}
-      <ul class="pd-module-list">{% for item in modules %}<li><span>{% translate item.name_key %}</span>{% if item.extension %} <span class="pd-ext pd-ext-light">{{ item.code }}</span>{% endif %}</li>{% endfor %}</ul>
-      {% else %}
-      <p class="pd-muted">{% translate "ui.dashboard.socle_only" %}</p>
-      {% endif %}
-      <p class="pd-muted mt-3">{% translate "ui.dashboard.tiles_later" %}</p>
-    </div>
-  </section>
-  <section class="pd-panel" aria-labelledby="pd-account-title">
-    <header><h2 id="pd-account-title">{% translate "ui.security.title" %}</h2></header>
-    <div class="pd-body">
-      {% if missing %}
-      <ul class="pd-missing">{% for key in missing %}<li>{% include "ui/_icon.html" with name="triangle-alert" %}<span>{% translate key %}</span></li>{% endfor %}</ul>
-      {% else %}
-      <p>{% include "ui/_icon.html" with name="shield-check" %} {% translate "ui.dashboard.secure" %}</p>
-      {% endif %}
-      <p class="mt-3"><a class="button pd-touch" href="{% url 'account_security' %}">{% translate "ui.security.title" %}</a></p>
-    </div>
+  <div>
+    {% if board.invoices %}
+    <section class="pd-panel" aria-labelledby="pd-recent-invoices">
+      <header><h2 id="pd-recent-invoices">{% translate "ui.dashboard.recent_invoices" %}</h2><a class="is-size-7" href="{% url 'invoicing:documents' %}?kind=invoice">{% translate "ui.dashboard.see_all" %}</a></header>
+      <div class="pd-scroll"><table class="table is-fullwidth is-hoverable is-narrow">
+        <caption class="is-sr-only">{% translate "ui.dashboard.recent_invoices" %}</caption>
+        <thead><tr><th scope="col">{% translate "ui.invoicing.number" %}</th><th scope="col">{% translate "ui.invoicing.customer" %}</th><th scope="col" class="amount">{% translate "ui.invoicing.gross" %}</th><th scope="col">{% translate "ui.invoicing.status" %}</th></tr></thead>
+        <tbody>{% for row in board.invoices %}<tr><td class="pd-mono"><a class="pd-link" href="{{ row.url }}">{{ row.c0 }}</a></td><td>{{ row.c1 }}</td><td class="amount">{{ row.c2 }}</td><td>{{ row.c3 }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </section>
+    {% endif %}
+    {% if board.entries %}
+    <section class="pd-panel" aria-labelledby="pd-recent-entries">
+      <header><h2 id="pd-recent-entries">{% translate "ui.dashboard.recent_entries" %}</h2><a class="is-size-7" href="{% url 'accounting:entries' %}">{% translate "ui.dashboard.see_all" %}</a></header>
+      <div class="pd-scroll"><table class="table is-fullwidth is-hoverable is-narrow">
+        <caption class="is-sr-only">{% translate "ui.dashboard.recent_entries" %}</caption>
+        <thead><tr><th scope="col">{% translate "ui.entries.date" %}</th><th scope="col" class="pd-hide-s">{% translate "ui.entries.ledger" %}</th><th scope="col" class="pd-hide-s">{% translate "ui.entries.receipt" %}</th><th scope="col">{% translate "ui.entries.label" %}</th><th scope="col" class="amount">{% translate "ui.entries.amount" %}</th></tr></thead>
+        <tbody>{% for row in board.entries %}<tr><td class="pd-mono">{{ row.c0 }}</td><td class="pd-mono pd-hide-s">{{ row.c1 }}</td><td class="pd-mono pd-hide-s"><a class="pd-link" href="{{ row.url }}">{{ row.c2 }}</a></td><td>{{ row.c3 }}</td><td class="amount">{{ row.c4 }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+    </section>
+    {% endif %}
+    <section class="pd-panel" aria-labelledby="pd-modules-title">
+      <header><h2 id="pd-modules-title">{% translate "ui.dashboard.modules_title" %}</h2></header>
+      <div class="pd-body">
+        {% if modules %}
+        <ul class="pd-module-list">{% for item in modules %}<li><span>{% translate item.name_key %}</span>{% if item.extension %} <span class="pd-ext pd-ext-light">{{ item.code }}</span>{% endif %}</li>{% endfor %}</ul>
+        {% else %}
+        <p class="pd-muted">{% translate "ui.dashboard.socle_only" %}</p>
+        {% endif %}
+      </div>
+    </section>
+  </div>
+  <section class="pd-panel" aria-labelledby="pd-todo-title">
+    <header><h2 id="pd-todo-title">{% translate "ui.dashboard.todo_title" %}</h2></header>
+    {% if board.listed_todos %}
+    <ul class="pd-todo">{% for todo in board.listed_todos %}<li>{% if todo.url %}<a href="{{ todo.url }}">{% else %}<span class="pd-todo-item">{% endif %}<span class="pd-dot pd-dot-{{ todo.tone }}" aria-hidden="true"></span><span><span>{{ todo.text }}</span>{% if todo.detail %}<small>{{ todo.detail }}</small>{% endif %}</span>{% if todo.url %}</a>{% else %}</span>{% endif %}</li>{% endfor %}</ul>
+    {% else %}
+    <div class="pd-body"><p>{% include "ui/_icon.html" with name="shield-check" %} {% translate "ui.dashboard.nothing_todo" %}</p></div>
+    {% endif %}
+    {% if secure %}<div class="pd-body pd-muted is-size-7">{% translate "ui.dashboard.secure" %}</div>{% endif %}
   </section>
 </div>
 {% endblock content %}

@@ -1,20 +1,26 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 module PartiduoUi
-  # Tableau de bord (route `core:dashboard` du manifeste du socle). Les tuiles
-  # des modules actifs arrivent avec leurs écrans ; en attendant, l'écran
-  # rappelle les modules actifs et l'état de sécurité du compte.
+  # Tableau de bord (route `core:dashboard` du manifeste du socle) : tuiles
+  # des modules actifs, dernières factures et écritures, « À traiter »
+  # (`PartiduoUi::Dashboard`), état de sécurité du compte.
   class DashboardHandler < ScreenHandler
     def get
       actor = current.actor
+      active = Partiduo::Api::Modules.list(actor).select(&.active).map(&.code).to_set
+      overview = Partiduo::Api::Auth.security_overview(actor)
+      board = Dashboard.new(actor, fmt, active).build
+      overview.missing.each do |item|
+        board.add_todo(Dashboard::Todo.new(I18n.t("auth.missing.#{item}"), nil, reverse("account_security"), "warn"))
+      end
       modules = Partiduo::Api::Modules.list(actor).select { |item| item.active && item.kind != "socle" }.map do |item|
         {"code" => item.code, "name_key" => item.name_key, "extension" => item.kind == "extension"}
       end
-      overview = Partiduo::Api::Auth.security_overview(actor)
       page("ui/dashboard.html", {
+        "board"           => board,
         "modules"         => listed(modules),
         "suggest_passkey" => overview.suggest_passkey,
-        "missing"         => listed(overview.missing.map { |item| "auth.missing.#{item}" }),
+        "secure"          => overview.missing.empty?,
       })
     end
   end

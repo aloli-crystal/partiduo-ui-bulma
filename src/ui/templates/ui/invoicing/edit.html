@@ -1,0 +1,68 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Édition d'un devis ou d'une facture en brouillon (maquette « Édition ») : client complété, dates (saisie abrégée), catégorie d'opération, références, lignes au clavier (paquet Opal entry.js : Entrée, Alt+↓, Ctrl+Entrée), totaux instantanés par check_document (HTMX) ; mentions obligatoires générées par le cœur à l'émission. Sans JavaScript : formulaire ordinaire. #}{% extend "ui/base.html" %}
+{% block title %}{{ title }}{% endblock title %}
+{% block scripts %}<script src="{% asset 'ui/js/opal/runtime.js' %}" defer></script>
+    <script src="{% asset 'ui/js/opal/entry.js' %}" defer></script>{% endblock scripts %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{{ title }}{% if document %} <span class="tag is-light pd-status-tag">{{ document.status_label }}</span>{% endif %}{% endblock heading %}
+{% block actions %}{% if document %}<a class="button pd-touch" href="{% url 'invoicing:document_preview' id: document.id %}">{% include "ui/_icon.html" with name="file-text" %}<span>{% translate "ui.invoicing.preview" %}</span></a>{% endif %}<button class="button is-primary pd-touch" type="submit" form="pd-doc-form">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.forms.save" %}</span></button>{% endblock actions %}
+{% block content %}
+<div class="pd-grid2">
+<form class="pd-panel pd-entry" id="pd-doc-form" method="post" action="{{ form_action }}" autocomplete="off" novalidate data-pd-entry aria-describedby="pd-entry-keys">
+  {% csrf_input %}
+  <input type="hidden" name="kind" value="{{ form.kind }}">
+  <input type="hidden" name="document_id" value="{{ document_id }}">
+  {% if document %}{% if document.origin %}<div class="pd-status">{{ document.origin }}</div>{% endif %}{% endif %}
+  {% include "ui/_errors.html" with messages=form.base_errors, id="pd-doc-base-errors" %}
+  <div class="pd-body">
+    <div class="pd-inv-grid">
+      <div class="field span2"><label class="label" for="pd-d-customer">{% translate "ui.invoicing.customer" %}<span class="pd-required" aria-hidden="true"> *</span></label>
+        <input class="input" id="pd-d-customer" name="customer" value="{{ form.customer }}" list="pd-dl-customers" autocomplete="off" spellcheck="false" placeholder="{% translate 'ui.invoicing.customer_placeholder' %}" required{% if form.customer_errors %} aria-invalid="true" aria-describedby="pd-d-customer-errors"{% endif %} hx-get="{% url 'cards:complete' %}?kind=customer" hx-trigger="input changed delay:150ms" hx-target="#pd-dl-customers" hx-sync="this:replace">
+        {% include "ui/_errors.html" with messages=form.customer_errors, id="pd-d-customer-errors" %}</div>
+      <div class="field"><label class="label" for="pd-d-issue">{% translate "ui.invoicing.issue_date" %}</label><input class="input pd-mono" id="pd-d-issue" name="issue_date" value="{{ form.issue_date }}" inputmode="numeric" aria-describedby="pd-d-date-help">
+        {% include "ui/_errors.html" with messages=form.issue_date_errors, id="pd-d-issue-errors" %}</div>
+      <div class="field"><label class="label" for="pd-d-delivery">{% translate "ui.invoicing.delivery_date" %}</label><input class="input pd-mono" id="pd-d-delivery" name="delivery_date" value="{{ form.delivery_date }}" inputmode="numeric">
+        {% include "ui/_errors.html" with messages=form.delivery_date_errors, id="pd-d-delivery-errors" %}</div>
+      {% if form.quote %}
+      <div class="field"><label class="label" for="pd-d-validity">{% translate "ui.invoicing.validity_date" %}</label><input class="input pd-mono" id="pd-d-validity" name="validity_date" value="{{ form.validity_date }}" inputmode="numeric">
+        {% include "ui/_errors.html" with messages=form.validity_date_errors, id="pd-d-validity-errors" %}</div>
+      {% else %}
+      <div class="field"><label class="label" for="pd-d-due">{% translate "ui.invoicing.due_date" %}</label><input class="input pd-mono" id="pd-d-due" name="due_date" value="{{ form.due_date }}" inputmode="numeric">
+        {% include "ui/_errors.html" with messages=form.due_date_errors, id="pd-d-due-errors" %}</div>
+      {% endif %}
+      <div class="field"><label class="label" for="pd-d-category">{% translate "ui.invoicing.category" %}</label>
+        <div class="select is-fullwidth"><select id="pd-d-category" name="operation_category"><option value="">{% translate "ui.invoicing.category_default" %}</option>{% for option in form.category_options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div></div>
+      <div class="field"><label class="label" for="pd-d-discount">{% translate "ui.invoicing.global_discount" %}</label><input class="input pd-mono" id="pd-d-discount" name="global_discount" value="{{ form.global_discount }}" inputmode="decimal">
+        {% include "ui/_errors.html" with messages=form.global_discount_errors, id="pd-d-discount-errors" %}</div>
+      <div class="field span2"><label class="label" for="pd-d-buyer">{% translate "ui.invoicing.buyer_reference" %}</label><input class="input" id="pd-d-buyer" name="buyer_reference" value="{{ form.buyer_reference }}"></div>
+      <div class="field span2"><label class="label" for="pd-d-order">{% translate "ui.invoicing.order_reference" %}</label><input class="input" id="pd-d-order" name="order_reference" value="{{ form.order_reference }}"></div>
+    </div>
+    <p class="help" id="pd-d-date-help">{% translate "ui.invoicing.date_help" %}</p>
+  </div>
+  <div class="pd-scroll">
+    <table class="table is-fullwidth pd-inv-lines" aria-label="{% translate 'ui.invoicing.lines' %}">
+      <thead><tr><th scope="col" class="pd-col-item">{% translate "ui.invoicing.item" %}</th><th scope="col" class="amount pd-col-qty">{% translate "ui.invoicing.quantity" %}</th><th scope="col" class="pd-col-unit">{% translate "ui.invoicing.unit" %}</th><th scope="col" class="amount pd-col-price">{% translate "ui.invoicing.unit_price" %}</th><th scope="col" class="amount pd-col-qty">{% translate "ui.invoicing.discount" %}</th><th scope="col" class="pd-col-vat">{% translate "ui.invoicing.vat" %}</th><th scope="col" class="amount pd-col-price">{% translate "ui.invoicing.line_total" %}</th><th scope="col" class="pd-col-del"><span class="is-sr-only">{% translate "ui.forms.delete" %}</span></th></tr></thead>
+      <tbody id="pd-lines">{% for line in form.lines %}{% include "ui/invoicing/_line.html" %}{% endfor %}</tbody>
+    </table>
+  </div>
+  <div class="pd-body pd-entry-foot">
+    <input type="hidden" id="pd-line-next" name="line_next" value="{{ form.next_index }}">
+    <button class="button is-small is-ghost" type="submit" name="add_line" value="1" formnovalidate data-pd-add-line hx-get="{% url 'invoicing:document_line' %}" hx-include="#pd-line-next" hx-target="#pd-lines" hx-swap="beforeend">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "ui.entries.add_line" %}</span></button>
+    <div class="pd-keys" id="pd-entry-keys">
+      <span><kbd>Tab</kbd> / <kbd>{% translate "ui.entries.key_enter" %}</kbd> {% translate "ui.entries.key_next" %}</span>
+      <span><kbd>Alt</kbd>+<kbd>↓</kbd> {% translate "ui.entries.key_add" %}</span>
+      <span><kbd>Ctrl</kbd>+<kbd>{% translate "ui.entries.key_enter" %}</kbd> {% translate "ui.entries.key_save" %}</span>
+    </div>
+    <div class="field mt-3"><label class="label" for="pd-d-notes">{% translate "ui.invoicing.notes" %}</label><textarea class="textarea" id="pd-d-notes" name="notes" rows="2">{{ form.notes }}</textarea></div>
+    <div id="pd-doc-totals" aria-live="polite" hx-post="{{ check_url }}" hx-trigger="load, input from:#pd-doc-form delay:400ms, change from:#pd-doc-form, pd:lines from:#pd-doc-form" hx-include="#pd-doc-form" hx-swap="innerHTML"></div>
+  </div>
+</form>
+<aside class="pd-panel pd-side-panel" aria-labelledby="pd-mentions-title">
+  <header><h2 id="pd-mentions-title">{% translate "ui.invoicing.mentions" %}</h2></header>
+  <div class="pd-body">
+    {% if document %}{% if document.mentions %}<ul class="pd-mentions">{% for mention in document.mentions %}<li>{{ mention }}</li>{% endfor %}</ul>{% endif %}{% endif %}
+    <p class="is-size-7 pd-muted mt-4">{% translate "ui.invoicing.mentions_note" %}</p>
+  </div>
+</aside>
+</div>
+<datalist id="pd-dl-customers"></datalist><datalist id="pd-dl-items"></datalist>
+{% endblock content %}

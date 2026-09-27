@@ -1,0 +1,22 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Retour instantané de la saisie (PartiduoUi::EntryCheck, variable check) : totaux débit et crédit, état de l'équilibre (texte, pas seulement la couleur), totaux d'une facture, écriture calculée par le contrat, refus. #}<div class="pd-balance">
+  <div class="fig"><span>{% translate "ui.entries.total_debit" %}</span><b>{% if check.checked %}{{ check.total_debit }}{% else %}—{% endif %}</b></div>
+  <div class="fig"><span>{% translate "ui.entries.total_credit" %}</span><b>{% if check.checked %}{{ check.total_credit }}{% else %}—{% endif %}</b></div>
+  {% if check.total_including_vat %}
+  <div class="fig"><span>{% translate "ui.entries.total_excl" %}</span><b>{{ check.total_excluding_vat }}</b></div>
+  <div class="fig"><span>{% translate "ui.entries.total_vat" %}</span><b>{{ check.total_vat }}</b></div>
+  <div class="fig"><span>{% translate "ui.entries.total_incl" %}</span><b>{{ check.total_including_vat }}</b></div>
+  {% endif %}
+  {% if check.checked %}{% if check.balanced %}<span class="pd-state ok">{% translate "ui.entries.balanced" %}</span>{% else %}<span class="pd-state gap">{% translate "ui.entries.unbalanced" difference: check.difference %}</span>{% endif %}{% else %}<span class="pd-state">{% translate "ui.entries.waiting" %}</span>{% endif %}
+  {% if check.date_hint %}<span class="pd-muted is-size-7">{% translate "ui.entries.date_hint" date: check.date_hint %}</span>{% endif %}
+  {% if check.receipt %}<span class="pd-muted is-size-7">{% translate "ui.entries.receipt_hint" receipt: check.receipt %}</span>{% endif %}
+</div>
+{% if check.errors %}<ul class="pd-check-errors help is-danger">{% for message in check.errors %}<li>{{ message }}</li>{% endfor %}</ul>{% endif %}
+{% if check.rows %}
+<details class="pd-draft"{% if kind != "misc" %} open{% endif %}>
+  <summary>{% translate "ui.entries.draft" %}</summary>
+  <div class="pd-scroll"><table class="table is-fullwidth is-narrow">
+    <thead><tr><th scope="col">{% translate "ui.entries.account" %}</th><th scope="col">{% translate "ui.entries.label" %}</th><th scope="col" class="pd-hide-s">{% translate "ui.entries.vat" %}</th><th scope="col" class="amount">{% translate "ui.entries.debit" %}</th><th scope="col" class="amount">{% translate "ui.entries.credit" %}</th></tr></thead>
+    <tbody>{% for row in check.rows %}<tr><td class="pd-mono">{{ row.account }} <span class="pd-muted">{{ row.account_label }}</span></td><td>{{ row.label }}</td><td class="pd-hide-s pd-mono">{{ row.vat }}</td><td class="amount">{{ row.debit }}</td><td class="amount">{{ row.credit }}</td></tr>{% endfor %}</tbody>
+  </table></div>
+</details>
+{% endif %}

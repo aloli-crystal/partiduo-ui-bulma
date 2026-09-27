@@ -172,6 +172,53 @@ module PartiduoUi
       nil
     end
 
+    # Date saisie en abrégé (ADR-005 D5), relative à `reference` (en saisie :
+    # le mois de la période de travail) : `12` → le 12 de ce mois ; `12/3`,
+    # `12.3`, `12-3` ou `1203` → le 12 mars de son année ; `12/3/26` ou
+    # `120326` → 2026 ; sinon une date complète (`parse_date`). L'ordre jour,
+    # mois suit la langue (mois d'abord en `en-US`). `nil` si la date
+    # n'existe pas.
+    def parse_short_date(text : String, reference : Time) : Time?
+      value = text.strip
+      return if value.empty?
+      full = parse_date(value)
+      return full if full && full.year >= 1900
+      numbers = short_parts(value) || return
+      numbers[0], numbers[1] = numbers[1], numbers[0] if numbers.size >= 2 && @convention.date.starts_with?("%m")
+      year = numbers[2]?.try { |given| given < 100 ? 2000 + given : given } || reference.year
+      valid_day(year, numbers[1]? || reference.month, numbers[0])
+    end
+
+    private def valid_day(year : Int32, month : Int32, day : Int32) : Time?
+      return unless (1..12).includes?(month) && year >= 1900
+      return unless (1..Time.days_in_month(year, month)).includes?(day)
+      Time.utc(year, month, day)
+    end
+
+    # Nombres d'une date abrégée : chiffres seuls (`12`, `1203`, `120326`,
+    # `12032026`) ou séparés (`12/3`, `12.3.26`) ; `nil` sinon.
+    private def short_parts(value : String) : Array(Int32)?
+      parts = if value.matches?(/\A\d+\z/)
+                SHORT_DIGITS[value.size]?.try { |sizes| split_digits(value, sizes) } || return
+              else
+                value.split(/[\/.\-\s]+/)
+              end
+      return if parts.empty? || parts.size > 3 || parts.any? { |part| !part.matches?(/\A\d{1,4}\z/) }
+      parts.map(&.to_i)
+    end
+
+    # Découpage d'une date abrégée écrite sans séparateur, selon sa longueur.
+    SHORT_DIGITS = {1 => [1], 2 => [2], 4 => [2, 2], 6 => [2, 2, 2], 8 => [2, 2, 4]}
+
+    private def split_digits(value : String, sizes : Array(Int32)) : Array(String)
+      offset = 0
+      sizes.map do |size|
+        part = value[offset, size]
+        offset += size
+        part
+      end
+    end
+
     private def digits(value : BigDecimal, decimals : Int32, group : Bool) : String
       negative = value < 0
       text = value.abs.to_s

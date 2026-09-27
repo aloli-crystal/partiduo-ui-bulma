@@ -180,6 +180,10 @@ module PartiduoUi
 
     private def account_actions(account) : Array(Screen::Action)
       actions = [] of Screen::Action
+      # Navigation transverse (ADR-005 D9) : mouvements du compte.
+      if can?("accounting.entry.read")
+        actions << link_action("ui.accounts.moves", "#{reverse("accounting:accounts")}?#{URI::Params.encode({"q" => account.number})}", icon: "book-open")
+      end
       return actions unless can?("accounting.account.write")
       actions << link_action("ui.forms.edit", reverse("accounting:account_edit", id: account.id), "primary")
       actions << link_action("ui.chart.new_child", "#{reverse("accounting:account_new")}?#{URI::Params.encode({"parent" => account.number})}", icon: "plus")

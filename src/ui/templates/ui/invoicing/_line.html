@@ -1,0 +1,14 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Ligne d'un devis ou d'une facture (PartiduoUi::DocumentForm::Line, variable line) : article complété dès le premier caractère, désignation, quantité, unité, prix unitaire HT, remise, TVA, total HT du dernier enregistrement. #}<tr data-pd-line>
+  <td>
+    <input class="pd-mono" type="text" name="line-{{ line.index }}-item" id="pd-dl{{ line.index }}-item" value="{{ line.item }}" list="pd-dl-items" autocomplete="off" spellcheck="false" aria-label="{% translate 'ui.invoicing.aria.item' line: line.number %}"{% if line.errors %} aria-invalid="true" aria-describedby="{{ line.error_id }}"{% endif %} hx-get="{% url 'cards:complete' %}?kind=item" hx-trigger="input changed delay:150ms" hx-target="#pd-dl-items" hx-sync="this:replace">
+    <input type="text" name="line-{{ line.index }}-description" id="pd-dl{{ line.index }}-description" value="{{ line.description }}" placeholder="{% translate 'ui.invoicing.description' %}" aria-label="{% translate 'ui.invoicing.aria.description' line: line.number %}">
+    {% include "ui/_errors.html" with messages=line.errors, id=line.error_id %}
+  </td>
+  <td><input class="num" type="text" inputmode="decimal" name="line-{{ line.index }}-quantity" value="{{ line.quantity }}" aria-label="{% translate 'ui.invoicing.aria.quantity' line: line.number %}"></td>
+  <td><input type="text" name="line-{{ line.index }}-unit" value="{{ line.unit }}" class="pd-mono" aria-label="{% translate 'ui.invoicing.aria.unit' line: line.number %}"></td>
+  <td><input class="num" type="text" inputmode="decimal" name="line-{{ line.index }}-unit_price" value="{{ line.unit_price }}" aria-label="{% translate 'ui.invoicing.aria.unit_price' line: line.number %}"></td>
+  <td><input class="num" type="text" inputmode="decimal" name="line-{{ line.index }}-discount" value="{{ line.discount }}" aria-label="{% translate 'ui.invoicing.aria.discount' line: line.number %}"></td>
+  <td><select name="line-{{ line.index }}-vat_rate_id" aria-label="{% translate 'ui.invoicing.aria.vat' line: line.number %}">{% for option in line.vat_options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></td>
+  <td class="amount">{{ line.total }}</td>
+  <td><button class="pd-del" type="submit" name="remove_line" value="{{ line.index }}" formnovalidate data-pd-del-line tabindex="-1" title="{% translate 'ui.entries.remove_line' line: line.number %}"><span aria-hidden="true">×</span><span class="is-sr-only">{% translate 'ui.entries.remove_line' line: line.number %}</span></button></td>
+</tr>

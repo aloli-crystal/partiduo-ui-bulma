@@ -2,7 +2,7 @@
  * Paquet Opal « runtime », généré par scripts/opal-build — ne pas modifier.
  * Sources : bibliothèque de base d'Opal, native, opal/partiduo_ui/boot.rb ; runtime Opal (MIT).
  * opal-version: 1.8.2
- * sources-sha256: c56bf8050649405b61f14c40778f6ad7e873aac0a81b4ca84976585531bf2175
+ * sources-sha256: ba18c0f4791291f110403de686d9a9a75a00ef60d9ada3a5d3b7701427dde2a4
  */
 (function(global_object) {
   "use strict";

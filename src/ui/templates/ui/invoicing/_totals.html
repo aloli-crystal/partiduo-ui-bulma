@@ -1,0 +1,9 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Totaux instantanés d'un brouillon (PartiduoUi::TotalsDisplay, variable totals), calculés par check_document ; refus du contrat (variable errors). #}{% if errors %}<ul class="pd-check-errors help is-danger">{% for message in errors %}<li>{{ message }}</li>{% endfor %}</ul>{% endif %}
+{% if totals %}<dl class="pd-totals">
+  <dt>{% translate "ui.invoicing.totals.lines" %}</dt><dd>{{ totals.lines_total }}</dd>
+  {% if totals.discount %}<dt>{% translate "ui.invoicing.totals.discount" %}</dt><dd>-{{ totals.discount }}</dd>{% endif %}
+  <dt>{% translate "ui.invoicing.totals.net" %}</dt><dd>{{ totals.net }}</dd>
+  <dt>{% translate "ui.invoicing.totals.vat" %}</dt><dd>{{ totals.vat }}</dd>
+  <dt class="grand">{% translate "ui.invoicing.totals.gross" %}</dt><dd class="grand">{{ totals.gross }}</dd>
+  {% if totals.prepaid %}<dt>{% translate "ui.invoicing.totals.prepaid" %}</dt><dd>-{{ totals.prepaid }}</dd><dt class="grand">{% translate "ui.invoicing.totals.payable" %}</dt><dd class="grand">{{ totals.payable }}</dd>{% endif %}
+</dl>{% endif %}

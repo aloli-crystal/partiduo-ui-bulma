@@ -1,0 +1,73 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. « Comptes et tiers » (ADR-005 D9 ; maquette, écran « Consultation d'un compte ou d'un tiers ») : sélection avec complétion, période, non lettrées seulement ; synthèse d'abord (téléphone compris), balance âgée (barre et légende chiffrée), mouvements (échéance dépassée signalée en texte), fiche du tiers. #}{% extend "ui/base.html" %}
+{% block title %}{% if statement %}{{ statement.title }} · {% endif %}{{ title }}{% endblock title %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{% if statement %}{{ statement.title }}{% else %}{{ title }}{% endif %}{% endblock heading %}
+{% block actions %}{% for action in actions %}{% include "ui/_action.html" %}{% endfor %}{% endblock actions %}
+{% block content %}
+<form class="pd-panel" method="get" action="{% url 'accounting:accounts' %}" role="search" aria-label="{% translate 'ui.accounts.selection' %}">
+  <div class="pd-body pd-acc-head">
+    <div class="field pd-acc-pick"><label class="label" for="pd-acc-q">{% translate "ui.accounts.pick" %}</label>
+      <input class="input" id="pd-acc-q" name="q" value="{{ q }}" list="pd-dl-accounts" autocomplete="off" spellcheck="false" placeholder="{% translate 'ui.accounts.pick_placeholder' %}" hx-get="{% url 'accounting:complete' %}?list=entry" hx-trigger="input changed delay:150ms" hx-target="#pd-dl-accounts" hx-sync="this:replace"></div>
+    <div class="field"><label class="label" for="pd-acc-from">{% translate "ui.accounts.from" %}</label><input class="input pd-mono pd-date-input" id="pd-acc-from" name="from" value="{{ from }}" inputmode="numeric"></div>
+    <div class="field"><label class="label" for="pd-acc-to">{% translate "ui.accounts.to" %}</label><input class="input pd-mono pd-date-input" id="pd-acc-to" name="to" value="{{ to }}" inputmode="numeric"></div>
+    <label class="checkbox pd-check" for="pd-acc-open"><input type="checkbox" id="pd-acc-open" name="open" value="1"{% if open_only %} checked{% endif %}> {% translate "ui.accounts.open_only" %}</label>
+    <button class="button is-primary pd-touch" type="submit">{% translate "ui.accounts.show" %}</button>
+  </div>
+  <datalist id="pd-dl-accounts"></datalist>
+</form>
+{% if not_found %}<div class="notification is-warning is-light" role="alert">{{ not_found }}</div>{% endif %}
+{% if statement %}
+<p class="pd-muted mb-3">{{ statement.subtitle }}</p>
+<div class="pd-sum">
+  <div class="pd-panel pd-tile"><span class="lbl">{% translate "ui.accounts.balance" %}</span><span class="val">{{ statement.balance }}</span></div>
+  <div class="pd-panel pd-tile"><span class="lbl">{% translate statement.remaining_key %}</span><span class="val">{{ statement.remaining }}</span></div>
+  <div class="pd-panel pd-tile"><span class="lbl">{% translate "ui.accounts.overdue" %}</span><span class="val{% if statement.has_overdue %} pd-due-late{% endif %}">{{ statement.overdue }}</span></div>
+  <div class="pd-panel pd-tile pd-aging-tile"><span class="lbl">{% translate "ui.accounts.ageing" %}</span>
+    <div class="pd-aging" aria-hidden="true">{% for bucket in statement.buckets %}<span style="width: {{ bucket.share }}%; background: {{ bucket.color }}"></span>{% endfor %}</div>
+    <ul class="pd-legend">{% for bucket in statement.buckets %}<li><i style="background: {{ bucket.color }}" aria-hidden="true"></i>{% translate bucket.label_key %} <span class="pd-mono">{{ bucket.amount }}</span></li>{% endfor %}</ul>
+  </div>
+</div>
+<div class="pd-grid2">
+  <section class="pd-panel" aria-labelledby="pd-moves-title">
+    <header><h2 id="pd-moves-title">{% translate "ui.accounts.moves" %}</h2><span class="is-size-7 pd-muted">{{ statement.count }}</span></header>
+    <div class="pd-scroll">
+      <table class="table is-fullwidth is-hoverable is-narrow pd-table">
+        <caption class="is-sr-only">{% translate "ui.accounts.moves" %}</caption>
+        <thead><tr>
+          <th scope="col">{% translate "ui.accounts.columns.date" %}</th>
+          <th scope="col" class="pd-hide-s">{% translate "ui.accounts.columns.ledger" %}</th>
+          <th scope="col" class="pd-hide-s">{% translate "ui.accounts.columns.receipt" %}</th>
+          <th scope="col">{% translate "ui.accounts.columns.label" %}</th>
+          <th scope="col" class="pd-hide-s">{% translate "ui.accounts.columns.due_date" %}</th>
+          <th scope="col" class="amount pd-hide-s">{% translate "ui.accounts.columns.debit" %}</th>
+          <th scope="col" class="amount pd-hide-s">{% translate "ui.accounts.columns.credit" %}</th>
+          <th scope="col" class="amount pd-show-s">{% translate "ui.accounts.columns.amount" %}</th>
+          <th scope="col" class="amount pd-hide-s">{% translate "ui.accounts.columns.balance" %}</th>
+          <th scope="col"><abbr title="{% translate 'ui.accounts.letter' %}">{% translate "ui.accounts.letter_short" %}</abbr></th>
+        </tr></thead>
+        <tbody>
+        {% if statement.moves %}{% for move in statement.moves %}<tr>
+          <td class="pd-mono">{{ move.date }}</td>
+          <td class="pd-mono pd-hide-s">{{ move.ledger }}</td>
+          <td class="pd-mono pd-hide-s"><a class="pd-link" href="{{ move.entry_url }}">{{ move.receipt }}</a></td>
+          <td><a class="pd-link" href="{{ move.entry_url }}">{{ move.label|default:move.receipt }}</a></td>
+          <td class="pd-mono pd-hide-s{% if move.overdue %} pd-due-late{% endif %}">{{ move.due_date }}{% if move.overdue %}<span class="is-sr-only"> ({% translate "ui.accounts.late" %})</span>{% endif %}</td>
+          <td class="amount pd-hide-s">{{ move.debit }}</td>
+          <td class="amount pd-hide-s">{{ move.credit }}</td>
+          <td class="amount pd-show-s">{{ move.amount }}</td>
+          <td class="amount pd-hide-s">{{ move.balance }}</td>
+          <td class="pd-let">{{ move.letter }}</td>
+        </tr>{% endfor %}{% else %}<tr><td colspan="10" class="pd-muted pd-empty">{% translate "ui.accounts.no_moves" %}</td></tr>{% endif %}
+        </tbody>
+      </table>
+    </div>
+  </section>
+  <aside class="pd-panel pd-side-panel" aria-labelledby="pd-card-title">
+    <header><h2 id="pd-card-title">{% translate "ui.accounts.card" %}</h2></header>
+    <div class="pd-body">{% if statement.card_items %}<dl>{% for item in statement.card_items %}<dt>{{ item.label }}</dt><dd{% if item.mono %} class="pd-mono"{% endif %}>{% if item.url %}<a class="pd-link" href="{{ item.url }}">{{ item.value }}</a>{% else %}{{ item.value }}{% endif %}</dd>{% endfor %}</dl>{% endif %}</div>
+  </aside>
+</div>
+{% elsif not not_found %}
+<p class="pd-muted">{% translate "ui.accounts.intro" %}</p>
+{% endif %}
+{% endblock content %}

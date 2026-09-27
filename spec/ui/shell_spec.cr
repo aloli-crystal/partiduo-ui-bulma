@@ -66,7 +66,7 @@ describe "Coquille de l'écran (maquette, ADR-005 D5)" do
   it "montre désactivées les entrées dont l'écran n'est pas encore livré" do
     PartiduoUi::Accounts.create
     body = PartiduoUi::Accounts.signed_in.get("/").html
-    body.should contain(%(<span class="pd-menu-off" aria-disabled="true"><span>Achats<span class="is-sr-only"> (bientôt disponible)</span>))
+    body.should contain(%(<span class="pd-menu-off" aria-disabled="true"><span>Balance<span class="is-sr-only"> (bientôt disponible)</span>))
   end
 
   it "traduit les libellés d'écran en fr, en et nl, et garde le choix de langue" do

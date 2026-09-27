@@ -1,0 +1,49 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Consultation d'un devis ou d'une facture : état, actions selon l'état (valider, transformer, avoir, acompte, décision sur un devis, règlement, relance, aperçu, PDF), lignes et totaux, mentions obligatoires, documents liés, règlements, trace. #}{% extend "ui/base.html" %}
+{% block title %}{{ title }}{% endblock title %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{{ title }} <span class="tag is-light pd-status-tag pd-status-{{ document.status }}">{{ document.status_label }}</span>{% endblock heading %}
+{% block actions %}{% for action in actions %}{% include "ui/_action.html" %}{% endfor %}{% endblock actions %}
+{% block content %}
+{% if transforms || deposit_url || decide_url %}
+<section class="pd-panel" aria-labelledby="pd-next-title">
+  <header><h2 id="pd-next-title">{% translate "ui.invoicing.next_steps" %}</h2></header>
+  <div class="pd-body pd-row-actions">
+    {% for action in transforms %}{% include "ui/_action.html" %}{% endfor %}
+    {% if deposit_url %}<form method="post" action="{{ deposit_url }}" class="pd-inline-form pd-deposit-form">{% csrf_input %}<input type="hidden" name="kind" value="deposit_invoice"><label class="label" for="pd-deposit-percent">{% translate "ui.invoicing.deposit_percent" %}</label><input class="input pd-mono" id="pd-deposit-percent" name="deposit_percent" inputmode="decimal" required><button class="button pd-touch" type="submit">{% translate "ui.invoicing.make_deposit" %}</button></form>{% endif %}
+    {% if decide_url %}<form method="post" action="{{ decide_url }}" class="pd-action-form">{% csrf_input %}<input type="hidden" name="decision" value="accepted"><button class="button is-success is-light pd-touch" type="submit">{% translate "ui.invoicing.accept" %}</button></form><form method="post" action="{{ decide_url }}" class="pd-action-form">{% csrf_input %}<input type="hidden" name="decision" value="refused"><button class="button is-danger is-light pd-touch" type="submit">{% translate "ui.invoicing.refuse" %}</button></form>{% endif %}
+  </div>
+</section>
+{% endif %}
+<div class="pd-grid2">
+  <section class="pd-panel" aria-labelledby="pd-doc-title">
+    <header><h2 id="pd-doc-title">{{ document.kind_label }}</h2>{% if document.origin %}<span class="is-size-7 pd-muted">{{ document.origin }}</span>{% endif %}</header>
+    <div class="pd-body">
+      <dl class="pd-dl">
+        <dt>{% translate "ui.invoicing.customer" %}</dt><dd>{% if customer_url %}<a class="pd-link" href="{{ customer_url }}">{{ document.customer_name }}</a>{% else %}{{ document.customer_name }}{% endif %}</dd>
+        {% if document.issue_date %}<dt>{% translate "ui.invoicing.issue_date" %}</dt><dd class="pd-mono">{{ document.issue_date }}</dd>{% endif %}
+        {% if document.delivery_date %}<dt>{% translate "ui.invoicing.delivery_date" %}</dt><dd class="pd-mono">{{ document.delivery_date }}</dd>{% endif %}
+        {% if document.due_date %}<dt>{% translate "ui.invoicing.due_date" %}</dt><dd class="pd-mono">{{ document.due_date }}</dd>{% endif %}
+        {% if document.validity_date %}<dt>{% translate "ui.invoicing.validity_date" %}</dt><dd class="pd-mono">{{ document.validity_date }}</dd>{% endif %}
+      </dl>
+    </div>
+    <div class="pd-scroll"><table class="table is-fullwidth is-narrow pd-table">
+      <caption class="is-sr-only">{% translate "ui.invoicing.lines" %}</caption>
+      <thead><tr><th scope="col">{% translate "ui.invoicing.description" %}</th><th scope="col" class="amount pd-hide-s">{% translate "ui.invoicing.quantity" %}</th><th scope="col" class="pd-hide-s">{% translate "ui.invoicing.unit" %}</th><th scope="col" class="amount pd-hide-s">{% translate "ui.invoicing.unit_price" %}</th><th scope="col" class="amount pd-hide-s">{% translate "ui.invoicing.discount" %}</th><th scope="col" class="amount pd-hide-s">{% translate "ui.invoicing.vat" %}</th><th scope="col" class="amount">{% translate "ui.invoicing.line_total" %}</th></tr></thead>
+      <tbody>{% for row in document.rows %}<tr{% if row.heading %} class="pd-class"{% endif %}><td>{{ row.description }}</td><td class="amount pd-hide-s">{{ row.quantity }}</td><td class="pd-hide-s pd-mono">{{ row.unit }}</td><td class="amount pd-hide-s">{{ row.unit_price }}</td><td class="amount pd-hide-s">{{ row.discount }}</td><td class="amount pd-hide-s">{{ row.vat }}</td><td class="amount">{{ row.total }}</td></tr>{% endfor %}</tbody>
+    </table></div>
+    <div class="pd-body">
+      <dl class="pd-totals">{% for amount in document.amounts %}<dt{% if amount.grand %} class="grand"{% endif %}>{{ amount.label }}</dt><dd{% if amount.grand %} class="grand"{% endif %}>{{ amount.value }}</dd>{% endfor %}</dl>
+      {% if document.vat_rows %}<dl class="pd-totals mt-3">{% for amount in document.vat_rows %}<dt>{{ amount.label }}</dt><dd>{{ amount.value }}</dd>{% endfor %}</dl>{% endif %}
+    </div>
+  </section>
+  <div>
+    <aside class="pd-panel pd-side-panel" aria-labelledby="pd-mentions-title">
+      <header><h2 id="pd-mentions-title">{% translate "ui.invoicing.mentions" %}</h2></header>
+      <div class="pd-body">{% if document.mentions %}<ul class="pd-mentions">{% for mention in document.mentions %}<li>{{ mention }}</li>{% endfor %}</ul>{% else %}<p class="pd-muted is-size-7">{% translate "ui.invoicing.mentions_at_issue" %}</p>{% endif %}</div>
+    </aside>
+    {% if document.links %}<aside class="pd-panel" aria-labelledby="pd-links-title"><header><h2 id="pd-links-title">{% translate "ui.invoicing.links" %}</h2></header><div class="pd-body"><ul>{% for link in document.links %}<li><a class="pd-link" href="{{ link.url }}">{{ link.label }}</a></li>{% endfor %}</ul></div></aside>{% endif %}
+    {% if payments || payment_note %}<aside class="pd-panel" aria-labelledby="pd-payments-title"><header><h2 id="pd-payments-title">{% translate "ui.invoicing.payments" %}</h2><span class="pd-mono">{% translate "ui.invoicing.left" %} {{ document.amount_due }}</span></header><div class="pd-body">{% if payments %}<dl class="pd-dl">{% for payment in payments %}<dt>{{ payment.label }}</dt><dd class="amount">{{ payment.value }}</dd>{% endfor %}</dl>{% endif %}{% if payment_note %}<p class="pd-muted is-size-7">{{ payment_note }}</p>{% endif %}</div></aside>{% endif %}
+    {% if events %}<aside class="pd-panel" aria-labelledby="pd-events-title"><header><h2 id="pd-events-title">{% translate "ui.invoicing.trace" %}</h2></header><div class="pd-body"><dl class="pd-dl">{% for event in events %}<dt class="pd-mono">{{ event.label }}</dt><dd>{{ event.value }}</dd>{% endfor %}</dl></div></aside>{% endif %}
+  </div>
+</div>
+{% endblock content %}

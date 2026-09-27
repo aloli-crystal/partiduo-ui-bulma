@@ -24,6 +24,8 @@ CARDS_ROUTES = Marten::Routing::Map.draw do
   path "/<id:int>/edit", PartiduoUi::CardEditHandler, name: "edit"
   path "/<id:int>/enable", PartiduoUi::CardEnableHandler, name: "enable"
   path "/<id:int>/delete", PartiduoUi::CardDeleteHandler, name: "delete"
+  # Complétion des fiches (saisie, facturation) : options d'une datalist.
+  path "/complete", PartiduoUi::CardCompletionHandler, name: "complete"
 end
 
 # Taux de TVA du socle (menu `vat:rates`).
@@ -48,6 +50,59 @@ ACCOUNTING_ROUTES = Marten::Routing::Map.draw do
   path "/ledgers/<id:int>", PartiduoUi::LedgerHandler, name: "ledger"
   path "/ledgers/<id:int>/edit", PartiduoUi::LedgerEditHandler, name: "ledger_edit"
   path "/ledgers/<id:int>/delete", PartiduoUi::LedgerDeleteHandler, name: "ledger_delete"
+  # Saisie (lot 2) : quatre formes, contrôle instantané, ajout de ligne.
+  path "/entries/purchase", PartiduoUi::PurchaseEntryHandler, name: "entry_purchase"
+  path "/entries/sale", PartiduoUi::SaleEntryHandler, name: "entry_sale"
+  path "/entries/financial", PartiduoUi::FinancialEntryHandler, name: "entry_financial"
+  path "/entries/misc", PartiduoUi::MiscEntryHandler, name: "entry_misc"
+  path "/entries/<kind:str>/check", PartiduoUi::EntryCheckHandler, name: "entry_check"
+  path "/entries/<kind:str>/line", PartiduoUi::EntryLineHandler, name: "entry_line"
+  path "/complete", PartiduoUi::AccountCompletionHandler, name: "complete"
+  # Consultation : écritures, comptes et tiers (ADR-005 D9), lettrage.
+  path "/entries", PartiduoUi::EntriesHandler, name: "entries"
+  path "/entries/<id:int>", PartiduoUi::EntryShowHandler, name: "entry"
+  path "/entries/<id:int>/cancel", PartiduoUi::EntryCancelHandler, name: "entry_cancel"
+  path "/accounts", PartiduoUi::StatementHandler, name: "accounts"
+  path "/matching", PartiduoUi::MatchingHandler, name: "matching"
+  path "/matching/check", PartiduoUi::MatchingCheckHandler, name: "matching_check"
+  path "/matching/<id:int>/unmatch", PartiduoUi::UnmatchHandler, name: "unmatch"
+  # Historique de la Facturation à comptabiliser (ADR-006 D2).
+  path "/invoicing-history", PartiduoUi::InvoicingHistoryHandler, name: "invoicing_history"
+  path "/invoicing-history/post", PartiduoUi::InvoicingHistoryPostHandler, name: "invoicing_history_post"
+  path "/invoicing-history/<id:int>/dismiss", PartiduoUi::InvoicingHistoryDismissHandler, name: "invoicing_history_dismiss"
+  path "/invoicing-history/<id:int>/restore", PartiduoUi::InvoicingHistoryRestoreHandler, name: "invoicing_history_restore"
+end
+
+# Module Facturation (menus `invoicing:documents`, `invoice_new`, `payments`,
+# `reminders`, `export`, `templates`, `settings`). Module inactif : le contrat refuse, l'écran répond 404.
+INVOICING_ROUTES = Marten::Routing::Map.draw do
+  path "/documents", PartiduoUi::DocumentsHandler, name: "documents"
+  path "/documents/new", PartiduoUi::DocumentNewHandler, name: "document_new"
+  path "/invoices/new", PartiduoUi::InvoiceNewHandler, name: "invoice_new"
+  path "/documents/check", PartiduoUi::DocumentCheckHandler, name: "document_check"
+  path "/documents/line", PartiduoUi::DocumentLineHandler, name: "document_line"
+  path "/documents/<id:int>", PartiduoUi::DocumentHandler, name: "document"
+  path "/documents/<id:int>/edit", PartiduoUi::DocumentEditHandler, name: "document_edit"
+  path "/documents/<id:int>/preview", PartiduoUi::DocumentPreviewHandler, name: "document_preview"
+  path "/documents/<id:int>/pdf", PartiduoUi::DocumentPdfHandler, name: "document_pdf"
+  path "/documents/<id:int>/issue", PartiduoUi::DocumentIssueHandler, name: "document_issue"
+  path "/documents/<id:int>/transform", PartiduoUi::DocumentTransformHandler, name: "document_transform"
+  path "/documents/<id:int>/decide", PartiduoUi::DocumentDecideHandler, name: "document_decide"
+  path "/documents/<id:int>/delete", PartiduoUi::DocumentDeleteHandler, name: "document_delete"
+  path "/documents/<id:int>/payment", PartiduoUi::DocumentPaymentHandler, name: "document_payment"
+  path "/payments", PartiduoUi::PaymentsHandler, name: "payments"
+  path "/reminders", PartiduoUi::RemindersHandler, name: "reminders"
+  path "/reminders/propose", PartiduoUi::RemindersProposeHandler, name: "reminders_propose"
+  path "/reminders/<id:int>/send", PartiduoUi::ReminderSendHandler, name: "reminder_send"
+  path "/reminders/<id:int>/dismiss", PartiduoUi::ReminderDismissHandler, name: "reminder_dismiss"
+  path "/export", PartiduoUi::ExportHandler, name: "export"
+  path "/documents/<id:int>/send", PartiduoUi::DocumentSendHandler, name: "document_send"
+  # Paramètres et modèles de mise en page (menus `invoicing:settings`, `templates`).
+  path "/settings", PartiduoUi::InvoicingSettingsHandler, name: "settings"
+  path "/templates", PartiduoUi::LayoutsHandler, name: "templates"
+  path "/templates/new", PartiduoUi::LayoutNewHandler, name: "template_new"
+  path "/templates/<id:int>/edit", PartiduoUi::LayoutEditHandler, name: "template_edit"
+  path "/templates/<id:int>/delete", PartiduoUi::LayoutDeleteHandler, name: "template_delete"
 end
 
 Marten.routes.draw do
@@ -55,6 +110,7 @@ Marten.routes.draw do
   path "/cards", CARDS_ROUTES, name: "cards"
   path "/vat", VAT_ROUTES, name: "vat"
   path "/accounting", ACCOUNTING_ROUTES, name: "accounting"
+  path "/invoicing", INVOICING_ROUTES, name: "invoicing"
 
   # Connexion (ADR-002).
   path "/login", PartiduoUi::LoginHandler, name: "login"

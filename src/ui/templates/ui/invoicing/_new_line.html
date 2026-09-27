@@ -1,0 +1,2 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Réponse HTMX d'un ajout de ligne de document : la ligne, et le compteur mis à jour hors bande. #}{% include "ui/invoicing/_line.html" %}
+<input type="hidden" id="pd-line-next" name="line_next" value="{{ next_index }}" hx-swap-oob="true">

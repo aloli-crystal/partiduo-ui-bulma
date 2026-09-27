@@ -1,0 +1,56 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Lettrage : choix du compte ou du tiers (complétion), lignes non lettrées à cocher, contrôle de la sélection à chaque case (HTMX, check_matching), lettrages existants à défaire. Utilisable sans JavaScript. #}{% extend "ui/base.html" %}
+{% block title %}{% if matching %}{{ matching.title }} · {% endif %}{{ title }}{% endblock title %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{% if matching %}{{ matching.title }}{% else %}{{ title }}{% endif %}{% endblock heading %}
+{% block actions %}{% if statement_url %}<a class="button pd-touch" href="{{ statement_url }}">{% translate "accounting.menu.acc_accounts" %}</a>{% endif %}{% endblock actions %}
+{% block content %}
+<form class="pd-panel" method="get" action="{% url 'accounting:matching' %}" role="search" aria-label="{% translate 'ui.accounts.selection' %}">
+  <div class="pd-body pd-acc-head">
+    <div class="field pd-acc-pick"><label class="label" for="pd-match-q">{% translate "ui.accounts.pick" %}</label>
+      <input class="input" id="pd-match-q" name="q" value="{{ q }}" list="pd-dl-accounts" autocomplete="off" spellcheck="false" placeholder="{% translate 'ui.accounts.pick_placeholder' %}" hx-get="{% url 'accounting:complete' %}?list=entry" hx-trigger="input changed delay:150ms" hx-target="#pd-dl-accounts" hx-sync="this:replace"></div>
+    <button class="button is-primary pd-touch" type="submit">{% translate "ui.accounts.show" %}</button>
+  </div>
+  <datalist id="pd-dl-accounts"></datalist>
+</form>
+{% if not_found %}<div class="notification is-warning is-light" role="alert">{{ not_found }}</div>{% endif %}
+{% if refused %}<div class="notification is-danger is-light" role="alert"><ul>{% for message in refused %}<li>{{ message }}</li>{% endfor %}</ul></div>{% endif %}
+{% if matching %}
+<form class="pd-panel" id="pd-match-form" method="post" action="{% url 'accounting:matching' %}" aria-labelledby="pd-match-title">
+  {% csrf_input %}
+  <input type="hidden" name="q" value="{{ q }}">
+  <header><h2 id="pd-match-title">{% translate "ui.matching.open_lines" %}</h2><button class="button is-primary pd-touch" type="submit">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.matching.submit" %}</span></button></header>
+  <div class="pd-scroll">
+    <table class="table is-fullwidth is-hoverable is-narrow pd-table">
+      <caption class="is-sr-only">{% translate "ui.matching.open_lines" %}</caption>
+      <thead><tr><th scope="col"><span class="is-sr-only">{% translate "ui.matching.select" %}</span></th><th scope="col">{% translate "ui.accounts.columns.date" %}</th><th scope="col" class="pd-hide-s">{% translate "ui.accounts.columns.ledger" %}</th><th scope="col" class="pd-hide-s">{% translate "ui.accounts.columns.receipt" %}</th><th scope="col">{% translate "ui.accounts.columns.label" %}</th><th scope="col" class="pd-hide-s">{% translate "ui.accounts.columns.due_date" %}</th><th scope="col" class="amount">{% translate "ui.accounts.columns.debit" %}</th><th scope="col" class="amount">{% translate "ui.accounts.columns.credit" %}</th><th scope="col">{% translate "ui.accounts.letter_short" %}</th></tr></thead>
+      <tbody>
+      {% if matching.lines %}{% for line in matching.lines %}<tr>
+        <td><input type="checkbox" name="line" value="{{ line.id }}" id="pd-match-{{ line.id }}"{% if line.checked %} checked{% endif %} class="pd-match-box"></td>
+        <td class="pd-mono"><label for="pd-match-{{ line.id }}">{{ line.date }}</label></td>
+        <td class="pd-mono pd-hide-s">{{ line.ledger }}</td>
+        <td class="pd-mono pd-hide-s"><a class="pd-link" href="{{ line.entry_url }}">{{ line.receipt }}</a></td>
+        <td>{{ line.label }}</td>
+        <td class="pd-mono pd-hide-s{% if line.overdue %} pd-due-late{% endif %}">{{ line.due_date }}{% if line.overdue %}<span class="is-sr-only"> ({% translate "ui.accounts.late" %})</span>{% endif %}</td>
+        <td class="amount">{{ line.debit }}</td>
+        <td class="amount">{{ line.credit }}</td>
+        <td class="pd-let">{{ line.letter }}</td>
+      </tr>{% endfor %}{% else %}<tr><td colspan="9" class="pd-muted pd-empty">{% translate "ui.matching.nothing_open" %}</td></tr>{% endif %}
+      </tbody>
+    </table>
+  </div>
+  <div id="pd-match-check" aria-live="polite" hx-post="{% url 'accounting:matching_check' %}" hx-trigger="change from:#pd-match-form" hx-include="#pd-match-form" hx-swap="innerHTML">{% include "ui/accounting/_matching_check.html" %}</div>
+</form>
+{% if matching.groups %}
+<section class="pd-panel" aria-labelledby="pd-groups-title">
+  <header><h2 id="pd-groups-title">{% translate "ui.matching.existing" %}</h2></header>
+  <div class="pd-scroll"><table class="table is-fullwidth is-narrow pd-table">
+    <caption class="is-sr-only">{% translate "ui.matching.existing" %}</caption>
+    <thead><tr><th scope="col">{% translate "ui.accounts.letter" %}</th><th scope="col">{% translate "ui.matching.members" %}</th><th scope="col" class="amount">{% translate "ui.matching.difference" %}</th><th scope="col"><span class="is-sr-only">{% translate "ui.forms.actions" %}</span></th></tr></thead>
+    <tbody>{% for group in matching.groups %}<tr><td class="pd-let">{{ group.code }}</td><td>{{ group.lines }}</td><td class="amount">{% if group.balanced %}—{% else %}{{ group.difference }}{% endif %}</td><td><form method="post" action="{{ group.unmatch_url }}" class="pd-action-form">{% csrf_input %}<input type="hidden" name="q" value="{{ q }}"><button class="button is-small" type="submit">{% translate "ui.matching.unmatch" code: group.code %}</button></form></td></tr>{% endfor %}</tbody>
+  </table></div>
+</section>
+{% endif %}
+{% elsif not not_found %}
+<p class="pd-muted">{% translate "ui.matching.intro" %}</p>
+{% endif %}
+{% endblock content %}

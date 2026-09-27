@@ -22,6 +22,11 @@ module PartiduoUi
       perform { |client| client.post(path, data: data, content_type: FORM, headers: @headers.merge(headers)) }
     end
 
+    # Corps déjà encodé (champs répétés : `line=1&line=2`).
+    def perform_raw(path : String, body : String, headers = {} of String => String) : Marten::HTTP::Response
+      perform { |client| client.post(path, data: body, content_type: FORM, headers: @headers.merge(headers)) }
+    end
+
     def htmx_post(path : String, data = {} of String => String) : Marten::HTTP::Response
       post(path, data, {"HX-Request" => "true"})
     end

@@ -408,6 +408,10 @@ module PartiduoUi
       end
 
       actions = [] of Screen::Action
+      # Navigation transverse (ADR-005 D9) : consultation du tiers.
+      if !card.item? && module_active?("ACCOUNTING") && can?("accounting.entry.read")
+        actions << link_action("accounting.menu.acc_accounts", "#{reverse("accounting:accounts")}?#{URI::Params.encode({"q" => card.code})}", icon: "book-open")
+      end
       if can?("cards.card.write")
         actions << link_action("ui.forms.edit", reverse("cards:edit", id: card.id), "primary")
         actions << post_action(card.enabled ? "ui.cards.disable" : "ui.cards.enable", reverse("cards:enable", id: card.id))

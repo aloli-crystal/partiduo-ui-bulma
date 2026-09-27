@@ -1,0 +1,1 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Options d'une liste de complétion (<datalist>), remplacées par HTMX à chaque frappe (variable options : PartiduoUi::Form::Option). #}{% for option in options %}<option value="{{ option.value }}">{{ option.label }}</option>{% endfor %}

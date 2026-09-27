@@ -10,3 +10,5 @@ dependencies:
     path: ../../password-policy
   jose:
     path: ../../jose
+  pdf:
+    path: ../../pdf
