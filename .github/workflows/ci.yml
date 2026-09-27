@@ -71,9 +71,18 @@ jobs:
         run: scripts/ci-checkout-deps.sh
       - name: Moteur JavaScript autonome (JavaScriptCore, sans Node) pour les specs Opal
         run: |
-          apt-get update && apt-get install -y --no-install-recommends libjavascriptcoregtk-4.1-bin
-          engine="$(command -v jsc || ls /usr/bin/jsc* 2>/dev/null | head -n 1 || true)"
-          if [ -n "$engine" ]; then echo "PARTIDUO_JS_ENGINE=$engine" >> "$GITHUB_ENV"; fi
+          apt-get update
+          # Le nom du paquet qui fournit jsc varie selon la version d'Ubuntu.
+          for pkg in libjavascriptcoregtk-6.0-bin libjavascriptcoregtk-4.1-bin libjavascriptcoregtk-4.0-bin; do
+            if apt-get install -y --no-install-recommends "$pkg"; then break; fi
+          done
+          engine="$(command -v jsc || find /usr/bin /usr/lib -type f -name 'jsc*' -perm -u+x 2>/dev/null | head -n 1 || true)"
+          if [ -n "$engine" ]; then
+            echo "PARTIDUO_JS_ENGINE=$engine" >> "$GITHUB_ENV"
+          else
+            apt-cache search javascriptcore || true
+            echo "::warning::Aucun moteur jsc trouvé : les specs Opal seront en attente."
+          fi
       - name: Shards
         run: shards install
       - name: Specs

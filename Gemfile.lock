@@ -19,12 +19,5 @@ DEPENDENCIES
   base64 (= 0.3.0)
   opal (= 1.8.2)
 
-CHECKSUMS
-  ast (2.4.3)
-  base64 (0.3.0)
-  opal (1.8.2)
-  parser (3.3.9.0)
-  racc (1.8.1)
-
 BUNDLED WITH
   4.0.17
