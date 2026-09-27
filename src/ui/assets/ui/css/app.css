@@ -245,6 +245,11 @@ a.pd-tile:hover { border-color: var(--pd-focus); }
 .pd-col-amount { width: 9rem; }
 .pd-col-vat { width: 9rem; }
 .pd-col-del { width: 2.75rem; }
+/* Ventilation analytique dans la saisie (lot 5, D-UI-042) : un choix de poste par plan, clé. */
+.pd-col-analytic { min-width: 12rem; }
+.pd-ana { display: flex; flex-direction: column; gap: .15rem; }
+.pd-ana-plans { display: block; font-weight: 400; font-size: .72rem; color: var(--pd-muted); }
+.pd-ana-plans span + span::before { content: " · "; }
 .pd-col-item { min-width: 14rem; }
 .pd-col-qty { width: 5.5rem; }
 .pd-col-unit { width: 5rem; }

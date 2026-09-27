@@ -1,9 +1,10 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Écran d'une édition (lot 3) : critères (formulaire GET, gardés par écran, D-UI-035), avertissements, synthèse, rubriques (tableaux dont chaque compte, tiers et montant agrégé est un lien vers sa consultation), exports CSV et PDF du cœur en actions d'en-tête. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Écran d'une édition (lot 3) : critères (formulaire GET, gardés par écran, D-UI-035), avertissements, synthèse, rubriques (tableaux dont chaque compte, tiers et montant agrégé est un lien vers sa consultation), exports CSV et PDF du cœur en actions d'en-tête ; onglets facultatifs (éditions analytiques). #}{% extend "ui/base.html" %}
 {% block title %}{{ title }}{% endblock title %}
 {% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
 {% block heading %}{{ title }}{% endblock heading %}
 {% block actions %}{% for action in actions %}{% include "ui/_action.html" %}{% endfor %}{% endblock actions %}
 {% block content %}
+{% if tabs %}<nav class="pd-tabs mb-3" aria-label="{{ tabs_label }}">{% for tab in tabs %}<a href="{{ tab.url }}"{% if tab.current %} aria-current="page"{% endif %}>{{ tab.label }}</a>{% endfor %}</nav>{% endif %}
 {% if intro %}<p class="pd-muted mb-3">{{ intro }}</p>{% endif %}
 {% if filters %}<section class="pd-panel pd-report-filters" aria-labelledby="pd-report-filters-title">
   <header><h2 id="pd-report-filters-title">{% translate "ui.reports.criteria" %}</h2></header>

@@ -136,12 +136,51 @@ INVOICING_ROUTES = Marten::Routing::Map.draw do
   path "/templates/<id:int>/delete", PartiduoUi::LayoutDeleteHandler, name: "template_delete"
 end
 
+# Module Analytique (lot 5, menus `analytic:plans`, `keys`,
+# `misc_operations`, `reports`, `settings`) : plans, groupes et postes, clés
+# de répartition, opérations diverses, ventilation d'une écriture,
+# paramètres, éditions (`?format=csv` exporte). Module inactif : 404.
+ANALYTIC_ROUTES = Marten::Routing::Map.draw do
+  path "/plans", PartiduoUi::AnalyticPlansHandler, name: "plans"
+  path "/plans/new", PartiduoUi::AnalyticPlanNewHandler, name: "plan_new"
+  path "/plans/<id:int>", PartiduoUi::AnalyticPlanHandler, name: "plan"
+  path "/plans/<id:int>/edit", PartiduoUi::AnalyticPlanEditHandler, name: "plan_edit"
+  path "/plans/<id:int>/delete", PartiduoUi::AnalyticPlanDeleteHandler, name: "plan_delete"
+  path "/plans/<plan_id:int>/posts/new", PartiduoUi::AnalyticPostNewHandler, name: "post_new"
+  path "/plans/<plan_id:int>/groups/new", PartiduoUi::AnalyticGroupNewHandler, name: "group_new"
+  path "/posts/<id:int>", PartiduoUi::AnalyticPostHandler, name: "post"
+  path "/posts/<id:int>/edit", PartiduoUi::AnalyticPostEditHandler, name: "post_edit"
+  path "/posts/<id:int>/delete", PartiduoUi::AnalyticPostDeleteHandler, name: "post_delete"
+  path "/groups/<id:int>/edit", PartiduoUi::AnalyticGroupEditHandler, name: "group_edit"
+  path "/groups/<id:int>/delete", PartiduoUi::AnalyticGroupDeleteHandler, name: "group_delete"
+  path "/keys", PartiduoUi::AnalyticKeysHandler, name: "keys"
+  path "/keys/new", PartiduoUi::AnalyticKeyNewHandler, name: "key_new"
+  path "/keys/<id:int>", PartiduoUi::AnalyticKeyHandler, name: "key"
+  path "/keys/<id:int>/edit", PartiduoUi::AnalyticKeyEditHandler, name: "key_edit"
+  path "/keys/<id:int>/delete", PartiduoUi::AnalyticKeyDeleteHandler, name: "key_delete"
+  path "/misc", PartiduoUi::AnalyticMiscOperationsHandler, name: "misc_operations"
+  path "/misc/new", PartiduoUi::AnalyticMiscNewHandler, name: "misc_new"
+  path "/misc/<id:int>", PartiduoUi::AnalyticMiscHandler, name: "misc_operation"
+  path "/misc/<id:int>/edit", PartiduoUi::AnalyticMiscEditHandler, name: "misc_edit"
+  path "/misc/<id:int>/delete", PartiduoUi::AnalyticMiscDeleteHandler, name: "misc_delete"
+  path "/entries/<id:int>", PartiduoUi::AnalyticEntryDistributionHandler, name: "entry_distribution"
+  path "/settings", PartiduoUi::AnalyticSettingsHandler, name: "settings"
+  path "/reports", PartiduoUi::AnalyticBalanceHandler, name: "reports"
+  path "/reports/cross", PartiduoUi::AnalyticCrossBalanceHandler, name: "cross_balance"
+  path "/reports/groups", PartiduoUi::AnalyticGroupBalanceHandler, name: "group_balance"
+  path "/reports/history", PartiduoUi::AnalyticHistoryHandler, name: "history"
+  path "/reports/ledger", PartiduoUi::AnalyticLedgerHandler, name: "ledger"
+  path "/reports/table", PartiduoUi::AnalyticTableHandler, name: "table"
+  path "/reports/undistributed", PartiduoUi::AnalyticUndistributedHandler, name: "undistributed"
+end
+
 Marten.routes.draw do
   path "", CORE_ROUTES, name: "core"
   path "/cards", CARDS_ROUTES, name: "cards"
   path "/vat", VAT_ROUTES, name: "vat"
   path "/accounting", ACCOUNTING_ROUTES, name: "accounting"
   path "/invoicing", INVOICING_ROUTES, name: "invoicing"
+  path "/analytic", ANALYTIC_ROUTES, name: "analytic"
 
   # Connexion (ADR-002).
   path "/login", PartiduoUi::LoginHandler, name: "login"

@@ -87,7 +87,39 @@ module PartiduoUi
           line.vat_options = options.map { |option| Form::Option.new(option.value, option.label, option.value == line.vat_rate) }
         end
       end
+      analytic_choices.try { |choices| EntryAnalytic.decorate(form, choices) }
       form
+    end
+
+    @analytic_choices : EntryAnalytic::Choices?
+    @analytic_read = false
+
+    # Ventilation analytique dans la saisie (lot 5, D-UI-042) : module
+    # actif, droit de ventiler, au moins un plan ; pas pour un extrait (une
+    # écriture par ligne, ventilée ensuite depuis sa consultation).
+    def analytic_choices : EntryAnalytic::Choices?
+      return @analytic_choices if @analytic_read
+      @analytic_read = true
+      return if entry_kind == "financial" || !module_active?("ANALYTIC") || !can?("analytic.operation.write")
+      @analytic_choices = EntryAnalytic.choices(current.actor)
+    rescue Partiduo::Api::AccessDenied
+      @analytic_choices = nil
+    end
+
+    @analytic_warning : Bool?
+
+    # Mode analytique obligatoire que cette saisie ne peut pas respecter :
+    # acteur sans droit de ventiler, ou extrait financier (une écriture par
+    # ligne, ventilée ensuite). L'écriture reste permise — la Comptabilité ne
+    # dépend pas de l'Analytique — mais l'écran avertit et mène aux lignes à
+    # ventiler (D-UI-043).
+    def analytic_warning? : Bool
+      cached = @analytic_warning
+      return cached unless cached.nil?
+      @analytic_warning = module_active?("ANALYTIC") && (entry_kind == "financial" || !can?("analytic.operation.write")) &&
+                          Partiduo::Api::Analytic.distribution_required?(current.actor)
+    rescue Partiduo::Api::AccessDenied
+      @analytic_warning = false
     end
 
     def blank_form : EntryForm
@@ -105,6 +137,8 @@ module PartiduoUi
       context["form"] = decorate(form)
       context["kind"] = entry_kind
       context["no_ledger"] = writable_ledgers.empty?
+      context["analytic_warning"] = analytic_warning?
+      context["analytic_warning_link"] = analytic_warning? && can?("analytic.report.read") ? reverse("analytic:undistributed") : nil
       context["check"] = nil
       context["form_action"] = request.path
       page("ui/entries/form.html", status: status)
@@ -240,7 +274,7 @@ module PartiduoUi
       end
       input = entry_input(form)
       return show(form, 422) unless input
-      result = post_entry(input)
+      result = analytic_choices ? post_distributed(input, form) : post_entry(input)
       if result.success?
         flash["success"] = I18n.t("ui.entries.saved", count: result.receipts.size, receipts: result.receipts.join(", "))
         return go("#{request.path}?#{URI::Params.encode({"ledger" => form.ledger_id, "date" => form.date})}")
@@ -253,6 +287,28 @@ module PartiduoUi
       def success? : Bool
         errors.empty?
       end
+    end
+
+    # Écriture et ventilation en une transaction (`Api::Analytic.post_entry`,
+    # `post_purchase`, `post_sale`) ; erreurs de ventilation rangées sous leur
+    # ligne.
+    private def post_distributed(input, form : EntryForm) : Outcome
+      actor = current.actor
+      inputs, owners = EntryAnalytic.distributions(form)
+      result = case input
+               when Acc::EntryInput    then Partiduo::Api::Analytic.post_entry(actor, input, inputs)
+               when Acc::DocumentInput then entry_kind == "sale" ? Partiduo::Api::Analytic.post_sale(actor, input, inputs) : Partiduo::Api::Analytic.post_purchase(actor, input, inputs)
+               else                         return post_entry(input)
+               end
+      errors = result.errors.reject do |error|
+        line = error.field.starts_with?("distributions") ? EntryAnalytic.line_for(error.field, form, owners) : nil
+        line.try(&.add_error(I18n.t("ui.analytic.entry.line_error", message: fmt.message(error))))
+        !line.nil?
+      end
+      if errors.empty? && result.failure?
+        errors = [Partiduo::Api::FieldError.base("ui.analytic.entry.refused")]
+      end
+      Outcome.new(result.value?.try { |entry| [entry.receipt || entry.internal_code] } || [] of String, result.success? ? [] of Partiduo::Api::FieldError : errors)
     end
 
     private def post_entry(input) : Outcome
@@ -367,7 +423,7 @@ module PartiduoUi
       require!("ACCOUNTING", PERMISSION)
       index = query("line_next").to_i? || query("index").to_i? || 0
       form = EntryForm.new(entry_kind, [EntryForm::Line.new(index, entry_kind)])
-      decorate(form) if form.document
+      decorate(form) if form.document || analytic_choices
       render("ui/entries/_new_line.html", {"line" => form.lines.first, "next_index" => index + 1})
     end
   end

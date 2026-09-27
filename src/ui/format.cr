@@ -78,15 +78,24 @@ module PartiduoUi
 
     # Message d'une erreur du contrat, ses paramètres de date (ISO, seul
     # format du contrat) présentés selon la langue et le pays.
+    # Les montants (nombre décimal au point, seul format du contrat) le sont
+    # aussi : `150.00` devient `150,00` en français (D-UI-044).
     def message(error : Partiduo::Api::FieldError) : String
-      return error.message unless error.params.values.any?(&.matches?(ISO_DATE))
+      return error.message unless error.params.values.any? { |value| value.matches?(ISO_DATE) || value.matches?(RAW_DECIMAL) }
       params = error.params.transform_values do |value|
-        value.matches?(ISO_DATE) ? (parse_date(value).try { |day| date(day) } || value) : value
+        if value.matches?(ISO_DATE)
+          parse_date(value).try { |day| date(day) } || value
+        elsif value.matches?(RAW_DECIMAL)
+          amount(BigDecimal.new(value), value.partition('.').last.size)
+        else
+          value
+        end
       end
       error.copy_with(params: params).message
     end
 
-    ISO_DATE = /\A\d{4}-\d{2}-\d{2}\z/
+    ISO_DATE    = /\A\d{4}-\d{2}-\d{2}\z/
+    RAW_DECIMAL = /\A-?\d+\.\d+\z/
 
     # Nom du mois (`septembre 2026`) : période mensuelle.
     def month(value : Time) : String

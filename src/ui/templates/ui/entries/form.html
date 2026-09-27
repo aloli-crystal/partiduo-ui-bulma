@@ -9,6 +9,7 @@
 {% if no_ledger %}
 <div class="notification is-warning is-light" role="status">{% translate "ui.entries.no_ledger" %} <a href="{% url 'accounting:ledgers' %}">{% translate "accounting.menu.acc_ledgers" %}</a></div>
 {% else %}
+{% if analytic_warning %}<div class="notification is-warning is-light" role="status" id="pd-entry-analytic-warning">{% translate "ui.analytic.entry.mandatory_warning" %}{% if analytic_warning_link %} <a href="{{ analytic_warning_link }}">{% translate "ui.analytic.entry.mandatory_link" %}</a>{% endif %}</div>{% endif %}
 <form class="pd-panel pd-entry" id="pd-entry-form" method="post" action="{{ form_action }}" autocomplete="off" novalidate data-pd-entry aria-describedby="pd-entry-keys">
   {% csrf_input %}
   {% include "ui/_errors.html" with messages=form.base_errors, id="pd-entry-base-errors" %}
@@ -48,6 +49,7 @@
         {% if form.document %}<th scope="col" class="amount pd-col-amount">{% translate "ui.entries.amount_excl" %}</th><th scope="col" class="pd-col-vat">{% translate "ui.entries.vat" %}</th>
         {% elsif form.financial %}<th scope="col" class="amount pd-col-amount">{% translate "ui.entries.receipt_in" %}</th><th scope="col" class="amount pd-col-amount">{% translate "ui.entries.payment_out" %}</th>
         {% else %}<th scope="col" class="amount pd-col-amount">{% translate "ui.entries.debit" %}</th><th scope="col" class="amount pd-col-amount">{% translate "ui.entries.credit" %}</th>{% endif %}
+        {% if form.analytic_plans %}<th scope="col" class="pd-col-analytic">{% translate "ui.analytic.entry.column" %}<span class="pd-ana-plans">{% for plan in form.analytic_plans %}<span>{{ plan.name }}</span>{% endfor %}</span></th>{% endif %}
         <th scope="col" class="pd-col-del"><span class="is-sr-only">{% translate "ui.forms.delete" %}</span></th>
       </tr></thead>
       <tbody id="pd-lines">{% for line in form.lines %}{% include "ui/entries/_line.html" %}{% endfor %}</tbody>

@@ -155,9 +155,11 @@ module PartiduoUi
         actions << post_action("ui.entries.cancel", reverse("accounting:entry_cancel", id: entry.id), "ui.entries.cancel_confirm", "danger")
       end
       title = I18n.t("ui.entries.entry_title", receipt: entry.receipt || entry.internal_code)
+      sections = [Screen::Section.new(I18n.t("ui.entries.summary"), items(entry)), Screen::Section.new(I18n.t("ui.entries.lines"), table: lines(entry))]
+      # Ventilation analytique (lot 5), si le module est actif.
+      AnalyticEntrySection.build(self, entry).try { |section| sections << section }
       detail_page(title, [crumb("core.menu.consult"), crumb("accounting.menu.acc_entries", reverse("accounting:entries"))],
-        [Screen::Section.new(I18n.t("ui.entries.summary"), items(entry)), Screen::Section.new(I18n.t("ui.entries.lines"), table: lines(entry))],
-        actions, status_tag: status(entry))
+        sections, actions, status_tag: status(entry))
     end
 
     private def status(entry : Acc::EntryView) : String?

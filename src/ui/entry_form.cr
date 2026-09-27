@@ -36,8 +36,20 @@ module PartiduoUi
       property vat_rate : String
       property vat_options : Array(Form::Option)?
       property errors : Array(String)?
+      # Ventilation analytique de la ligne (lot 5, D-UI-042) : poste choisi
+      # par plan (`line-<n>-ana-p<plan>`), clé de répartition
+      # (`line-<n>-ana_key`) ; `analytic` : choix affichés, `nil` si le
+      # module est inactif.
+      property ana_posts : Hash(Int64, String) = {} of Int64 => String
+      property ana_key : String = ""
+      property analytic : EntryAnalytic::Cell? = nil
 
       def initialize(@index, @kind, @account = "", @label = "", @debit = "", @credit = "", @amount = "", @vat_rate = "")
+      end
+
+      # Ventilation demandée sur la ligne (clé ou poste).
+      def ana_given : Bool
+        !ana_key.empty? || ana_posts.any? { |_, value| !value.empty? }
       end
 
       def blank : Bool
@@ -92,6 +104,8 @@ module PartiduoUi
     # Date comprise (saisie abrégée), affichée à côté du champ.
     property date_hint : String? = nil
     property due_date_hint : String? = nil
+    # Plans analytiques proposés (colonne « Analytique »), `nil` sans module.
+    property analytic_plans : Array(EntryAnalytic::Plan)? = nil
     getter base_errors : Array(String)? = nil
     @field_errors = {} of String => Array(String)
 
@@ -115,8 +129,14 @@ module PartiduoUi
       indices = values.keys.compact_map { |name| name.match(LINE_FIELD).try(&.[1].to_i) }.uniq!.sort!
       indices.each do |index|
         value = ->(name : String) { values["line-#{index}-#{name}"]?.to_s.strip }
-        form.lines << Line.new(index, kind, value.call("account"), value.call("label"), value.call("debit"),
+        line = Line.new(index, kind, value.call("account"), value.call("label"), value.call("debit"),
           value.call("credit"), value.call("amount"), value.call("vat_rate"))
+        line.ana_key = value.call("ana_key")
+        values.each do |name, text|
+          next unless match = name.match(/\Aline-#{index}-ana-p(\d+)\z/)
+          line.ana_posts[match[1].to_i64] = text.strip unless text.strip.empty?
+        end
+        form.lines << line
       end
       form
     end
@@ -169,6 +189,9 @@ module PartiduoUi
         copy = Line.new(position, kind, line.account, line.label, line.debit, line.credit, line.amount, line.vat_rate)
         copy.vat_options = line.vat_options
         copy.errors = line.errors
+        copy.ana_posts = line.ana_posts
+        copy.ana_key = line.ana_key
+        copy.analytic = line.analytic
         copy
       end
       self
