@@ -106,10 +106,18 @@ describe "Nature du client et copie PDF (ADR-004 D9 révisé, interface)" do
       pdf.content_type.should start_with("application/pdf")
       pdf.headers["Content-Disposition"].should contain("-copie.pdf")
 
+      page.should contain(I18n.t("ui.invoicing.pdf_copy_send"))
+      page.should_not contain(I18n.t("ui.invoicing.pdf_copy_resend"))
+
       sent = browser.post("/invoicing/documents/#{invoice.id}/send-pdf-copy")
-      browser.follow(sent).html.should contain("Copie PDF envoyée.")
+      shown = browser.follow(sent).html
+      shown.should contain("Copie PDF envoyée.")
       transport.messages.size.should eq(1)
       transport.messages.first.to.should eq(["compta@morel.test"])
+      # « Copie PDF envoyée le… » et « Renvoyer la copie ».
+      shown.should contain("Copie PDF envoyée le ")
+      shown.should contain("compta@morel.test")
+      shown.should contain(I18n.t("ui.invoicing.pdf_copy_resend"))
     ensure
       Inv.mail_transport = previous
     end

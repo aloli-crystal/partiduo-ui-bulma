@@ -52,8 +52,11 @@
         {% if channel.mark_sent_url %}<form method="post" action="{{ channel.mark_sent_url }}" class="mt-3">{% csrf_input %}<button class="button pd-touch" type="submit">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.invoicing.mark_sent" %}</span></button></form>{% endif %}
         {% if channel.platform_note %}<p class="is-size-7 pd-muted mt-3">{% translate "ui.invoicing.platform_note" %}</p>{% endif %}
         {% if channel.copy_pdf_url %}<div class="pd-copy mt-3"><p class="is-size-7">{% if channel.copy_due %}{% translate "ui.invoicing.pdf_copy_due" %}{% else %}{% translate "ui.invoicing.pdf_copy_not_due" %}{% endif %}</p>
+          {% if channel.copy_deposited %}<p class="is-size-7 pd-muted">{{ channel.copy_deposited }}</p>{% endif %}
+          {% if channel.copy_sent %}<p class="is-size-7 pd-copy-sent" role="status">{{ channel.copy_sent }}</p>{% endif %}
+          {% if channel.copy_failed %}<p class="is-size-7 has-text-danger" role="alert">{{ channel.copy_failed }}</p>{% endif %}
           <div class="buttons mt-2"><a class="button pd-touch" href="{{ channel.copy_pdf_url }}">{% include "ui/_icon.html" with name="download" %}<span>{% translate "ui.invoicing.pdf_copy_download" %}</span></a>
-          {% if channel.copy_send_url %}<form method="post" action="{{ channel.copy_send_url }}">{% csrf_input %}<button class="button pd-touch" type="submit">{% include "ui/_icon.html" with name="send" %}<span>{% translate "ui.invoicing.pdf_copy_send" %}</span></button></form>{% endif %}</div></div>{% endif %}
+          {% if channel.copy_send_url %}<form method="post" action="{{ channel.copy_send_url }}">{% csrf_input %}<button class="button pd-touch" type="submit">{% include "ui/_icon.html" with name="send" %}<span>{% if channel.copy_sent %}{% translate "ui.invoicing.pdf_copy_resend" %}{% else %}{% translate "ui.invoicing.pdf_copy_send" %}{% endif %}</span></button></form>{% endif %}</div></div>{% endif %}
         <p class="is-size-7 pd-muted mt-3">{% translate "ui.invoicing.channel_note" %}</p>
       </div>
     </aside>{% endif %}

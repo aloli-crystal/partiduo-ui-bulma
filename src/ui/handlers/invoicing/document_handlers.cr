@@ -676,12 +676,28 @@ module PartiduoUi
         end
       end
       actions << link_action("ui.invoicing.preview", reverse("invoicing:document_preview", id: document.id), icon: "file-text")
-      actions << link_action("ui.invoicing.download_pdf", reverse("invoicing:document_pdf", id: document.id), icon: "download")
+      if original_is_electronic?(document)
+        # Facture remise par la plateforme : l'original est la facture
+        # électronique ; le PDF proposé par défaut est la copie, l'original
+        # PDF/A-3 (XML Factur-X embarqué) reste téléchargeable comme archive,
+        # à ne pas transmettre (jamais de second original, D-CPY-010).
+        actions << link_action("ui.invoicing.pdf_copy_download", reverse("invoicing:document_pdf_copy", id: document.id), icon: "download")
+        actions << link_action("ui.invoicing.download_original_archived", reverse("invoicing:document_pdf", id: document.id), icon: "lock")
+      else
+        actions << link_action("ui.invoicing.download_pdf", reverse("invoicing:document_pdf", id: document.id), icon: "download")
+      end
       if !document.draft? && can?("invoicing.invoice.send")
         actions << link_action("ui.invoicing.send", reverse("invoicing:document_send", id: document.id), icon: "file-text")
       end
       actions.concat(follow_up_actions(document))
       actions
+    end
+
+    # Document fiscal émis au canal plateforme et déjà déposé : son original
+    # est la facture électronique.
+    private def original_is_electronic?(document : Inv::DocumentView) : Bool
+      return false if document.draft? || !document.fiscal? || document.issue_channel != "platform"
+      !Inv.pdf_copy_status(current.actor, document.id).deposited_at.nil?
     end
 
     # Règlement (Comptabilité inactive) et relance d'une facture non soldée.
@@ -764,6 +780,9 @@ module PartiduoUi
     getter copy_pdf_url : String?
     getter copy_send_url : String?
     getter copy_due : Bool
+    getter copy_sent : String?
+    getter copy_failed : String?
+    getter copy_deposited : String?
 
     def initialize(view : Partiduo::Api::Invoicing::DocumentView, fmt : Format, handler : InvoicingScreen)
       @label = I18n.t(view.channel_key)
@@ -782,7 +801,36 @@ module PartiduoUi
       platform = !view.draft? && view.issue_channel == "platform"
       @copy_pdf_url = platform ? handler.reverse("invoicing:document_pdf_copy", id: view.id) : nil
       @copy_send_url = platform && handler.can?("invoicing.invoice.send") ? handler.reverse("invoicing:document_send_pdf_copy", id: view.id) : nil
-      @copy_due = platform && Partiduo::Api::Invoicing.pdf_copy_due?(handler.current.actor, view.id)
+      @copy_due = false
+      @copy_sent = nil
+      @copy_failed = nil
+      @copy_deposited = nil
+      return unless platform
+      status = Partiduo::Api::Invoicing.pdf_copy_status(handler.current.actor, view.id)
+      @copy_due = status.due
+      # « Copie PDF envoyée le… » : dernier envoi, destinataires ; dernier
+      # échec s'il est postérieur ; dépôt sur la plateforme.
+      @copy_deposited = status.deposited_at.try { |time| I18n.t("ui.invoicing.pdf_copy_deposited", date: fmt.datetime(time)) }
+      @copy_sent = status.sent_at.try do |time|
+        I18n.t("ui.invoicing.pdf_copy_sent_on", date: fmt.datetime(time), to: status.sent_to.join(", "))
+      end
+      @copy_failed = status.failed_at.try do |time|
+        I18n.t("ui.invoicing.pdf_copy_failed_on", date: fmt.datetime(time), error: copy_error(status.error, status.error_detail))
+      end
+    end
+
+    # Motif de l'échec : clés de traduction du contrat (`invoicing.errors.…`,
+    # séparées par des virgules), traduites avec le détail technique en
+    # paramètre (`%{error}`, `%{detail}`) ; une partie qui n'a pas la forme
+    # d'une clé (trace antérieure : message du serveur) reste telle quelle.
+    # DECISIONS D-CPY-006, D-CPY-007.
+    def self.copy_error(error : String, detail : String = "") : String
+      params = {"error" => detail, "detail" => detail}
+      error.split(", ").map { |part| part.matches?(/\A[a-z_]+(\.[a-z0-9_]+)+\z/) ? I18n.t(part, params) : part }.join(" ")
+    end
+
+    private def copy_error(error : String, detail : String) : String
+      self.class.copy_error(error, detail)
     end
   end
 
@@ -829,22 +877,19 @@ module PartiduoUi
   end
 
   # Saisie express d'un particulier depuis la facture (ADR-004 D9) : fiche
-  # de client de nature « particulier », créée par le contrat du socle ; le
+  # de client de nature « particulier », créée par la commande du contrat
+  # `Cards.create_individual_customer` ; le
   # champ « Client » reçoit son quick code (HTMX, hors cible).
   class ExpressCustomerHandler < InvoicingScreen
     def post
       require!(MODULE, WRITE)
       require!("CARDS", "cards.card.write")
       cards = Partiduo::Api::Cards
-      category = cards.category_by_code(current.actor, "CUSTOMER") || cards.categories(current.actor, "customer").first?
-      unless category
-        return render("ui/invoicing/_express_result.html", {"errors" => [I18n.t("ui.invoicing.express.no_category")]})
-      end
       address = Partiduo::Api::Cards::AddressInput.new(line1: field("express_line1"), postcode: field("express_postcode"),
         city: field("express_city"))
-      input = Partiduo::Api::Cards::CardInput.new(category_id: category.id, name: field("express_name"),
-        email: field("express_email"), address: address, customer_nature: "individual")
-      result = cards.create_card(current.actor, input)
+      input = Partiduo::Api::Cards::IndividualCustomerInput.new(name: field("express_name"), address: address,
+        email: field("express_email"))
+      result = cards.create_individual_customer(current.actor, input)
       if card = result.value?
         render("ui/invoicing/_express_result.html", {
           "created" => I18n.t("ui.invoicing.express.created", name: card.name, code: card.code), "code" => card.code,
