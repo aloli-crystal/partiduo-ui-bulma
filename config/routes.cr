@@ -184,6 +184,9 @@ INVOICING_ROUTES = Marten::Routing::Map.draw do
   # Canal d'émission et envoi hors courriel (ADR-004 D9).
   path "/documents/<id:int>/channel", PartiduoUi::DocumentChannelHandler, name: "document_channel"
   path "/documents/<id:int>/mark-sent", PartiduoUi::DocumentMarkSentHandler, name: "document_mark_sent"
+  path "/documents/<id:int>/pdf-copy", PartiduoUi::DocumentPdfCopyHandler, name: "document_pdf_copy"
+  path "/express-customer", PartiduoUi::ExpressCustomerHandler, name: "express_customer"
+  path "/documents/<id:int>/send-pdf-copy", PartiduoUi::DocumentSendPdfCopyHandler, name: "document_send_pdf_copy"
   path "/payments", PartiduoUi::PaymentsHandler, name: "payments"
   path "/reminders", PartiduoUi::RemindersHandler, name: "reminders"
   path "/reminders/propose", PartiduoUi::RemindersProposeHandler, name: "reminders_propose"

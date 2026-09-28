@@ -247,6 +247,7 @@ module PartiduoUi
       context["check_url"] = reverse("invoicing:document_check")
       context["document_id"] = document.try(&.id.to_s) || ""
       context["totals"] = nil
+      context["express_url"] = can?("cards.card.write") ? reverse("invoicing:express_customer") : nil
       page("ui/invoicing/edit.html", status: status)
     end
   end
@@ -315,9 +316,11 @@ module PartiduoUi
     getter seller_lines : Array(String)
     getter seller_ids : String
     getter issue_date : String
-    getter due_date : String
-    getter delivery_date : String
-    getter validity_date : String
+    # Dates facultatives : `nil` si absentes (une chaîne vide est vraie dans
+    # un gabarit Marten).
+    getter due_date : String?
+    getter delivery_date : String?
+    getter validity_date : String?
     getter rows : Array(Row)
     getter amounts : Array(Amount)
     getter vat_rows : Array(Amount)?
@@ -328,6 +331,26 @@ module PartiduoUi
     getter amount_due : String
     getter structured_reference : String
     getter notes : String
+
+    # Texte d'une mention, paramètres présentés dans la langue de l'écran :
+    # dates ISO, montants et taux décimaux canoniques du cœur (comme le PDF,
+    # `Invoicing::Output.mention_text`).
+    def self.mention_text(mention : Partiduo::Api::Invoicing::MentionView, fmt : Format) : String
+      params = mention.params.to_h do |key, value|
+        formatted = if key == "date" && value.matches?(/\A\d{4}-\d{2}-\d{2}\z/)
+                      fmt.date(Time.parse_utc(value, "%Y-%m-%d"))
+                    elsif key.in?("amount", "capital")
+                      BigDecimal.new(value) rescue nil
+                    elsif key == "rate"
+                      (BigDecimal.new(value) rescue nil).try { |rate| fmt.number(rate) }
+                    elsif key == "currency" && value == "EUR"
+                      "€"
+                    end
+        formatted = fmt.amount(formatted) if formatted.is_a?(BigDecimal)
+        {key, formatted.is_a?(String) ? formatted : value}
+      end
+      I18n.t(mention.key, params)
+    end
 
     def initialize(view : Partiduo::Api::Invoicing::DocumentView, fmt : Format, handler : InvoicingScreen)
       @id = view.id
@@ -346,9 +369,9 @@ module PartiduoUi
       @seller_lines = view.seller.address_lines
       @seller_ids = [view.seller.siren, view.seller.vat_number].reject(&.empty?).join(" · ")
       @issue_date = fmt.date(view.issue_date)
-      @due_date = fmt.date(view.due_date)
-      @delivery_date = fmt.date(view.delivery_date)
-      @validity_date = fmt.date(view.validity_date)
+      @due_date = view.due_date.try { |day| fmt.date(day) }
+      @delivery_date = view.delivery_date.try { |day| fmt.date(day) }
+      @validity_date = view.validity_date.try { |day| fmt.date(day) }
       @notes = view.notes
       @structured_reference = view.structured_reference
       @rows = view.lines.map { |line| row(line, fmt) }
@@ -359,7 +382,7 @@ module PartiduoUi
         Amount.new(label, fmt.amount(group.vat))
       end
       @vat_rows = vat.empty? ? nil : vat
-      mentions = view.mentions.map(&.message)
+      mentions = view.mentions.map { |mention| DocumentDisplay.mention_text(mention, fmt) }
       @mentions = mentions.empty? ? nil : mentions
       @origin = view.origin_mention.try(&.message)
       links = ([view.source] + view.derived + [view.credited] + view.credit_notes).compact.map do |link|
@@ -738,6 +761,9 @@ module PartiduoUi
     getter mark_sent_url : String?
     getter options : Array(Form::Option)
     getter platform_note : Bool
+    getter copy_pdf_url : String?
+    getter copy_send_url : String?
+    getter copy_due : Bool
 
     def initialize(view : Partiduo::Api::Invoicing::DocumentView, fmt : Format, handler : InvoicingScreen)
       @label = I18n.t(view.channel_key)
@@ -751,6 +777,12 @@ module PartiduoUi
       # Plateforme choisie : la transmission revient à une extension ; sans
       # elle, le document reste à remettre et à marquer envoyé.
       @platform_note = view.issue_channel == "platform" && view.sent_at.nil?
+      # Copie PDF doublant la plateforme (ADR-004 D9) : téléchargement et
+      # envoi (ou renvoi) par courriel d'un document émis au canal plateforme.
+      platform = !view.draft? && view.issue_channel == "platform"
+      @copy_pdf_url = platform ? handler.reverse("invoicing:document_pdf_copy", id: view.id) : nil
+      @copy_send_url = platform && handler.can?("invoicing.invoice.send") ? handler.reverse("invoicing:document_send_pdf_copy", id: view.id) : nil
+      @copy_due = platform && Partiduo::Api::Invoicing.pdf_copy_due?(handler.current.actor, view.id)
     end
   end
 
@@ -772,6 +804,54 @@ module PartiduoUi
       document = Inv.document(current.actor, id_param)
       flash_result(Inv.mark_sent(current.actor, document.id), "ui.invoicing.marked_sent")
       go(document_url(document))
+    end
+  end
+
+  # Copie PDF d'une facture transmise par la plateforme (ADR-004 D9) :
+  # bandeau « Copie », sans XML Factur-X.
+  class DocumentPdfCopyHandler < InvoicingScreen
+    def get
+      file = Inv.document_pdf_copy(current.actor, id_param)
+      response = Marten::HTTP::Response.new(content: String.new(file.content), content_type: file.content_type)
+      response["Content-Disposition"] = %(attachment; filename="#{file.filename}")
+      response
+    end
+  end
+
+  # Envoi (ou renvoi) de la copie PDF par courriel, tracé.
+  class DocumentSendPdfCopyHandler < InvoicingScreen
+    def post
+      require!(MODULE, "invoicing.invoice.send")
+      document = Inv.document(current.actor, id_param)
+      flash_result(Inv.send_pdf_copy(current.actor, document.id), "ui.invoicing.pdf_copy_sent")
+      go(document_url(document))
+    end
+  end
+
+  # Saisie express d'un particulier depuis la facture (ADR-004 D9) : fiche
+  # de client de nature « particulier », créée par le contrat du socle ; le
+  # champ « Client » reçoit son quick code (HTMX, hors cible).
+  class ExpressCustomerHandler < InvoicingScreen
+    def post
+      require!(MODULE, WRITE)
+      require!("CARDS", "cards.card.write")
+      cards = Partiduo::Api::Cards
+      category = cards.category_by_code(current.actor, "CUSTOMER") || cards.categories(current.actor, "customer").first?
+      unless category
+        return render("ui/invoicing/_express_result.html", {"errors" => [I18n.t("ui.invoicing.express.no_category")]})
+      end
+      address = Partiduo::Api::Cards::AddressInput.new(line1: field("express_line1"), postcode: field("express_postcode"),
+        city: field("express_city"))
+      input = Partiduo::Api::Cards::CardInput.new(category_id: category.id, name: field("express_name"),
+        email: field("express_email"), address: address, customer_nature: "individual")
+      result = cards.create_card(current.actor, input)
+      if card = result.value?
+        render("ui/invoicing/_express_result.html", {
+          "created" => I18n.t("ui.invoicing.express.created", name: card.name, code: card.code), "code" => card.code,
+        })
+      else
+        render("ui/invoicing/_express_result.html", {"errors" => result.errors.map { |error| I18n.t(error.key, error.params) }})
+      end
     end
   end
 

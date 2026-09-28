@@ -83,6 +83,13 @@ module PartiduoUi
           Form::Field.new("vat_account", label("vat_account"), value: input.vat_account, mono: true, maxlength: 20),
           Form::Field.new("bank_account", label("bank_account"), value: input.bank_account, mono: true, maxlength: 20),
         ]),
+        # Copie PDF doublant l'envoi par la plateforme agréée (ADR-004 D9).
+        Form::Group.new(I18n.t("ui.invoicing.settings.groups.pdf_copy"), [
+          Form::Field.new("pdf_copy_enabled", label("pdf_copy_enabled"), "checkbox", input.pdf_copy_enabled ? "1" : "",
+            help: I18n.t("ui.invoicing.settings.pdf_copy_help")),
+          Form::Field.new("pdf_copy_from", label("pdf_copy_from"), "date", date_key(input.pdf_copy_from)),
+          Form::Field.new("pdf_copy_until", label("pdf_copy_until"), "date", date_key(input.pdf_copy_until)),
+        ]),
       ])
     end
 
@@ -96,6 +103,8 @@ module PartiduoUi
       level = integer("penalty_from_level", errors)
       penalty = decimal("late_penalty_rate", errors)
       discount = decimal("early_discount_rate", errors)
+      copy_from = field("pdf_copy_from").empty? ? nil : date("pdf_copy_from", errors)
+      copy_until = field("pdf_copy_until").empty? ? nil : date("pdf_copy_until", errors)
       return unless errors.empty? && terms && validity && level && reminders.all?
       Inv::SettingsInput.new(
         payment_terms_days: terms, quote_validity_days: validity, late_penalty_rate: penalty,
@@ -107,6 +116,7 @@ module PartiduoUi
         reminder_body: field("reminder_body", strip: false).strip, sales_journal_code: field("sales_journal_code"),
         bank_journal_code: field("bank_journal_code"), customer_account: field("customer_account"),
         sales_account: field("sales_account"), vat_account: field("vat_account"), bank_account: field("bank_account"),
+        pdf_copy_enabled: checkbox("pdf_copy_enabled"), pdf_copy_from: copy_from, pdf_copy_until: copy_until,
       )
     end
 

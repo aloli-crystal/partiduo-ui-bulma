@@ -16,8 +16,19 @@
   <div class="pd-body">
     <div class="pd-inv-grid">
       <div class="field span2"><label class="label" for="pd-d-customer">{% translate "ui.invoicing.customer" %}<span class="pd-required" aria-hidden="true"> *</span></label>
-        <input class="input" id="pd-d-customer" name="customer" value="{{ form.customer }}" list="pd-dl-customers" autocomplete="off" spellcheck="false" placeholder="{% translate 'ui.invoicing.customer_placeholder' %}" required{% if form.customer_errors %} aria-invalid="true" aria-describedby="pd-d-customer-errors"{% endif %} hx-get="{% url 'cards:complete' %}?kind=customer" hx-trigger="input changed delay:150ms" hx-target="#pd-dl-customers" hx-sync="this:replace">
-        {% include "ui/_errors.html" with messages=form.customer_errors, id="pd-d-customer-errors" %}</div>
+        {% include "ui/invoicing/_customer_input.html" with customer_value=form.customer, customer_invalid=form.customer_errors %}
+        {% include "ui/_errors.html" with messages=form.customer_errors, id="pd-d-customer-errors" %}
+        {% if express_url %}<details class="pd-express mt-2" id="pd-express"><summary class="is-size-7">{% translate "ui.invoicing.express.summary" %}</summary>
+          <div class="pd-express-grid mt-2">
+            <div class="field"><label class="label is-small" for="pd-x-name">{% translate "ui.cards.name" %}</label><input class="input" id="pd-x-name" name="express_name" autocomplete="off"></div>
+            <div class="field"><label class="label is-small" for="pd-x-email">{% translate "ui.cards.email" %}</label><input class="input" type="email" id="pd-x-email" name="express_email" autocomplete="off"></div>
+            <div class="field"><label class="label is-small" for="pd-x-line1">{% translate "ui.cards.line1" %}</label><input class="input" id="pd-x-line1" name="express_line1" autocomplete="off"></div>
+            <div class="field"><label class="label is-small" for="pd-x-postcode">{% translate "ui.cards.postcode" %}</label><input class="input pd-mono" id="pd-x-postcode" name="express_postcode" autocomplete="off"></div>
+            <div class="field"><label class="label is-small" for="pd-x-city">{% translate "ui.cards.city" %}</label><input class="input" id="pd-x-city" name="express_city" autocomplete="off"></div>
+          </div>
+          <button class="button pd-touch mt-2" type="button" hx-post="{{ express_url }}" hx-include="#pd-express" hx-params="express_name,express_email,express_line1,express_postcode,express_city" hx-target="#pd-express-result" hx-swap="innerHTML">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "ui.invoicing.express.create" %}</span></button>
+          <p class="is-size-7 pd-muted mt-1">{% translate "ui.invoicing.express.help" %}</p>
+          <div id="pd-express-result" aria-live="polite"></div></details>{% endif %}</div>
       <div class="field"><label class="label" for="pd-d-issue">{% translate "ui.invoicing.issue_date" %}</label><input class="input pd-mono" id="pd-d-issue" name="issue_date" value="{{ form.issue_date }}" inputmode="numeric" aria-describedby="pd-d-date-help">
         {% include "ui/_errors.html" with messages=form.issue_date_errors, id="pd-d-issue-errors" %}</div>
       <div class="field"><label class="label" for="pd-d-delivery">{% translate "ui.invoicing.delivery_date" %}</label><input class="input pd-mono" id="pd-d-delivery" name="delivery_date" value="{{ form.delivery_date }}" inputmode="numeric">

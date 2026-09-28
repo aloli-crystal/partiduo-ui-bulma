@@ -309,6 +309,10 @@ img.pd-attachment-preview { min-height: 0; height: auto; object-fit: contain; }
 .pd-inv-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem 1rem; }
 .pd-inv-grid .field { margin: 0; }
 .pd-inv-grid .span2 { grid-column: span 2; }
+/* Saisie express d'un particulier depuis la facture (ADR-004 D9). */
+.pd-express summary { cursor: pointer; color: var(--pd-muted); }
+.pd-express-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr)); gap: .5rem .75rem; }
+.pd-express-grid .field { margin: 0; }
 .pd-totals { display: grid; grid-template-columns: 1fr auto; gap: .3rem 1.5rem; font-size: .9rem; max-width: 24rem; margin-inline-start: auto; margin-block-start: .75rem; }
 .pd-totals dt { color: var(--pd-muted); }
 .pd-totals dd { margin: 0; text-align: end; font-family: var(--bulma-family-code); font-variant-numeric: tabular-nums; }

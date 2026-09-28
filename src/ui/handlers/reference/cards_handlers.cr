@@ -77,6 +77,7 @@ module PartiduoUi
         groups << item_group(input)
       else
         groups.concat(party_groups(input))
+        groups << customer_group(input) if category.kind == "customer"
       end
       unless category.attributes.empty?
         groups << Form::Group.new(I18n.t("ui.cards.attributes"), category.attributes.map { |attribute| extra_field(attribute, input.extra[attribute.key]?) })
@@ -117,6 +118,20 @@ module PartiduoUi
         Form::Group.new(I18n.t("ui.cards.address"), address_fields("address", address)),
         Form::Group.new(I18n.t("ui.cards.delivery_address"), address_fields("delivery", delivery)),
       ]
+    end
+
+    # Nature du client et copie PDF (ADR-004 D9) : la nature se *choisit* ;
+    # la proposition du cœur (SIREN, numéro de TVA) n'est qu'un rappel.
+    private def customer_group(input) : Form::Group
+      natures = [option("", I18n.t("ui.cards.nature_unset"))] +
+                Partiduo::Api::Cards::CUSTOMER_NATURES.map { |nature| option(nature, I18n.t("cards.natures.#{nature}")) }
+      proposed = Partiduo::Api::Cards.propose_nature(input.siren || "", input.vat_number || "")
+      Form::Group.new(I18n.t("ui.cards.customer_group"), [
+        Form::Field.new("customer_nature", I18n.t("ui.cards.nature"), "select", input.customer_nature || "",
+          options: natures, help: I18n.t("ui.cards.nature_help", {"nature" => I18n.t("cards.natures.#{proposed}")})),
+        Form::Field.new("pdf_copy", I18n.t("ui.cards.pdf_copy"), "checkbox", input.pdf_copy == false ? "" : "1",
+          help: I18n.t("ui.cards.pdf_copy_help")),
+      ])
     end
 
     private def address_fields(prefix : String, address : Partiduo::Api::Cards::AddressInput) : Array(Form::Field)
@@ -166,6 +181,8 @@ module PartiduoUi
         vat_number: field("vat_number"), siren: field("siren"), siret: field("siret"), routing_id: field("routing_id"),
         iban: field("iban"), bic: field("bic"), email: field("email"), phone: field("phone"),
         contact_name: field("contact_name"), address: address_input("address"), delivery_addresses: deliveries, extra: extra,
+        customer_nature: category.kind == "customer" ? field("customer_nature") : nil,
+        pdf_copy: category.kind == "customer" ? checkbox("pdf_copy") : nil,
       )
     end
 
@@ -467,6 +484,12 @@ module PartiduoUi
         Screen::Item.new(I18n.t("ui.cards.address"), address_text(card.address)),
       ]
       card.delivery_addresses.each { |address| contact << Screen::Item.new(I18n.t("ui.cards.delivery_address"), address_text(address)) }
+      if card.kind == "customer"
+        nature = card.customer_nature_key.try { |key| I18n.t(key) } ||
+                 I18n.t("ui.cards.nature_unset_proposed", {"nature" => I18n.t("cards.natures.#{card.proposed_nature}")})
+        contact << Screen::Item.new(I18n.t("ui.cards.nature"), nature)
+        contact << Screen::Item.new(I18n.t("ui.cards.pdf_copy"), yes_no(card.pdf_copy))
+      end
       [
         Screen::Section.new(I18n.t("ui.cards.contact_group"), contact),
         Screen::Section.new(I18n.t("ui.cards.ids_group"), [

@@ -124,6 +124,7 @@ module PartiduoUi
       @tiles << Tile.new("ACCOUNTING", I18n.t("ui.dashboard.tiles.payables"), @fmt.amount(-payables.remaining),
         sub: payables.overdue.zero? ? nil : I18n.t("ui.dashboard.tiles.payables_late", amount: @fmt.amount(-payables.overdue)),
         url: payables.worst_card_code.try { |code| accounts_url(code) })
+      vat_tile
       unless overdue_customers.zero?
         @todos << Todo.new(I18n.t("ui.dashboard.todo.overdue_customers", amount: @fmt.amount(overdue_customers)),
           receivables.worst_card_name.try { |name| I18n.t("ui.dashboard.todo.overdue_customers_detail", name: name) },
@@ -144,6 +145,25 @@ module PartiduoUi
       return if count.zero?
       @todos << Todo.new(I18n.t("ui.dashboard.todo.invoicing_history", count: count), nil,
         reverse("accounting:invoicing_history"), "warn")
+    end
+
+    # TVA due du mois (maquette « TVA due · septembre ») : déclaration
+    # périodique du régime (CA3, grille belge) calculée depuis les écritures,
+    # sans l'enregistrer ; case 28 (TVA nette due) ou grille 71.
+    private def vat_tile : Nil
+      return unless @actor.can?(Acc::VAT_PERMISSION)
+      form = Acc.vat_forms(@actor).find(&.form.in?("fr_ca3", "be_periodic"))
+      return unless form
+      from = Time.utc(@today.year, @today.month, 1)
+      input = Acc::VatReturnInput.new(form: form.form, year: @today.year, periodicity: "month", number: @today.month,
+        date_from: from, date_to: from.shift(months: 1) - 1.day)
+      view = Acc.preview_vat_return(@actor, input).value?
+      return unless view
+      due = view.amount(form.regime == "be" ? "71" : "28")
+      @tiles << Tile.new("ACCOUNTING", I18n.t("ui.dashboard.tiles.vat_due", month: @fmt.month(@today)), @fmt.amount(due),
+        sub: I18n.t("ui.dashboard.tiles.vat_due_sub", form: I18n.t(view.name_key)), url: reverse("accounting:vat_return"))
+    rescue Partiduo::Api::AccessDenied | Partiduo::Api::NotFound
+      nil
     end
 
     private def bank_tile : Nil
