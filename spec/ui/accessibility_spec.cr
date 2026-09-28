@@ -162,6 +162,26 @@ describe "Mise en page adaptée à trois tailles d'écran (ADR-005 D5)" do
     css.should contain("prefers-reduced-motion: reduce")
   end
 
+  it "montre la bordure des champs des lignes de saisie, contrastée à 3:1 au moins (WCAG 1.4.11)" do
+    css.should contain(".pd-inv-lines select { width: 100%; min-height: 36px; border: 1px solid var(--pd-field-border);")
+    theme = File.read(PartiduoUi::SpecSupport.path("src", "ui", "assets", "ui", "css", "theme.css"))
+    token = ->(name : String) { theme.scan(/--pd-#{name}: #([0-9a-f]{6});/).map(&.[1]) }
+    luminance = ->(hex : String) do
+      rgb = {0, 2, 4}.map do |i|
+        c = hex[i, 2].to_i(16) / 255.0
+        c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+      end
+      0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
+    end
+    borders = token.call("field-border")
+    surfaces = token.call("surface")
+    borders.size.should eq(3)
+    borders.zip(surfaces).each do |border, surface|
+      a, b = luminance.call(border), luminance.call(surface)
+      ((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).should be >= 3.0
+    end
+  end
+
   it "n'utilise que des propriétés logiques pour les marges et bordures latérales (ADR-005 D7)" do
     css.should_not match(/(margin|padding|border)-(left|right)\s*:/)
     css.should_not match(/text-align:\s*(left|right)/)
