@@ -6,6 +6,10 @@
   --bulma-primary-h: 192deg;
   --bulma-primary-s: 76%;
   --bulma-primary-l: 25%;
+  /* Texte des boutons `is-primary` : blanc sur le bleu pétrole foncé (Bulma
+     le calcule d'après sa couleur par défaut, claire : texte presque noir,
+     contraste 2:1 — WCAG 1.4.3). */
+  --bulma-primary-invert-l: 100%;
   --bulma-link-h: 192deg;
   --bulma-link-s: 70%;
   --bulma-link-l: 32%;
@@ -54,6 +58,7 @@
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --bulma-primary-l: 52%;
+    --bulma-primary-invert-l: 6%;
     --bulma-link-l: 62%;
     --bulma-success-l: 48%;
     --bulma-danger-l: 62%;
@@ -81,6 +86,7 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
   --bulma-primary-l: 52%;
+  --bulma-primary-invert-l: 6%;
   --bulma-link-l: 62%;
   --bulma-success-l: 48%;
   --bulma-danger-l: 62%;

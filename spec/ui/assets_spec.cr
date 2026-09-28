@@ -37,9 +37,18 @@ describe "Fichiers statiques servis par Marten" do
     theme = File.read(PartiduoUi::SpecSupport.path("src", "ui", "assets", "ui", "css", "theme.css"))
     theme.should contain(%(--bulma-family-primary: "IBM Plex Sans"))
     theme.should contain(%(--bulma-family-code: "IBM Plex Mono"))
+    # Texte blanc sur les boutons `is-primary` au thème clair (contraste
+    # WCAG 1.4.3), foncé au thème sombre.
+    theme.should contain("--bulma-primary-invert-l: 100%;")
+    theme.scan("--bulma-primary-invert-l: 6%;").size.should eq(2)
     fonts = File.read(PartiduoUi::SpecSupport.path("src", "ui", "assets", "ui", "css", "fonts.css"))
     fonts.scan(/url\("\.\.\/fonts\/([^"]+)"\)/).each do |match|
       File.exists?(PartiduoUi::SpecSupport.path("src", "ui", "assets", "ui", "fonts", match[1])).should be_true
     end
+  end
+
+  it "fait défiler les tableaux larges dans leur cadre, jamais la page (.pd-scroll de la maquette)" do
+    app = File.read(PartiduoUi::SpecSupport.path("src", "ui", "assets", "ui", "css", "app.css"))
+    app.should match(/\.pd-scroll \{[^}]*overflow-x: auto/)
   end
 end

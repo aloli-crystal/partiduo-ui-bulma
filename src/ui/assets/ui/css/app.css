@@ -90,6 +90,9 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
 .amount, .pd-mono { font-family: var(--bulma-family-code); font-variant-numeric: tabular-nums; }
 .amount { text-align: end; white-space: nowrap; }
 .pd-muted { color: var(--pd-muted); }
+/* Tableau plus large que l'écran : il défile dans son cadre, jamais la page
+   (maquette, largeur téléphone). */
+.pd-scroll { overflow-x: auto; max-width: 100%; }
 .pd-message { margin-block-end: 1rem; }
 .pd-callout, .pd-alert { display: flex; gap: .75rem; align-items: flex-start; }
 .pd-callout .pd-icon, .pd-alert .pd-icon { margin-block-start: .15em; }

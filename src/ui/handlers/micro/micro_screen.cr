@@ -69,7 +69,8 @@ module PartiduoUi
               Time.utc(today.year, 1, 1)
       pending = (Partiduo::Api::Micro.declarations(actor, today.year - 1, today) + Partiduo::Api::Micro.declarations(actor, today.year, today))
         .reject { |item| item.status == "declared" || item.ends_on < start }
-      pending.find(&.status.==("late")) || pending.find(&.status.==("due")) || pending.find(&.status.==("open"))
+      pending.find(&.status.==("late")) || pending.find(&.status.==("due")) || pending.find(&.status.==("open")) ||
+        pending.find(&.status.==("upcoming"))
     end
 
     # Libellé d'un paramètre daté (`rate.social.bnc`, `threshold.vat.goods`,
