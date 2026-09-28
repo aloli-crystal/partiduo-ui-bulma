@@ -158,6 +158,8 @@ ACCOUNTING_ROUTES = Marten::Routing::Map.draw do
   path "/vat/settings", PartiduoUi::VatSettingsHandler, name: "vat_settings"
   # Comptes des registres de la micro-entreprise (ADR-007 D2).
   path "/micro-accounts", PartiduoUi::MicroAccountsHandler, name: "micro_accounts"
+  # Comptes de la profession libérale (ADR-007 D6).
+  path "/liberal-accounts", PartiduoUi::LiberalAccountsHandler, name: "liberal_accounts"
   path "/vat/rules/<regime:str>/<box:str>", PartiduoUi::VatRulesHandler, name: "vat_rules"
   path "/vat/reset-rules/<regime:str>", PartiduoUi::VatRulesResetHandler, name: "vat_rules_reset"
 end
@@ -319,6 +321,38 @@ MICRO_ROUTES = Marten::Routing::Map.draw do
   path "/invoices/new", PartiduoUi::MicroInvoiceNewHandler, name: "invoice_new"
 end
 
+# Module de la profession libérale (ADR-007 D6 ; menus `liberal:journal`,
+# `assets`, `tax_return`, `settings`) : livre-journal (tout, recettes,
+# dépenses ; saisie en quelques champs, annulation par contre-passation,
+# éditions `?format=csv|pdf`), immobilisations (acquisition, annulation,
+# cession, plan d'amortissement), 2035 préparée (réintégrations et
+# déductions, édition de contrôle `?format=pdf`), paramètres (natures, table
+# de correspondance, valeurs par défaut, republication). Module inactif : 404.
+LIBERAL_ROUTES = Marten::Routing::Map.draw do
+  path "/journal", PartiduoUi::LiberalJournalHandler, name: "journal"
+  path "/receipts", PartiduoUi::LiberalReceiptsHandler, name: "receipts"
+  path "/receipts/new", PartiduoUi::LiberalReceiptNewHandler, name: "receipt_new"
+  path "/expenses", PartiduoUi::LiberalExpensesHandler, name: "expenses"
+  path "/expenses/new", PartiduoUi::LiberalExpenseNewHandler, name: "expense_new"
+  path "/lines/<id:int>", PartiduoUi::LiberalLineHandler, name: "line"
+  path "/lines/<id:int>/reverse", PartiduoUi::LiberalLineReverseHandler, name: "line_reverse"
+  path "/assets", PartiduoUi::LiberalAssetsHandler, name: "assets"
+  path "/assets/new", PartiduoUi::LiberalAssetNewHandler, name: "asset_new"
+  path "/assets/<id:int>", PartiduoUi::LiberalAssetHandler, name: "asset"
+  path "/assets/<id:int>/reverse", PartiduoUi::LiberalAssetReverseHandler, name: "asset_reverse"
+  path "/assets/<id:int>/dispose", PartiduoUi::LiberalAssetDisposeHandler, name: "asset_dispose"
+  path "/tax-return", PartiduoUi::LiberalTaxReturnHandler, name: "tax_return"
+  path "/tax-return/adjustments", PartiduoUi::LiberalAdjustmentNewHandler, name: "adjustment_new"
+  path "/adjustments/<id:int>/delete", PartiduoUi::LiberalAdjustmentDeleteHandler, name: "adjustment_delete"
+  path "/settings", PartiduoUi::LiberalSettingsHandler, name: "settings"
+  path "/natures", PartiduoUi::LiberalNaturesHandler, name: "natures"
+  path "/natures/<id:int>", PartiduoUi::LiberalNatureHandler, name: "nature"
+  path "/form-lines", PartiduoUi::LiberalFormLinesHandler, name: "form_lines"
+  path "/form-lines/<id:int>/delete", PartiduoUi::LiberalFormLineDeleteHandler, name: "form_line_delete"
+  path "/defaults", PartiduoUi::LiberalDefaultsHandler, name: "defaults"
+  path "/republish", PartiduoUi::LiberalRepublishHandler, name: "republish"
+end
+
 Marten.routes.draw do
   path "", CORE_ROUTES, name: "core"
   path "/cards", CARDS_ROUTES, name: "cards"
@@ -329,6 +363,7 @@ Marten.routes.draw do
   path "/stock", STOCK_ROUTES, name: "stock"
   path "/followup", FOLLOWUP_ROUTES, name: "followup"
   path "/micro", MICRO_ROUTES, name: "micro"
+  path "/liberal", LIBERAL_ROUTES, name: "liberal"
   # Mode simplifié ou complet, au choix du comptable (ADR-007 D3).
   path "/mode", PartiduoUi::MicroModeHandler, name: "micro_mode"
 

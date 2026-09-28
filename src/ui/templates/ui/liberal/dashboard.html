@@ -1,0 +1,59 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Tableau de bord du mode simplifié de la profession libérale (ADR-007 D3, D6) : boutons de saisie en tête (téléphone d'abord), recettes et dépenses professionnelles de l'année, encaissé du mois, résultat estimé, factures à encaisser, dépenses par rubrique, dernières lignes, « À traiter ». Même charte que la maquette et que le tableau de bord de la micro-entreprise. #}{% extend "ui/base.html" %}
+{% block title %}{% translate "ui.liberal.menu.dashboard" %}{% endblock title %}
+{% block heading %}{% translate "ui.liberal.menu.dashboard" %}{% endblock heading %}
+{% block actions %}{% if board.new_receipt_url %}<a class="button is-primary pd-touch" href="{{ board.new_receipt_url }}">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "ui.liberal.receipt.new" %}</span></a><a class="button pd-touch" href="{{ board.new_expense_url }}">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "ui.liberal.expense.new" %}</span></a>{% endif %}{% if board.new_invoice_url %}<a class="button pd-touch" href="{{ board.new_invoice_url }}">{% include "ui/_icon.html" with name="file-text" %}<span>{% translate "ui.liberal.dashboard.new_invoice" %}</span></a>{% endif %}{% endblock actions %}
+{% block content %}
+{% if suggest_passkey %}
+<div class="notification is-info is-light pd-callout" role="status">
+  {% include "ui/_icon.html" with name="key-round" %}
+  <div><p>{% translate "ui.dashboard.passkey_hint" %}</p><p><a href="{% url 'account_security' %}">{% translate "ui.security.title" %}</a></p></div>
+</div>
+{% endif %}
+{% if board.listed_tiles %}
+<div class="pd-tiles">
+  {% for tile in board.listed_tiles %}{% if tile.url %}<a class="pd-panel pd-tile" href="{{ tile.url }}" data-module="{{ tile.module_code }}">{% else %}<div class="pd-panel pd-tile" data-module="{{ tile.module_code }}">{% endif %}
+    <span class="lbl">{{ tile.label }}</span>
+    <span class="val">{{ tile.value }}</span>
+    {% if tile.alert %}<span class="sub"><span class="tag is-danger is-light">{{ tile.alert }}</span></span>{% endif %}
+    {% if tile.sub %}<span class="sub">{{ tile.sub }}</span>{% endif %}
+  {% if tile.url %}</a>{% else %}</div>{% endif %}{% endfor %}
+</div>
+{% endif %}
+<div class="pd-grid2">
+  <div>
+    <section class="pd-panel" aria-labelledby="pd-headings-title">
+      <header><h2 id="pd-headings-title">{% translate "ui.liberal.dashboard.by_heading" year: board.year %}</h2><a class="is-size-7" href="{% url 'liberal:expenses' %}">{% translate "ui.dashboard.see_all" %}</a></header>
+      <div class="pd-body">
+      {% if board.listed_headings %}
+        <ul class="pd-gauges">{% for heading in board.listed_headings %}<li>
+          <div class="pd-gauge-head"><span>{{ heading.label }}</span><span class="pd-mono">{{ heading.amount }}</span></div>
+          <div class="pd-gauge" aria-hidden="true"><span class="pd-gauge-bar pd-gauge-neutral" style="width: {{ heading.width }}%"></span></div>
+        </li>{% endfor %}</ul>
+      {% else %}
+        <p class="pd-muted">{% translate "ui.liberal.expense.empty" %}</p>
+      {% endif %}
+      </div>
+    </section>
+    <section class="pd-panel" aria-labelledby="pd-recent-lines">
+      <header><h2 id="pd-recent-lines">{% translate "ui.liberal.dashboard.recent_lines" %}</h2><a class="is-size-7" href="{% url 'liberal:journal' %}">{% translate "ui.dashboard.see_all" %}</a></header>
+      {% if board.lines %}
+      <div class="pd-scroll"><table class="table is-fullwidth is-hoverable is-narrow">
+        <caption class="is-sr-only">{% translate "ui.liberal.dashboard.recent_lines" %}</caption>
+        <thead><tr><th scope="col">{% translate "ui.liberal.columns.date" %}</th><th scope="col">{% translate "ui.liberal.columns.party" %}</th><th scope="col" class="amount">{% translate "ui.liberal.columns.amount" %}</th></tr></thead>
+        <tbody>{% for row in board.lines %}<tr><td class="pd-mono"><a class="pd-link" href="{{ row.url }}">{{ row.c0 }}</a></td><td>{{ row.c1 }}</td><td class="amount">{{ row.c2 }}</td></tr>{% endfor %}</tbody>
+      </table></div>
+      {% else %}
+      <div class="pd-body"><p class="pd-muted">{% translate "ui.liberal.journal.empty" %}</p></div>
+      {% endif %}
+    </section>
+  </div>
+  <section class="pd-panel" aria-labelledby="pd-todo-title">
+    <header><h2 id="pd-todo-title">{% translate "ui.dashboard.todo_title" %}</h2></header>
+    {% if board.listed_todos %}
+    <ul class="pd-todo">{% for todo in board.listed_todos %}<li>{% if todo.url %}<a href="{{ todo.url }}">{% else %}<span class="pd-todo-item">{% endif %}<span class="pd-dot pd-dot-{{ todo.tone }}" aria-hidden="true"></span><span><span>{{ todo.text }}</span>{% if todo.detail %}<small>{{ todo.detail }}</small>{% endif %}</span>{% if todo.url %}</a>{% else %}</span>{% endif %}</li>{% endfor %}</ul>
+    {% else %}
+    <div class="pd-body"><p>{% include "ui/_icon.html" with name="shield-check" %} {% translate "ui.dashboard.nothing_todo" %}</p></div>
+    {% endif %}
+  </section>
+</div>
+{% endblock content %}

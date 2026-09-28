@@ -1,0 +1,34 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Saisie d'une recette, d'une dépense ou d'une immobilisation de la profession libérale (mode simplifié, ADR-007 D3, D6) : quelques champs sur une colonne, pensée d'abord pour le téléphone (montant en premier, clavier décimal, photo du justificatif par l'appareil photo), le reste sous « Plus de détails ». Variables : form (erreurs d'ensemble), main, more, attachment_kept, form_action, cancel_url, again. #}{% extend "ui/base.html" %}
+{% block title %}{{ title }}{% endblock title %}
+{% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
+{% block heading %}{{ title }}{% endblock heading %}
+{% block content %}
+<section class="pd-panel pd-quick" aria-label="{{ title }}"><div class="pd-body">
+<form method="post" action="{{ form_action }}" class="pd-form" enctype="multipart/form-data" novalidate>
+  {% csrf_input %}
+  {% if form.base_errors %}<div class="notification is-danger is-light pd-alert" role="alert" id="pd-form-errors">{% include "ui/_icon.html" with name="triangle-alert" %}<div>{% for message in form.base_errors %}<p>{{ message }}</p>{% endfor %}</div></div>{% endif %}
+  <fieldset class="pd-fieldset">
+    <div class="pd-quick-grid">{% for field in main %}{% include "ui/_field.html" %}{% endfor %}
+      <div class="field">
+        <label class="label" for="pd-f-attachment-file">{% translate "ui.liberal.fields.photo" %}</label>
+        {% if attachment_kept %}<p class="help" id="pd-f-attachment-kept">{% include "ui/_icon.html" with name="paperclip" %} {% translate "ui.liberal.fields.photo_kept" %}</p>{% endif %}
+        <div class="control"><input class="input" type="file" id="pd-f-attachment-file" name="attachment_file" accept="image/*,application/pdf" capture="environment" aria-describedby="pd-f-attachment-help"></div>
+        <p class="help" id="pd-f-attachment-help">{% translate "ui.liberal.fields.photo_help" %}</p>
+      </div>
+    </div>
+  </fieldset>
+  <details class="pd-more"{% if more_open %} open{% endif %}>
+    <summary>{% translate "ui.liberal.fields.more" %}</summary>
+    <fieldset class="pd-fieldset">
+      <legend class="is-sr-only">{% translate "ui.liberal.fields.more" %}</legend>
+      <div class="pd-quick-grid">{% for field in more %}{% include "ui/_field.html" %}{% endfor %}</div>
+    </fieldset>
+  </details>
+  <div class="pd-form-actions pd-quick-actions">
+    <button class="button is-primary pd-touch" type="submit">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.liberal.save" %}</span></button>
+    {% if again %}<button class="button pd-touch" type="submit" name="again" value="1">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "ui.liberal.save_again" %}</span></button>{% endif %}
+    <a href="{{ cancel_url }}">{% translate "ui.forms.cancel" %}</a>
+  </div>
+</form>
+</div></section>
+{% endblock content %}

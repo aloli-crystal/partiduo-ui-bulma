@@ -9,10 +9,15 @@ module PartiduoUi
       actor = current.actor
       active = Partiduo::Api::Modules.list(actor).select(&.active).map(&.code).to_set
       overview = Partiduo::Api::Auth.security_overview(actor)
-      # Mode simplifié de la micro-entreprise (ADR-007 D3) : tableau de bord
-      # centré sur le chiffre d'affaires, les seuils et l'échéance URSSAF.
-      simple = SimpleMode.enabled?(request)
-      board = simple ? MicroDashboard.new(actor, fmt, active).build : Dashboard.new(actor, fmt, active).build
+      # Mode simplifié (ADR-007 D3, D6) : tableau de bord de la
+      # micro-entreprise (chiffre d'affaires, seuils, échéance URSSAF) ou de
+      # la profession libérale (recettes, dépenses, résultat, 2035).
+      simple = SimpleMode.mode(request)
+      board = case simple
+              when "MICRO"   then MicroDashboard.new(actor, fmt, active).build
+              when "LIBERAL" then LiberalDashboard.new(actor, fmt, active).build
+              else                Dashboard.new(actor, fmt, active).build
+              end
       # Compteurs des extensions (justificatifs à traiter…), en tête de « À traiter ».
       counts = Extensions.counts(actor)
       Extensions.counters.each do |counter|
@@ -26,7 +31,12 @@ module PartiduoUi
       modules = Partiduo::Api::Modules.list(actor).select { |item| item.active && item.kind != "socle" }.map do |item|
         {"code" => item.code, "name_key" => item.name_key, "extension" => item.kind == "extension"}
       end
-      page(simple ? "ui/micro/dashboard.html" : "ui/dashboard.html", {
+      template = case simple
+                 when "MICRO"   then "ui/micro/dashboard.html"
+                 when "LIBERAL" then "ui/liberal/dashboard.html"
+                 else                "ui/dashboard.html"
+                 end
+      page(template, {
         "board"           => board,
         "modules"         => listed(modules),
         "suggest_passkey" => overview.suggest_passkey,

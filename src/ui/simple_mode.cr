@@ -1,12 +1,13 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 module PartiduoUi
-  # Mode simplifié de la micro-entreprise (ADR-007 D3, DECISIONS D-UI-061) :
-  # quand le module `MICRO` est actif et que l'utilisateur peut lire ses
-  # registres, l'interface présente un menu réduit (Tableau de bord,
-  # Recettes, Achats, Factures, URSSAF, Justificatifs), un tableau de bord
-  # centré sur le chiffre d'affaires, les seuils et la prochaine échéance, et
-  # un vocabulaire courant (« encaissé », « dépensé »).
+  # Mode simplifié (ADR-007 D3, DECISIONS D-UI-061, D-UI-069) : quand le
+  # module `MICRO` (micro-entreprise) ou `LIBERAL` (profession libérale,
+  # ADR-007 D6) est actif et que l'utilisateur peut lire ses registres,
+  # l'interface présente un menu réduit, un tableau de bord centré sur
+  # l'essentiel de l'activité et un vocabulaire courant (« encaissé »,
+  # « dépensé »). Les deux modules actifs à la fois : la micro-entreprise
+  # l'emporte (ordre de `FLAVORS`).
   #
   # Le mode complet reste accessible au comptable (rôle `accountant`,
   # ADR-002 D4) : il y est par défaut et peut passer d'un mode à l'autre
@@ -19,36 +20,77 @@ module PartiduoUi
     READ   = "micro.register.read"
     ROLE   = "accountant"
 
-    # Entrées du menu réduit, dans l'ordre d'ADR-007 D3 : code de menu d'un
-    # manifeste (celles des modules inactifs ou non permis sont absentes du
-    # menu de l'utilisateur, donc omises), libellé du mode simplifié.
-    MENU = {
-      "DASHBOARD"       => "ui.micro.menu.dashboard",
-      "MICRO_RECEIPTS"  => "ui.micro.menu.receipts",
-      "MICRO_PURCHASES" => "ui.micro.menu.purchases",
-      "INV_DOCUMENTS"   => "ui.micro.menu.invoices",
-      "MICRO_URSSAF"    => "ui.micro.menu.urssaf",
-      "DOCUMENT_INBOX"  => "ui.micro.menu.documents",
-    }
+    # Entrée du menu réduit : code de menu d'un manifeste (présent dans le
+    # menu de l'utilisateur, donc module actif et permission accordée),
+    # libellé du mode simplifié, route servie par l'interface à la place de
+    # celle du manifeste (`nil` : celle du manifeste).
+    record Entry, code : String, label_key : String, route : String? = nil
 
-    # Le mode simplifié s'offre-t-il à cet acteur (module actif, lecture des
-    # registres) ?
-    def self.available?(actor : Partiduo::Api::Actor) : Bool
-      return false unless actor.authenticated? && actor.can?(READ)
-      Partiduo::Api::Modules.list(actor).any? { |item| item.code == MODULE && item.active }
+    # Menu réduit de la micro-entreprise, dans l'ordre d'ADR-007 D3.
+    MENU = [
+      Entry.new("DASHBOARD", "ui.micro.menu.dashboard"),
+      Entry.new("MICRO_RECEIPTS", "ui.micro.menu.receipts"),
+      Entry.new("MICRO_PURCHASES", "ui.micro.menu.purchases"),
+      Entry.new("INV_DOCUMENTS", "ui.micro.menu.invoices"),
+      Entry.new("MICRO_URSSAF", "ui.micro.menu.urssaf"),
+      Entry.new("DOCUMENT_INBOX", "ui.micro.menu.documents"),
+    ]
+
+    # Menu réduit de la profession libérale (ADR-007 D6) : le livre-journal
+    # unique du manifeste se présente en deux entrées, recettes et dépenses.
+    LIBERAL_MENU = [
+      Entry.new("DASHBOARD", "ui.liberal.menu.dashboard"),
+      Entry.new("LIBERAL_JOURNAL", "ui.liberal.menu.receipts", "liberal:receipts"),
+      Entry.new("LIBERAL_JOURNAL", "ui.liberal.menu.expenses", "liberal:expenses"),
+      Entry.new("LIBERAL_ASSETS", "ui.liberal.menu.assets"),
+      Entry.new("INV_DOCUMENTS", "ui.liberal.menu.invoices"),
+      Entry.new("LIBERAL_TAX_RETURN", "ui.liberal.menu.tax_return"),
+      Entry.new("DOCUMENT_INBOX", "ui.liberal.menu.documents"),
+    ]
+
+    # Modules qui offrent le mode simplifié : permission de lecture des
+    # registres, menu réduit, route des paramètres, permission des
+    # paramètres, libellé des paramètres.
+    record Flavor, module_code : String, read : String, menu : Array(Entry), settings_route : String,
+      settings_permission : String, settings_label : String
+
+    FLAVORS = [
+      Flavor.new("MICRO", READ, MENU, "micro:settings", "micro.settings.write", "ui.micro.settings.title"),
+      Flavor.new("LIBERAL", "liberal.register.read", LIBERAL_MENU, "liberal:settings", "liberal.settings.write",
+        "ui.liberal.settings.title"),
+    ]
+
+    # Module du mode simplifié offert à cet acteur (module actif, lecture
+    # des registres), `nil` s'il n'y en a pas.
+    def self.flavor(actor : Partiduo::Api::Actor) : Flavor?
+      return unless actor.authenticated?
+      active = Partiduo::Api::Modules.list(actor).select(&.active).map(&.code).to_set
+      FLAVORS.find { |item| active.includes?(item.module_code) && actor.can?(item.read) }
     rescue Partiduo::Api::AccessDenied
-      false
+      nil
+    end
+
+    # Le mode simplifié s'offre-t-il à cet acteur ?
+    def self.available?(actor : Partiduo::Api::Actor) : Bool
+      !flavor(actor).nil?
+    end
+
+    # Module du mode simplifié de la requête (`MICRO`, `LIBERAL`), `nil` en
+    # mode complet.
+    def self.mode(request : Marten::HTTP::Request) : String?
+      cached = request.partiduo_simple_mode
+      return cached.presence unless cached.nil?
+      current = Current.for(request)
+      chosen = current.authenticated? ? flavor(current.actor) : nil
+      value = chosen && choose(current.session.try(&.role), request.cookies[COOKIE]?) ? chosen.module_code : ""
+      request.partiduo_simple_mode = value
+      value.presence
     end
 
     # Mode de la requête : simplifié pour un utilisateur de la société ;
     # pour un comptable, seulement s'il l'a choisi.
     def self.enabled?(request : Marten::HTTP::Request) : Bool
-      cached = request.partiduo_simple
-      return cached unless cached.nil?
-      current = Current.for(request)
-      value = current.authenticated? && available?(current.actor) && choose(current.session.try(&.role), request.cookies[COOKIE]?)
-      request.partiduo_simple = value
-      value
+      !mode(request).nil?
     end
 
     # Règle du choix, à part pour les specs : `role` de la session, valeur
@@ -65,16 +107,28 @@ module PartiduoUi
       enabled?(request) ? "full" : "simple"
     end
 
-    # Menu réduit : entrées du menu de l'utilisateur retenues par `MENU`,
-    # dans son ordre, sans rubrique.
+    # Paramètres du module du mode simplifié (menu de l'utilisateur) : URL
+    # et libellé, si l'acteur peut les modifier.
+    def self.settings_link(module_code : String, actor : Partiduo::Api::Actor) : {String, String}?
+      item = FLAVORS.find(&.module_code.==(module_code)) || return
+      return unless actor.can?(item.settings_permission)
+      url = Shell.resolve(item.settings_route) || return
+      {url, item.settings_label}
+    end
+
+    # Menu réduit : entrées du menu de l'utilisateur retenues par le menu
+    # du module (`MENU`, `LIBERAL_MENU`), dans son ordre, sans rubrique.
     def self.sections(menu : Array(Partiduo::Api::Modules::MenuView), path : String,
-                      counts : Hash(String, Int64) = {} of String => Int64) : Array(Shell::Section)
+                      counts : Hash(String, Int64) = {} of String => Int64,
+                      module_code : String = MODULE) : Array(Shell::Section)
       entries = flatten(menu).to_h { |entry| {entry.code, entry} }
-      items = MENU.compact_map do |code, label_key|
-        entry = entries[code]? || next
-        url = Shell.resolve(entry.route)
+      reduced = FLAVORS.find(&.module_code.==(module_code)).try(&.menu) || MENU
+      items = reduced.compact_map do |wanted|
+        entry = entries[wanted.code]? || next
+        url = Shell.resolve(wanted.route || entry.route)
         next if url.nil?
-        Shell::Item.new(code, label_key, url, Shell.active?(url, path), nil, counts[code]?)
+        Shell::Item.new(wanted.code, wanted.label_key, url,
+          Shell.active?(url, path), nil, counts[wanted.code]?)
       end
       [Shell::Section.new("SIMPLE", nil, items)]
     end

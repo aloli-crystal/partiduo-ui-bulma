@@ -96,6 +96,36 @@ describe "Accessibilité (WCAG 2.2 AA)" do
     refused.html.should contain(%(aria-invalid="true"))
   end
 
+  it "respecte les règles automatisables sur les écrans de la profession libérale (ADR-007 D6)" do
+    browser = PartiduoUi::Books.admin
+    system = PartiduoUi::Books.system
+    Partiduo::Api::Modules.activate(system, "LIBERAL").success?.should be_true
+    Partiduo::Api::Liberal.load_defaults(system)
+    nature = Partiduo::Api::Liberal.natures(system, "expense").first
+    line = Partiduo::Api::Liberal.record_expense(system, Partiduo::Api::Liberal::LineInput.new(
+      date: PartiduoUi::Books.date("2026-03-10"), nature_id: nature.id, amount: PartiduoUi::Books.d("50"), method: "cash")).value!
+    asset = Partiduo::Api::Liberal.record_asset(system, Partiduo::Api::Liberal::AssetInput.new(label: "Ordinateur", category: "office",
+      acquired_on: PartiduoUi::Books.date("2026-03-10"), amount: PartiduoUi::Books.d("1200"), duration_years: 3, method: "card")).value!
+    Partiduo::Api::Liberal.add_adjustment(system, Partiduo::Api::Liberal::AdjustmentInput.new(2026, "deduction", "Exonération",
+      PartiduoUi::Books.d("10"))).value!
+    ["/", "/liberal/journal", "/liberal/receipts", "/liberal/receipts/new", "/liberal/expenses", "/liberal/expenses/new",
+     "/liberal/lines/#{line.id}", "/liberal/assets", "/liberal/assets/new", "/liberal/assets/#{asset.id}",
+     "/liberal/assets/#{asset.id}/dispose", "/liberal/tax-return", "/liberal/settings", "/liberal/natures",
+     "/liberal/natures/#{nature.id}", "/liberal/form-lines"].each do |path|
+      response = browser.get(path)
+      response.status.should eq(200), "#{path} : #{response.status}"
+      check_accessibility(response.html, path)
+      response.html.should_not contain("missing translation")
+    end
+    refused = browser.post("/liberal/expenses/new", {"amount" => "x", "date" => "2026-03-10", "nature_id" => nature.id.to_s, "method" => "cash"})
+    refused.status.should eq(422)
+    check_accessibility(refused.html, "/liberal/expenses/new (refus)")
+    refused.html.should contain(%(aria-invalid="true"))
+    adjustment = browser.post("/liberal/tax-return/adjustments?year=2026", {"kind" => "deduction", "label" => "", "amount" => "x"})
+    adjustment.status.should eq(422)
+    check_accessibility(adjustment.html, "/liberal/tax-return (refus)")
+  end
+
   it "respecte les règles automatisables sur l'enrôlement" do
     created = PartiduoUi::Accounts.create(email: "bob@example.com", password: nil)
     browser = PartiduoUi::Browser.new

@@ -234,6 +234,30 @@ en mode complet et passe d'un mode à l'autre par le menu de l'utilisateur
 
 Décisions D-UI-061 à D-UI-067 (DECISIONS du cœur).
 
+== Profession libérale : livre-journal, immobilisations, 2035 (ADR-007 D6)
+
+Quand le module `LIBERAL` est actif (et `MICRO` inactif), le mode simplifié
+présente le menu Tableau de bord, Recettes, Dépenses, Immobilisations,
+Factures, 2035, Justificatifs, et un tableau de bord centré sur les
+recettes, les dépenses par rubrique et le résultat estimé. Code :
+`src/ui/liberal_dashboard.cr`, `src/ui/handlers/liberal/`, gabarits
+`templates/ui/liberal/`, uniquement par `Partiduo::Api::Liberal`.
+
+[cols="2,5",options="header"]
+|===
+|Adresse |Écran
+
+|`/liberal/journal`, `/liberal/receipts`, `/liberal/expenses` |Livre-journal de l'année (tout, recettes, dépenses) : totaux, ventilation par rubrique, éditions CSV et PDF du contrat
+|`/liberal/receipts/new`, `/liberal/expenses/new` |Saisie en quelques champs pensée pour le téléphone : montant, date, rubrique (nature), règlement, nom, photo ; part privée d'une dépense
+|`/liberal/lines/<id>`, `…/reverse` |Consultation, annulation par contre-passation datée du jour
+|`/liberal/assets`, `…/new`, `…/<id>`, `…/<id>/reverse`, `…/<id>/dispose` |Registre des immobilisations : acquisition, plan d'amortissement, annulation l'année d'acquisition, cession
+|`/liberal/tax-return` |2035 préparée : état du dépôt, identification, 2035-A, 2035-B, immobilisations, plus-values, réintégrations et déductions, contrôles, empreinte et montants par case, édition de contrôle PDF
+|`/liberal/settings`, `/liberal/natures`, `/liberal/form-lines` |Profession, début d'activité, nature des factures encaissées ; natures ; lignes et cases par millésime ; valeurs par défaut, republication
+|`/accounting/liberal-accounts` |Comptes de la profession libérale (Comptabilité active)
+|===
+
+Décisions D-UI-069 à D-UI-073 (DECISIONS du cœur).
+
 == Authentification (ADR-002)
 
 [cols="2,3",options="header"]

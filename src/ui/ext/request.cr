@@ -6,7 +6,7 @@ class Marten::HTTP::Request
 end
 
 class Marten::HTTP::Request
-  # Mode simplifié de la micro-entreprise, calculé une seule fois par
-  # `PartiduoUi::SimpleMode.enabled?`.
-  property partiduo_simple : Bool? = nil
+  # Module du mode simplifié (`MICRO`, `LIBERAL`, chaîne vide en mode
+  # complet), calculé une seule fois par `PartiduoUi::SimpleMode.mode`.
+  property partiduo_simple_mode : String? = nil
 end

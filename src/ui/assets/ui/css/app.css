@@ -413,6 +413,10 @@ img.pd-attachment-preview { min-height: 0; height: auto; object-fit: contain; }
 .pd-gauge-bar { display: block; height: 100%; background: var(--pd-ok); }
 .pd-gauge-warn { background: var(--pd-warn); }
 .pd-gauge-gap { background: var(--pd-gap); }
+.pd-gauge-neutral { background: var(--bulma-primary); }
+.pd-break { overflow-wrap: anywhere; }
+.pd-tax-ready { border-inline-start: 4px solid var(--pd-ok); }
+.pd-tax-blocked { border-inline-start: 4px solid var(--pd-gap); }
 
 @media (max-width: 767.98px) {
   .pd-quick-grid, .pd-quick-line-grid { grid-template-columns: minmax(0, 1fr); }

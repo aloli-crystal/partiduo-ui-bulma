@@ -60,7 +60,7 @@
           <summary><span class="pd-avatar" aria-hidden="true">{{ shell.user_initials }}</span><span class="pd-user-name">{{ shell.user_name|default:shell.user_email }} · {% translate shell.user_role_key %}</span><span class="is-sr-only">{% translate "ui.shell.user_menu" %}</span></summary>
           <ul class="pd-user-menu">
             <li><a href="{% url 'account_security' %}">{% include "ui/_icon.html" with name="shield-check" %}<span>{% translate "ui.security.title" %}</span></a></li>
-            {% if shell.settings_url %}<li><a href="{{ shell.settings_url }}">{% include "ui/_icon.html" with name="settings" %}<span>{% translate "ui.micro.settings.title" %}</span></a></li>{% endif %}
+            {% if shell.settings_url %}<li><a href="{{ shell.settings_url }}">{% include "ui/_icon.html" with name="settings" %}<span>{% translate shell.settings_label %}</span></a></li>{% endif %}
             {% if shell.mode_target %}<li><form method="post" action="{% url 'micro_mode' %}">{% csrf_input %}<input type="hidden" name="mode" value="{{ shell.mode_target }}"><button type="submit">{% include "ui/_icon.html" with name="layout-dashboard" %}<span>{% if shell.mode_target == "simple" %}{% translate "ui.micro.mode.to_simple" %}{% else %}{% translate "ui.micro.mode.to_full" %}{% endif %}</span></button></form></li>{% endif %}
             <li><a href="{% url 'about' %}">{% include "ui/_icon.html" with name="circle-help" %}<span>{% translate "ui.about.title" %}</span></a></li>
             <li><form method="post" action="{% url 'logout' %}">{% csrf_input %}<button type="submit">{% include "ui/_icon.html" with name="log-out" %}<span>{% translate "ui.login.logout" %}</span></button></form></li>
