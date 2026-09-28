@@ -4,7 +4,7 @@ en:
     shell:
       menu: "Menu"
       navigation: "Main navigation"
-      tagline: "a port of NOALYSS"
+      tagline: "free accounting"
       skip: "Skip to content"
       period_group: "Current financial year and period"
       fiscal_year: "Financial year"
@@ -21,7 +21,7 @@ en:
       period_closed: "%{period} (closed)"
     home:
       welcome_title: "Welcome"
-      welcome: "Partiduo, accounting and invoicing, a free port of NOALYSS."
+      welcome: "Partiduo, accounting and invoicing, free software."
       api_version: "Partiduo::Api contract, version %{version}"
       opal_title: "Opal demonstration"
       opal_help: "This counter is written in Ruby, compiled to JavaScript by Opal and served by Marten."

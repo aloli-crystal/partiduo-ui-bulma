@@ -2,7 +2,7 @@
 
 module PartiduoUi
   # Ventilation analytique dans la saisie d'une écriture (lot 5, DECISIONS
-  # D-UI-042), successeur des colonnes « hplan » de NOALYSS
+  # D-UI-042), successeur des colonnes « hplan » de l'application d'origine
   # (`Anc_Operation::display_form_plan`) : sur chaque ligne, un poste par
   # plan et une clé de répartition facultative. Un poste par plan impute tout
   # le montant de la ligne ; une clé le répartit (`Api::Analytic.apply_key`).

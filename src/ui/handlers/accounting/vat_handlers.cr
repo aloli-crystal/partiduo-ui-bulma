@@ -7,7 +7,7 @@ module PartiduoUi
   # liquidation), contrôle (apport de chaque règle, écritures modifiées
   # depuis le calcul), historique, exports (XML Intervat, CSV, PDF) et
   # paramètres (mandataire, règles de calcul des cases). Successeur des
-  # écrans de l'extension TVA de noalyss-plugins (`sa=dec`, `li`, `lc`,
+  # écrans de l'extension TVA d'origine (`sa=dec`, `li`, `lc`,
   # `ltva`, `param`). Tout vient de `Partiduo::Api::Accounting` : l'interface
   # ne calcule aucune case (D-UI-039).
   abstract class VatScreenBase < AccountingScreen

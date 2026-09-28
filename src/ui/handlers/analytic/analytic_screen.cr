@@ -8,7 +8,7 @@ module PartiduoUi
   #
   # Lignes de répartition (clés, opérations diverses, ventilations) :
   # champs `<préfixe>-<n>-<champ>` et un choix de poste par plan
-  # (`<préfixe>-<n>-p<plan>`), comme les colonnes `hplan` de NOALYSS
+  # (`<préfixe>-<n>-p<plan>`), comme les colonnes `hplan` d'origine
   # (`Anc_Operation::display_form_plan`), rendus par le formulaire générique
   # (un groupe par ligne, DECISIONS D-UI-041).
   abstract class AnalyticScreen < ReferenceHandler

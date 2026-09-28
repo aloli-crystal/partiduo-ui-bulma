@@ -27,6 +27,17 @@ describe "Conventions du dépôt" do
     written.reject { |path| File.read_lines(path).first.includes?(SPDX) }.should eq([] of String)
   end
 
+  it "ne mentionne le logiciel d'origine que dans *.adoc et *.md" do
+    # Motif coupé en deux : ce fichier ne doit pas se trouver lui-même.
+    pattern = "noa" + "lyss"
+    output = IO::Memory.new
+    status = Process.run("git", ["grep", "-il", pattern, "--", ".", ":!*.adoc", ":!*.md"],
+      chdir: PartiduoUi::SpecSupport::ROOT, output: output, error: Process::Redirect::Close)
+    # git grep rend 1 quand rien n'est trouvé, 0 sinon, 128 hors dépôt git.
+    status.exit_code.should_not eq(0)
+    output.to_s.lines.should eq([] of String)
+  end
+
   it "fournit les mêmes libellés d'écran en fr, en et nl (ADR-005 D7)" do
     dir = PartiduoUi::SpecSupport.path("src", "ui", "locales")
     keys = Partiduo::LOCALES.to_h do |locale|

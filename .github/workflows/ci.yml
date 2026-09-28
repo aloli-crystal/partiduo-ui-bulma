@@ -1,8 +1,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 #
 # CI de partiduo-ui-bulma : format, Ameba, garde-fou d'interface (ADR-005 D3 :
-# seul Partiduo::Api est cité), fraîcheur des paquets Opal et de la planche
-# d'icônes, specs sur PostgreSQL.
+# seul Partiduo::Api est cité), aucune mention du logiciel d'origine, fraîcheur
+# des paquets Opal et de la planche d'icônes, specs sur PostgreSQL.
 name: CI
 
 on:
@@ -21,6 +21,14 @@ jobs:
     container: crystallang/crystal:1.19.1
     steps:
       - uses: actions/checkout@v4
+      - name: Aucune mention du logiciel d'origine hors *.adoc et *.md
+        # Le motif est coupé en deux pour que ce fichier ne se trouve pas lui-même.
+        run: |
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+          if git grep -il "noa""lyss" -- . ':!*.adoc' ':!*.md'; then
+            echo "::error::Nom du logiciel d'origine trouvé dans le code (autorisé seulement dans *.adoc et *.md)."
+            exit 1
+          fi
       - name: Dépendances path (cœur et shards maison non publiés)
         run: scripts/ci-checkout-deps.sh
       - name: Format

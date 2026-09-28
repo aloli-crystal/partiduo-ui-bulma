@@ -177,7 +177,7 @@ module PartiduoUi
   end
 
   # Articles suivis en stock (menu `stock:items`, attribut « code stock »
-  # des fiches de NOALYSS) : une fiche article et son code stock, commun à
+  # des fiches d'origine) : une fiche article et son code stock, commun à
   # plusieurs fiches au besoin ; quantité en stock tous dépôts confondus.
   abstract class StockItemScreen < StockScreen
     def crumbs : Array(Screen::Crumb)

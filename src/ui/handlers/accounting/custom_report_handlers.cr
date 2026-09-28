@@ -1,7 +1,8 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 module PartiduoUi
-  # Rapports personnalisés (`formulaire`, `form_definition` de NOALYSS) :
+  # Rapports personnalisés (`formulaire`, `form_definition` de l'application
+  # d'origine) :
   # liste, calcul sur une période (export CSV et PDF du cœur), création,
   # modification et suppression (`accounting.report.write`). Formules
   # contrôlées par le cœur (`check_report`), jamais par l'interface.

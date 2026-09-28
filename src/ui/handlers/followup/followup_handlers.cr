@@ -2,8 +2,8 @@
 
 module PartiduoUi
   # Base des écrans du module Suivi (lot 6, `Partiduo::Api::Followup`,
-  # successeur de `Follow_Up` et `action_gestion` de NOALYSS) : actions de
-  # suivi, rappels, types d'action, étiquettes. Module inactif : le contrat
+  # successeur de `Follow_Up` et `action_gestion` d'origine) : actions de suivi,
+  # rappels, types d'action, étiquettes. Module inactif : le contrat
   # lève `ModuleDisabled`, l'écran répond 404 (D-UI-019).
   #
   # Les fiches (destinataire, contact, fiches concernées) se désignent par
@@ -739,7 +739,8 @@ module PartiduoUi
     end
   end
 
-  # Types d'action de NOALYSS, dans la langue de l'utilisateur.
+  # Types d'action par défaut (repris de l'application d'origine), dans la
+  # langue de l'utilisateur.
   class FollowupTypesDefaultsHandler < FollowupTypeScreen
     def post
       created = Fup.load_default_action_types(current.actor, I18n.locale)

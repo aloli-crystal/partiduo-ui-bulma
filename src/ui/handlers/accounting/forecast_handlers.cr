@@ -2,12 +2,12 @@
 
 module PartiduoUi
   # Prévisions budgétaires (lot 6, menu `accounting:forecasts`, successeur
-  # d'`Anticipation` et de `forecast.inc.php` de NOALYSS) : liste, création,
-  # modification, copie, suppression ; catégories et éléments (formule du
-  # réel, montant estimé par période) ; comparaison de l'estimé et du réel.
-  # Tout calcul vient de `Partiduo::Api::Accounting` (`forecast_report`) ;
-  # les formules sont contrôlées par le cœur, jamais par l'interface
-  # (D-UI-045).
+  # d'`Anticipation` et de `forecast.inc.php` de l'application d'origine) :
+  # liste, création, modification, copie, suppression ; catégories et
+  # éléments (formule du réel, montant estimé par période) ; comparaison de
+  # l'estimé et du réel. Tout calcul vient de `Partiduo::Api::Accounting`
+  # (`forecast_report`) ; les formules sont contrôlées par le cœur, jamais
+  # par l'interface (D-UI-045).
   abstract class ForecastScreen < ReportScreen
     def screen_code : String
       "forecast"

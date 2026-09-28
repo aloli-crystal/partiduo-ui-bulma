@@ -4,7 +4,7 @@ nl:
     shell:
       menu: "Menu"
       navigation: "Hoofdnavigatie"
-      tagline: "port van NOALYSS"
+      tagline: "vrije boekhouding"
       skip: "Naar de inhoud"
       period_group: "Huidig boekjaar en huidige periode"
       fiscal_year: "Boekjaar"
@@ -21,7 +21,7 @@ nl:
       period_closed: "%{period} (afgesloten)"
     home:
       welcome_title: "Welkom"
-      welcome: "Partiduo, boekhouding en facturatie, een vrije port van NOALYSS."
+      welcome: "Partiduo, boekhouding en facturatie, vrije software."
       api_version: "Contract Partiduo::Api, versie %{version}"
       opal_title: "Opal-demonstratie"
       opal_help: "Deze teller is geschreven in Ruby, door Opal naar JavaScript gecompileerd en door Marten geserveerd."

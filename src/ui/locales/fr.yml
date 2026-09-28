@@ -4,7 +4,7 @@ fr:
     shell:
       menu: "Menu"
       navigation: "Navigation principale"
-      tagline: "portage de NOALYSS"
+      tagline: "comptabilité libre"
       skip: "Aller au contenu"
       period_group: "Exercice et période courants"
       fiscal_year: "Exercice"
@@ -21,7 +21,7 @@ fr:
       period_closed: "%{period} (close)"
     home:
       welcome_title: "Bienvenue"
-      welcome: "Partiduo, comptabilité et facturation, portage libre de NOALYSS."
+      welcome: "Partiduo, comptabilité et facturation, logiciel libre."
       api_version: "Contrat Partiduo::Api, version %{version}"
       opal_title: "Démonstration Opal"
       opal_help: "Ce compteur est écrit en Ruby, compilé en JavaScript par Opal et servi par Marten."
