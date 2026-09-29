@@ -28,6 +28,9 @@ end
 describe "Fin d'exercice (clôture et à-nouveaux)" do
   it "propose la clôture, signale le compte de résultat absent, puis la passe" do
     browser = Books.admin
+    # 120 est au plan FR initial (D-CLO-003) : retiré, comme dans une
+    # instance antérieure à l'amendement.
+    Acc.delete_account(system, Acc.account(system, "120").id).success?.should be_true
     misc([line("510001", Acc::Side::Debit, "1500"), line("706", Acc::Side::Credit, "1500")], "2026-06-10")
     page = browser.get("/accounting/closing?fiscal_year=#{year(2026).id}&kind=closing").html
     page.should contain("<h1>Clôture</h1>")
