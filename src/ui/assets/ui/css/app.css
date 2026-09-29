@@ -318,6 +318,16 @@ img.pd-attachment-preview { min-height: 0; height: auto; object-fit: contain; }
 .pd-totals dd { margin: 0; text-align: end; font-family: var(--bulma-family-code); font-variant-numeric: tabular-nums; }
 .pd-totals .grand { font-weight: 700; color: var(--pd-ink); font-size: 1.05rem; border-block-start: 1px solid var(--pd-rule); padding-block-start: .35rem; }
 .pd-status { display: flex; gap: .6rem; align-items: center; flex-wrap: wrap; padding: .6rem 1rem; border-block-end: 1px solid var(--pd-rule); background: var(--pd-row-alt); font-size: .85rem; }
+/* Panneau d'une extension sur la fiche d'un document (Extensions.document_links) :
+   cibles de 44 px, propriétés logiques, couleurs du thème (clair et sombre). */
+.pd-ext-panel header { display: flex; align-items: center; justify-content: space-between; gap: .5rem; }
+.pd-ext-panel .pd-ext { color: var(--pd-muted); }
+.pd-ext-links { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: .4rem; }
+.pd-ext-links .button { inline-size: 100%; justify-content: flex-start; white-space: normal; block-size: auto; }
+.pd-ext-files a { display: flex; align-items: center; gap: .5rem; min-block-size: 44px; padding-inline: .25rem; overflow-wrap: anywhere; }
+.pd-ext-files a .pd-icon { flex: none; }
+.pd-ext-subtitle { font-size: .75rem; text-transform: uppercase; letter-spacing: .06em; color: var(--pd-muted); margin-block: .75rem .35rem; }
+.pd-ext-subtitle:first-child { margin-block-start: 0; }
 .pd-mentions { font-size: .8rem; color: var(--pd-muted); display: grid; gap: .3rem; list-style: none; margin: 0; padding: 0; }
 .pd-mentions li { padding-inline-start: 1.1rem; position: relative; }
 .pd-mentions li::before { content: "✓"; position: absolute; inset-inline-start: 0; color: var(--pd-ok); }

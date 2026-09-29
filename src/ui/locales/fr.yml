@@ -794,6 +794,7 @@ fr:
         accepted: "Devis marqué accepté."
         refused: "Devis marqué refusé."
       links: "Documents liés"
+      extension_files: "Fichiers produits"
       payments: "Règlements"
       trace: "Historique"
       events:

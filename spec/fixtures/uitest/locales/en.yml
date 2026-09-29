@@ -9,3 +9,8 @@ en:
       page:
         view: "View the test page"
         edit: "Edit the test page"
+    tile:
+      label: "Test tile"
+      sub: "Test subtitle"
+    document:
+      action: "Test action"

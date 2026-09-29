@@ -9,3 +9,8 @@ fr:
       page:
         view: "Voir la page de test"
         edit: "Modifier la page de test"
+    tile:
+      label: "Tuile de test"
+      sub: "Sous-titre de test"
+    document:
+      action: "Action de test"

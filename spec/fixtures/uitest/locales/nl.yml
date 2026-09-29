@@ -9,3 +9,8 @@ nl:
       page:
         view: "De testpagina bekijken"
         edit: "De testpagina wijzigen"
+    tile:
+      label: "Testtegel"
+      sub: "Testondertitel"
+    document:
+      action: "Testactie"

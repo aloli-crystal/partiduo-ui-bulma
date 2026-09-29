@@ -642,8 +642,8 @@ module PartiduoUi
     end
   end
 
-  # Consultation d'un document : lignes, totaux, mentions, liens, règlements
-  # et actions selon son état.
+  # Consultation d'un document : lignes, totaux, mentions, liens, règlements,
+  # actions selon son état, panneaux des extensions actives.
   class DocumentHandler < InvoicingScreen
     def get
       actor = current.actor
@@ -660,6 +660,8 @@ module PartiduoUi
       context["payment_note"] = payment_note(document)
       context["customer_url"] = customer_url(document)
       context["channel"] = document.fiscal? ? ChannelDisplay.new(document, fmt, self) : nil
+      # Actions et fichiers des extensions actives (DECISIONS D-HOOK-002).
+      context["extension_panels"] = listed(Extensions.document_panels(actor, document))
       page("ui/invoicing/show.html")
     end
 

@@ -306,6 +306,55 @@ par le manifeste de l'extension), à défaut celle de l'entrée de menu du
 manifeste qui porte la route ; sinon 403. L'extension n'a aucun contrôle à
 écrire. Ses gabarits étendent `ui/base.html`.
 
+=== Points d'accroche
+
+Une extension contribue aux écrans communs par le registre
+`PartiduoUi::Extensions`, depuis son dossier `ui/bulma/`. Chaque bloc lit le
+contrat de l'extension ; il n'est appelé que si l'extension est *active*, et
+un refus (`Partiduo::Api::AccessDenied`) ou un objet introuvable
+(`Partiduo::Api::NotFound`) est ignoré : rien n'est affiché.
+
+[cols="1,3",options="header"]
+|===
+|Point d'accroche |Effet
+
+|`counter(menu_code, route, todo:, tone:) { \|actor\| Int64? }`
+|Compteur à côté d'une entrée de menu ; s'il est positif, ligne de « À traiter »
+du tableau de bord (clé i18n `todo` à pluriel).
+
+|`tile(code) { \|actor, fmt\| Array(Dashboard::Tile) }`
+|Tuiles ajoutées après celles des modules sur les trois tableaux de bord :
+complet (`Dashboard`), micro-entreprise (`MicroDashboard`) et profession
+libérale (`LiberalDashboard`). `fmt` (`PartiduoUi::Format`) présente les
+montants dans la langue de l'utilisateur. DECISIONS D-HOOK-001.
+
+|`document_links(code) { \|actor, document\| Array(Extensions::DocumentLink) }`
+|Panneau de l'extension sur la fiche d'un document de la Facturation
+(`/invoicing/documents/<id>`), titré du nom de l'extension :
+`DocumentLink.new(label, url)` est un bouton (nature `action`, écran de
+l'extension), `DocumentLink.new(label, url, "file")` un fichier produit à
+télécharger. Liste vide : pas de panneau. `document` est la
+`Partiduo::Api::Invoicing::DocumentView` de la fiche. DECISIONS D-HOOK-002.
+|===
+
+[source,crystal]
+----
+PartiduoUi::Extensions.tile "SKEL" do |actor, fmt|
+  view = Skel::Api.summary(actor)
+  [PartiduoUi::Dashboard::Tile.new("SKEL", I18n.t("skel_ui.tile"), fmt.amount(view.total), url: "/ext/SKEL/")]
+end
+
+PartiduoUi::Extensions.document_links "SKEL" do |actor, document|
+  [PartiduoUi::Extensions::DocumentLink.new(I18n.t("skel_ui.render"), "/ext/SKEL/documents/#{document.id}")]
+end
+----
+
+Le panneau suit les règles de l'interface : titre `h2` relié au panneau
+(`aria-labelledby`), listes, cibles de 44 px, propriétés CSS logiques,
+couleurs du thème (clair et sombre). Les specs
+(`spec/ui/extension_hooks_spec.cr`) éprouvent ces points avec l'extension
+factice `UITEST`.
+
 == JavaScript
 
 HTMX, les paquets Opal, et deux scripts de liaison au navigateur écrits à la

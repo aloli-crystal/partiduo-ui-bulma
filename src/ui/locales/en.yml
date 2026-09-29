@@ -794,6 +794,7 @@ en:
         accepted: "Quote marked as accepted."
         refused: "Quote marked as refused."
       links: "Linked documents"
+      extension_files: "Files produced"
       payments: "Payments"
       trace: "History"
       events:

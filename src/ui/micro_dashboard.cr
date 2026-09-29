@@ -61,6 +61,8 @@ module PartiduoUi
       thresholds
       latest_receipts
       invoicing if @active.includes?("INVOICING") && @actor.can?("invoicing.invoice.read")
+      # Tuiles des extensions actives (DECISIONS D-HOOK-001).
+      @tiles.concat(Extensions.tiles(@actor, @fmt, @active))
       Micro.todo(@actor, @today).each do |item|
         @todos << Dashboard::Todo.new(MicroText.todo(item, @fmt), nil,
           reverse(item.kind == "declaration" ? "micro:urssaf" : "micro:thresholds"), item.tone)

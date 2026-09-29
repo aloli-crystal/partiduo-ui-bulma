@@ -794,6 +794,7 @@ nl:
         accepted: "Offerte als aanvaard gemarkeerd."
         refused: "Offerte als geweigerd gemarkeerd."
       links: "Gekoppelde documenten"
+      extension_files: "Aangemaakte bestanden"
       payments: "Betalingen"
       trace: "Geschiedenis"
       events:

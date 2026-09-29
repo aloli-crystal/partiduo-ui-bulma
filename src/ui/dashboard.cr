@@ -2,7 +2,7 @@
 
 module PartiduoUi
   # Tableau de bord (ADR-005 D5, maquette « Tableau de bord ») : tuiles de
-  # chaque module actif, dernières factures et écritures, « À traiter ».
+  # chaque module actif et des extensions actives (`Extensions.tile`), dernières factures et écritures, « À traiter ».
   # Chaque module ne contribue que s'il est actif et que l'acteur a le droit
   # de lire ses données (DECISIONS D-UI-031) ; tout vient de `Partiduo::Api`.
   class Dashboard
@@ -68,6 +68,8 @@ module PartiduoUi
       accounting if @active.includes?("ACCOUNTING") && @actor.can?("accounting.entry.read")
       invoicing if @active.includes?("INVOICING") && @actor.can?("invoicing.invoice.read")
       followup if @active.includes?("FOLLOWUP") && @actor.can?("followup.action.read")
+      # Tuiles des extensions actives (DECISIONS D-HOOK-001).
+      @tiles.concat(Extensions.tiles(@actor, @fmt, @active))
       if @active.includes?("ACCOUNTING") && @actor.can?("accounting.entry.post")
         @new_entry_url = Marten.routes.reverse("accounting:entry_purchase")
       end

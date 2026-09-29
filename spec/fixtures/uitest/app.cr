@@ -44,6 +44,25 @@ end
 PartiduoUi::Extensions.mount "UITEST", UiTest::ROUTES,
   permissions: {"edit" => "uitest.page.edit", "undeclared" => "core.settings.manage"}
 
+# Tuile du tableau de bord (Extensions.tile) : refusée sans la permission
+# de lecture de l'extension (refus ignoré par l'interface).
+PartiduoUi::Extensions.tile "UITEST" do |actor, fmt|
+  raise Partiduo::Api::Forbidden.new("uitest.page.view") unless actor.can?("uitest.page.view")
+  [PartiduoUi::Dashboard::Tile.new("UITEST", I18n.t("uitest.tile.label"), fmt.amount(BigDecimal.new("1234.5")),
+    sub: I18n.t("uitest.tile.sub"), url: "/ext/UITEST/")]
+end
+
+# Action et fichier sur la fiche d'un document (Extensions.document_links) :
+# refusés sans la permission ; aucun lien pour un brouillon.
+PartiduoUi::Extensions.document_links "UITEST" do |actor, document|
+  raise Partiduo::Api::Forbidden.new("uitest.page.view") unless actor.can?("uitest.page.view")
+  next [] of PartiduoUi::Extensions::DocumentLink if document.draft?
+  [
+    PartiduoUi::Extensions::DocumentLink.new(I18n.t("uitest.document.action"), "/ext/UITEST/?document=#{document.id}"),
+    PartiduoUi::Extensions::DocumentLink.new("uitest-#{document.number}.txt", "/ext/UITEST/?file=#{document.id}", "file"),
+  ]
+end
+
 Marten.configure :test do |config|
   config.installed_apps = config.installed_apps + [UiTest::App] of Marten::Apps::Config.class
 end

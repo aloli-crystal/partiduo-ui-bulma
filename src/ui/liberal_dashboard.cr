@@ -41,6 +41,8 @@ module PartiduoUi
       totals
       latest_lines
       invoicing if @active.includes?("INVOICING") && @actor.can?("invoicing.invoice.read")
+      # Tuiles des extensions actives (DECISIONS D-HOOK-001).
+      @tiles.concat(Extensions.tiles(@actor, @fmt, @active))
       previous_return
       if @actor.can?(Liberal::WRITE)
         @new_receipt_url = reverse("liberal:receipt_new")

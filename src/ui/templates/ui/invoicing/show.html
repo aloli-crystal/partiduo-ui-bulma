@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Consultation d'un devis ou d'une facture : état, actions selon l'état (valider, transformer, avoir, acompte, décision sur un devis, règlement, relance, aperçu, PDF), canal d'émission (ADR-004 D9), lignes et totaux, mentions obligatoires, documents liés, règlements, trace. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Consultation d'un devis ou d'une facture : état, actions selon l'état (valider, transformer, avoir, acompte, décision sur un devis, règlement, relance, aperçu, PDF), canal d'émission (ADR-004 D9), lignes et totaux, mentions obligatoires, documents liés, panneaux des extensions actives (actions, fichiers produits : PartiduoUi::Extensions.document_links), règlements, trace. #}{% extend "ui/base.html" %}
 {% block title %}{{ title }}{% endblock title %}
 {% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
 {% block heading %}{{ title }} <span class="tag is-light pd-status-tag pd-status-{{ document.status }}">{{ document.status_label }}</span>{% endblock heading %}
@@ -64,6 +64,13 @@
       <header><h2 id="pd-mentions-title">{% translate "ui.invoicing.mentions" %}</h2></header>
       <div class="pd-body">{% if document.mentions %}<ul class="pd-mentions">{% for mention in document.mentions %}<li>{{ mention }}</li>{% endfor %}</ul>{% else %}<p class="pd-muted is-size-7">{% translate "ui.invoicing.mentions_at_issue" %}</p>{% endif %}</div>
     </aside>
+    {% if extension_panels %}{% for panel in extension_panels %}<aside class="pd-panel pd-ext-panel" aria-labelledby="{{ panel.heading_id }}" data-extension="{{ panel.code }}">
+      <header><h2 id="{{ panel.heading_id }}">{{ panel.title }}</h2><span class="pd-ext">{{ panel.code }}</span></header>
+      <div class="pd-body">
+        {% if panel.listed_actions %}<ul class="pd-ext-links">{% for link in panel.listed_actions %}<li><a class="button pd-touch" href="{{ link.url }}">{% include "ui/_icon.html" with name="puzzle" %}<span>{{ link.label }}</span></a></li>{% endfor %}</ul>{% endif %}
+        {% if panel.listed_files %}<h3 class="pd-ext-subtitle">{% translate "ui.invoicing.extension_files" %}</h3><ul class="pd-ext-links pd-ext-files">{% for link in panel.listed_files %}<li><a class="pd-link pd-touch" href="{{ link.url }}">{% include "ui/_icon.html" with name="download" %}<span>{{ link.label }}</span></a></li>{% endfor %}</ul>{% endif %}
+      </div>
+    </aside>{% endfor %}{% endif %}
     {% if document.links %}<aside class="pd-panel" aria-labelledby="pd-links-title"><header><h2 id="pd-links-title">{% translate "ui.invoicing.links" %}</h2></header><div class="pd-body"><ul>{% for link in document.links %}<li><a class="pd-link" href="{{ link.url }}">{{ link.label }}</a></li>{% endfor %}</ul></div></aside>{% endif %}
     {% if payments || payment_note %}<aside class="pd-panel" aria-labelledby="pd-payments-title"><header><h2 id="pd-payments-title">{% translate "ui.invoicing.payments" %}</h2><span class="pd-mono">{% translate "ui.invoicing.left" %} {{ document.amount_due }}</span></header><div class="pd-body">{% if payments %}<dl class="pd-dl">{% for payment in payments %}<dt>{{ payment.label }}</dt><dd class="amount">{{ payment.value }}</dd>{% endfor %}</dl>{% endif %}{% if payment_note %}<p class="pd-muted is-size-7">{{ payment_note }}</p>{% endif %}</div></aside>{% endif %}
     {% if events %}<aside class="pd-panel" aria-labelledby="pd-events-title"><header><h2 id="pd-events-title">{% translate "ui.invoicing.trace" %}</h2></header><div class="pd-body"><dl class="pd-dl">{% for event in events %}<dt class="pd-mono">{{ event.label }}</dt><dd>{{ event.value }}</dd>{% endfor %}</dl></div></aside>{% endif %}

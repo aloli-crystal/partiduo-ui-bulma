@@ -76,9 +76,7 @@ module PartiduoUi
     # `"edit"`, ou complet, `"skel:edit"`).
     def self.mount(code : String, routes : Marten::Routing::Map, permission : String? = nil,
                    permissions : Hash(String, String) = {} of String => String) : Mount
-      unless code.matches?(/\A[A-Z][A-Z0-9_]*\z/)
-        raise ArgumentError.new("code d'extension invalide (majuscules, chiffres, _) : #{code}")
-      end
+      check_code!(code)
       raise ArgumentError.new("interface d'extension déjà montée : #{code}") if @@mounts.has_key?(code)
 
       namespace = code.downcase
@@ -127,6 +125,143 @@ module PartiduoUi
         end
         counts[counter.menu_code] = value if value
       end
+    end
+
+    # Tuiles d'une extension sur les tableaux de bord du dossier
+    # (`Dashboard`, `MicroDashboard`, `LiberalDashboard` ; ADR-005 D5,
+    # ADR-009 D6), après celles des modules officiels :
+    #
+    # ```
+    # PartiduoUi::Extensions.tile "CRM" do |actor, fmt|
+    #   view = Crm::Api.tile(actor)
+    #   [PartiduoUi::Dashboard::Tile.new("CRM", I18n.t("crm_ui.tile.label"), fmt.amount(view.amount))]
+    # end
+    # ```
+    #
+    # Le bloc n'est appelé que si l'extension `code` est active ; il lit le
+    # contrat de l'extension et rend une liste vide quand l'acteur ne doit
+    # rien voir. `AccessDenied` et `NotFound` sont ignorés, comme pour les
+    # compteurs.
+    record TileHook, code : String, block : Proc(Partiduo::Api::Actor, Format, Array(Dashboard::Tile))
+
+    @@tile_hooks = [] of TileHook
+
+    def self.tile(code : String, &block : Partiduo::Api::Actor, Format -> Array(Dashboard::Tile)) : TileHook
+      check_code!(code)
+      hook = TileHook.new(code, block)
+      @@tile_hooks << hook
+      hook
+    end
+
+    def self.tile_hooks : Array(TileHook)
+      @@tile_hooks
+    end
+
+    # Tuiles des extensions actives (`active` : codes des pièces actives).
+    def self.tiles(actor : Partiduo::Api::Actor, fmt : Format, active : Set(String)) : Array(Dashboard::Tile)
+      @@tile_hooks.each_with_object([] of Dashboard::Tile) do |hook, tiles|
+        next unless active.includes?(hook.code)
+        begin
+          tiles.concat(hook.block.call(actor, fmt))
+        rescue Partiduo::Api::AccessDenied | Partiduo::Api::NotFound
+          nil
+        end
+      end
+    end
+
+    # Action ou fichier qu'une extension ajoute à la fiche d'un document de
+    # la Facturation (ADR-010 D4) : `kind` vaut `action` (bouton qui ouvre
+    # un écran de l'extension) ou `file` (fichier produit par l'extension,
+    # à télécharger).
+    record DocumentLink, label : String, url : String, kind : String = "action" do
+      include Marten::Template::Object::Auto
+
+      KINDS = %w[action file]
+
+      def file? : Bool
+        kind == "file"
+      end
+    end
+
+    # Panneau d'une extension sur la fiche d'un document : titre (nom de
+    # l'extension), liens.
+    class DocumentPanel
+      include Marten::Template::Object::Auto
+
+      getter code : String
+      getter title : String
+      getter actions : Array(DocumentLink)
+      getter files : Array(DocumentLink)
+
+      def initialize(@code, @title, links : Array(DocumentLink))
+        @actions = links.reject(&.file?)
+        @files = links.select(&.file?)
+      end
+
+      # Identifiant du titre du panneau (`aria-labelledby`).
+      def heading_id : String
+        "pd-ext-#{code.downcase}-title"
+      end
+
+      def listed_actions : Array(DocumentLink)?
+        actions.empty? ? nil : actions
+      end
+
+      def listed_files : Array(DocumentLink)?
+        files.empty? ? nil : files
+      end
+    end
+
+    # Actions et fichiers d'une extension sur la fiche d'un document de la
+    # Facturation (DECISIONS D-HOOK-002) :
+    #
+    # ```
+    # PartiduoUi::Extensions.document_links "MODELES" do |actor, document|
+    #   [PartiduoUi::Extensions::DocumentLink.new(I18n.t("…"), "/ext/MODELES/documents/#{document.id}")]
+    # end
+    # ```
+    #
+    # Le bloc n'est appelé que si l'extension est active ; liste vide : pas
+    # de panneau. `AccessDenied` et `NotFound` sont ignorés.
+    record DocumentLinksHook, code : String,
+      block : Proc(Partiduo::Api::Actor, Partiduo::Api::Invoicing::DocumentView, Array(DocumentLink))
+
+    @@document_hooks = [] of DocumentLinksHook
+
+    def self.document_links(code : String, &block : Partiduo::Api::Actor, Partiduo::Api::Invoicing::DocumentView -> Array(DocumentLink)) : DocumentLinksHook
+      check_code!(code)
+      hook = DocumentLinksHook.new(code, block)
+      @@document_hooks << hook
+      hook
+    end
+
+    def self.document_hooks : Array(DocumentLinksHook)
+      @@document_hooks
+    end
+
+    # Panneaux des extensions actives pour un document, dans l'ordre des
+    # déclarations ; une extension sans lien n'a pas de panneau.
+    def self.document_panels(actor : Partiduo::Api::Actor, document : Partiduo::Api::Invoicing::DocumentView) : Array(DocumentPanel)
+      return [] of DocumentPanel if @@document_hooks.empty?
+      extensions = Partiduo::Api::Modules.list(actor).select { |item| item.active && item.kind == "extension" }
+        .to_h { |item| {item.code, item.name_key} }
+      @@document_hooks.each_with_object([] of DocumentPanel) do |hook, panels|
+        name_key = extensions[hook.code]? || next
+        links = begin
+          hook.block.call(actor, document)
+        rescue Partiduo::Api::AccessDenied | Partiduo::Api::NotFound
+          [] of DocumentLink
+        end
+        links.each do |link|
+          raise ArgumentError.new("lien d'extension de nature inconnue : #{link.kind}") unless DocumentLink::KINDS.includes?(link.kind)
+        end
+        panels << DocumentPanel.new(hook.code, I18n.t(name_key), links) unless links.empty?
+      end
+    end
+
+    private def self.check_code!(code : String) : Nil
+      return if code.matches?(/\A[A-Z][A-Z0-9_]*\z/)
+      raise ArgumentError.new("code d'extension invalide (majuscules, chiffres, _) : #{code}")
     end
 
     # Ajoute aux routes de l'interface celles des extensions montées (appelé
