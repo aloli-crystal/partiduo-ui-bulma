@@ -204,6 +204,26 @@ module PartiduoUi
       Screen::Section.new(I18n.t("ui.vat_returns.lines"), table: table)
     end
 
+    # Annexe 3310-A d'une CA3 ou d'une CA12 : ligne 14 taux par taux
+    # (DECISIONS D-R5-006).
+    def annex_section(view : Acc::VatReturnView) : Screen::Section?
+      annex = view.annex_lines
+      return if annex.empty?
+      columns = [
+        Table::Column.new("rate", I18n.t("ui.vat_returns.annex_rate"), "mono"),
+        Table::Column.new("label", I18n.t("ui.vat_returns.annex_label")),
+        Table::Column.new("amount", I18n.t("ui.vat_returns.base"), "amount"),
+        Table::Column.new("vat", I18n.t("ui.vat_returns.vat"), "amount"),
+      ]
+      rows = annex.map do |line|
+        Table::Row.new([Table::Cell.new(line.vat_number), Table::Cell.new(line.name), amount_cell(line.amount), amount_cell(line.vat)])
+      end
+      title = I18n.t("ui.vat_returns.annex")
+      table = Table.new(title, columns, rows, request.path, id: "pd-vat-annex")
+      table.exportable = false
+      Screen::Section.new(title, table: table, note: I18n.t("ui.vat_returns.annex_note"))
+    end
+
     def form_listing?(form : String) : Bool
       form_view(form).try(&.listing) || form.in?("be_client_listing", "be_intra_listing")
     end
@@ -243,6 +263,7 @@ module PartiduoUi
           ]
           sections = box_sections(view, saved: false)
           lines_section(view).try { |section| sections << section }
+          annex_section(view).try { |section| sections << section }
           save = post_action("ui.vat_returns.save_draft", "#{reverse("accounting:vat_return_create")}?#{URI::Params.encode(criteria_params)}",
             style: "primary", icon: "check")
           sections << Screen::Section.new(I18n.t("ui.vat_returns.next_step"), note: I18n.t("ui.vat_returns.save_help"),
@@ -359,6 +380,7 @@ module PartiduoUi
       view = Acc.vat_return(current.actor, id_param)
       sections = box_sections(view, saved: true)
       lines_section(view).try { |section| sections << section }
+      annex_section(view).try { |section| sections << section }
       vat_page(return_title(view), nil, sections, crumbs: return_crumbs, actions: return_actions(view),
         summary: return_summary(view), status_tag: status_label(view.status))
     end

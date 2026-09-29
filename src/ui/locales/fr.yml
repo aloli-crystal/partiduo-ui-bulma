@@ -1097,6 +1097,10 @@ fr:
         other: "%{count} comptes ne sont repris par aucune rubrique."
         zero: "Aucun compte non repris."
     vat_returns:
+      annex: "Annexe 3310-A — taux particuliers (ligne 14)"
+      annex_rate: "Taux"
+      annex_label: "Libellé"
+      annex_note: "La ligne 14 reporte le total de l'annexe ; les taxes assimilées se saisissent en ligne 29."
       accounts: Comptes
       accounts_help: 'Préfixes séparés par des virgules (70, 706) ; vide : tous les comptes.'
       adjusted: Correction

@@ -36,6 +36,21 @@ private def bob(*permissions : String) : PartiduoUi::Browser
 end
 
 describe "Déclarations de TVA (lot 4)" do
+  it "détaille la ligne 14 dans l'annexe 3310-A (taux particuliers)" do
+    browser = Books.admin
+    customer = Books.card("CUSTOMER", "Client Corse", "CLI-CORSE")
+    input = Acc::DocumentInput.new(ledger_id: Books.ledger("V01").id, date: Books.date("2026-03-12"), third_party: customer.code,
+      lines: [Acc::DocumentLineInput.new(amount: Books.d("1000"), account: "706", vat_rate: "COR13")], label: "Facture Corse")
+    Acc.post_sale(Books.system, input).value!
+    page = browser.get("/accounting/vat?f=1&#{CA3_Q1}").html
+    page.should contain("Annexe 3310-A — taux particuliers (ligne 14)")
+    page.should contain(%(id="pd-vat-annex"))
+    page.should contain(">COR13<")
+    page.should contain(">130,00<")
+    id = saved_draft(browser)
+    browser.get("/accounting/vat/returns/#{id}").html.should contain("Annexe 3310-A")
+  end
+
   it "prépare une déclaration : critères, cases calculées sans rien enregistrer, bouton d'enregistrement" do
     browser = french_books
     empty = browser.get("/accounting/vat")

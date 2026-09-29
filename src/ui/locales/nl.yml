@@ -1097,6 +1097,10 @@ nl:
         other: "%{count} rekeningen komen in geen enkele rubriek voor."
         zero: "Geen ontbrekende rekeningen."
     vat_returns:
+      annex: "Bijlage 3310-A — bijzondere tarieven (regel 14)"
+      annex_rate: "Tarief"
+      annex_label: "Omschrijving"
+      annex_note: "Regel 14 neemt het totaal van de bijlage over; gelijkgestelde belastingen worden in regel 29 ingevuld."
       accounts: Rekeningen
       accounts_help: 'Prefixen gescheiden door komma''s (70, 706); leeg: alle rekeningen.'
       adjusted: Correctie

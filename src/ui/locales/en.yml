@@ -1097,6 +1097,10 @@ en:
         other: "%{count} accounts are not included in any heading."
         zero: "No unmapped accounts."
     vat_returns:
+      annex: "Schedule 3310-A — special rates (line 14)"
+      annex_rate: "Rate"
+      annex_label: "Label"
+      annex_note: "Line 14 carries the schedule total; assimilated taxes are entered on line 29."
       accounts: Accounts
       accounts_help: 'Comma-separated prefixes (70, 706); empty: all accounts.'
       adjusted: Adjustment
