@@ -57,6 +57,7 @@ module PartiduoUi
       if can?(SETTINGS_WRITE)
         actions << link_action("ui.stock.new_repository", reverse("stock:repository_new"), "primary", "plus")
         actions << link_action("ui.stock.settings", reverse("stock:settings"), icon: "settings")
+        actions << link_action("ui.stock.rights.title", reverse("stock:rights"), icon: "lock")
       end
       list_page(I18n.t("stock.menu.stock_repositories"), table, stock_crumbs, "ui.stock.repositories_csv", actions,
         intro: I18n.t("ui.stock.repositories_intro"))
@@ -173,6 +174,64 @@ module PartiduoUi
     private def show(form : Form)
       form_page(I18n.t("ui.stock.settings"), crumbs, form, reverse("stock:settings"), I18n.t("ui.forms.save"),
         reverse("stock:repositories"))
+    end
+  end
+
+  # Droits par dépôt, par profil (`profile_sec_repository` d'origine ;
+  # DECISIONS D-R5-015) : choix du profil, puis aucun droit, lecture ou
+  # écriture pour chaque dépôt. Un profil sans aucun droit n'est pas
+  # restreint (droits globaux du Stock).
+  class StockRightsHandler < RepositoryScreen
+    ACCESSES = {"" => "ui.stock.rights.none", "R" => "ui.stock.rights.read", "W" => "ui.stock.rights.write"}
+
+    def get
+      require!(MODULE, SETTINGS_WRITE)
+      show(query("profile").to_i64?)
+    end
+
+    def post
+      require!(MODULE, SETTINGS_WRITE)
+      profile_id = field("profile").to_i64? || raise Partiduo::Api::NotFound.new("profile", field("profile"))
+      view = Stk.profile_rights(current.actor, profile_id)
+      rights = view.rights.map do |right|
+        Stk::RepositoryRightInput.new(right.repository_id, field("access_#{right.repository_id}"))
+      end
+      result = Stk.set_profile_rights(current.actor, profile_id, rights)
+      if saved = result.value?
+        flash["success"] = I18n.t(saved.restricted ? "ui.stock.rights.saved" : "ui.stock.rights.unrestricted")
+        return go("#{reverse("stock:rights")}?#{URI::Params.encode({"profile" => profile_id.to_s})}")
+      end
+      show(profile_id, rights_form(view).add_errors(result.errors, fmt))
+    end
+
+    private def rights_form(view : Stk::ProfileRightsView) : Form
+      options = ACCESSES.map { |value, key| option(value, I18n.t(key)) }
+      fields = view.rights.map do |right|
+        Form::Field.new("access_#{right.repository_id}", right.repository_name, "select", right.access,
+          options: options)
+      end
+      fields << Form::Field.new("profile", "", "hidden", view.profile_id.to_s)
+      Form.new([Form::Group.new(I18n.t("ui.stock.rights.repositories"), fields)])
+    end
+
+    private def show(profile_id : Int64?, form : Form? = nil)
+      profiles = Stk.rights_profiles(current.actor)
+      choices = [option("", I18n.t("ui.stock.rights.choose"))] + profiles.map do |profile|
+        label = profile.restricted ? I18n.t("ui.stock.rights.restricted_profile", name: profile.name) : profile.name
+        option(profile.id.to_s, label)
+      end
+      context["chooser"] = Form.new([Form::Group.new(nil, [
+        Form::Field.new("profile", I18n.t("ui.stock.rights.profile"), "select", profile_id.to_s, options: choices),
+      ])])
+      context["chooser_title"] = I18n.t("ui.stock.rights.profile_step")
+      context["chooser_action"] = reverse("stock:rights")
+      if profile_id && profiles.any?(&.id.==(profile_id))
+        form ||= rights_form(Stk.profile_rights(current.actor, profile_id))
+      else
+        form = nil
+      end
+      form_page(I18n.t("ui.stock.rights.title"), crumbs, form, reverse("stock:rights"), I18n.t("ui.forms.save"),
+        reverse("stock:repositories"), intro: I18n.t("ui.stock.rights.intro"))
     end
   end
 

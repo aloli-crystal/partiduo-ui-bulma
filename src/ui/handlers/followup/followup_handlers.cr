@@ -9,6 +9,12 @@ module PartiduoUi
   # Les fiches (destinataire, contact, fiches concernées) se désignent par
   # leur quick code, résolu par `Api::Cards.card_by_code` (D-UI-046).
   abstract class FupScreen < ReferenceHandler
+    # Profil auquel l'action est réservée, ou « tout le monde ».
+    def visible_to_label(profile_id : Int64?) : String
+      return I18n.t("ui.followup.visible_to_all") unless profile_id
+      Fup.visibility_profiles(current.actor).find(&.id.==(profile_id)).try(&.name) || profile_id.to_s
+    end
+
     alias Fup = Partiduo::Api::Followup
 
     MODULE         = "FOLLOWUP"
@@ -190,7 +196,8 @@ module PartiduoUi
   # Création et modification d'une action (`Follow_Up::save`, `update`).
   abstract class FollowupActionFormScreen < FupScreen
     record Values, type : String, title : String, date : String, hour : String, priority : String, state : String,
-      remind_on : String, card : String, contact : String, concerned : String, tag_ids : Array(String), comment : String
+      remind_on : String, card : String, contact : String, concerned : String, tag_ids : Array(String), comment : String,
+      visible_to : String = ""
 
     def blank_values : Values
       type = action_types.first?.try(&.id.to_s) || ""
@@ -200,13 +207,14 @@ module PartiduoUi
     def values_of(action : Fup::ActionView) : Values
       Values.new(action.action_type_id.to_s, action.title, fmt.date(action.date), action.hour, action.priority.to_s,
         action.state, fmt.date(action.remind_on), action.card.try(&.code) || "", action.contact.try(&.code) || "",
-        action.concerned.map(&.code).join(" "), action.tags.map(&.id.to_s), "")
+        action.concerned.map(&.code).join(" "), action.tags.map(&.id.to_s), "", action.visible_profile_id.try(&.to_s) || "")
     end
 
     def submitted : Values
       Values.new(field("action_type_id"), field("title"), field("date"), field("hour"), field("priority"), field("state"),
         field("remind_on"), field("card"), field("contact"), field("concerned"),
-        tags.select { |tag| checkbox("tag-#{tag.id}") }.map(&.id.to_s), field("comment", strip: false).strip)
+        tags.select { |tag| checkbox("tag-#{tag.id}") }.map(&.id.to_s), field("comment", strip: false).strip,
+        field("visible_profile_id"))
     end
 
     def action_form(values : Values, creating : Bool) : Form
@@ -222,6 +230,8 @@ module PartiduoUi
         Form::Field.new("priority", I18n.t("followup.columns.priority"), "select", values.priority, options: priorities),
         Form::Field.new("state", I18n.t("followup.columns.state"), "select", values.state, options: states),
         Form::Field.new("remind_on", I18n.t("followup.columns.remind_on"), value: values.remind_on, mono: true),
+        Form::Field.new("visible_profile_id", I18n.t("ui.followup.visible_to"), "select", values.visible_to,
+          options: visibility_options, help: I18n.t("ui.followup.visible_to_help")),
       ])
       cards = Form::Group.new(I18n.t("ui.followup.cards_legend"), [
         Form::Field.new("card", I18n.t("followup.columns.card"), value: values.card, mono: true,
@@ -244,6 +254,12 @@ module PartiduoUi
       Form.new(groups)
     end
 
+    # Visibilité : tout le monde, ou un profil (D-R5-016).
+    def visibility_options : Array(Form::Option)
+      [option("", I18n.t("ui.followup.visible_to_all"))] +
+        Fup.visibility_profiles(current.actor).map { |profile| option(profile.id.to_s, profile.name) }
+    end
+
     # Entrée du contrat, ou `nil` et des erreurs de formulaire (dates,
     # fiches inconnues).
     def read_input(values : Values, errors : Array({String, String})) : Fup::ActionInput?
@@ -263,7 +279,7 @@ module PartiduoUi
       Fup::ActionInput.new(action_type_id: type_id, date: day, title: values.title, hour: values.hour,
         priority: values.priority.to_i? || 2, state: values.state, remind_on: remind, card_id: card_id,
         contact_card_id: contact_id, concerned_card_ids: concerned.uniq, tag_ids: values.tag_ids.compact_map(&.to_i64?),
-        comment: values.comment)
+        comment: values.comment, visible_profile_id: values.visible_to.to_i64?)
     end
 
     private def card_of(name : String, code : String, errors : Array({String, String})) : Int64?
@@ -384,6 +400,7 @@ module PartiduoUi
           action.card.try { |card| card_url(card.id) }),
         Screen::Item.new(I18n.t("ui.followup.contact"), card_label(action.contact), action.contact.try { |card| card_url(card.id) }),
         Screen::Item.new(I18n.t("followup.columns.tags"), action.tags.map(&.label).join(", ")),
+        Screen::Item.new(I18n.t("ui.followup.visible_to"), visible_to_label(action.visible_profile_id)),
         Screen::Item.new(I18n.t("ui.followup.updated_at"), fmt.datetime(action.updated_at), mono: true),
       ]
       sections = [Screen::Section.new(I18n.t("ui.followup.summary"), items)]

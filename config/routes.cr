@@ -258,6 +258,7 @@ STOCK_ROUTES = Marten::Routing::Map.draw do
   path "/repositories/<id:int>/edit", PartiduoUi::StockRepositoryEditHandler, name: "repository_edit"
   path "/repositories/<id:int>/delete", PartiduoUi::StockRepositoryDeleteHandler, name: "repository_delete"
   path "/settings", PartiduoUi::StockSettingsHandler, name: "settings"
+  path "/rights", PartiduoUi::StockRightsHandler, name: "rights"
   path "/items", PartiduoUi::StockItemsHandler, name: "items"
   path "/items/new", PartiduoUi::StockItemNewHandler, name: "item_new"
   path "/items/<card_id:int>/edit", PartiduoUi::StockItemEditHandler, name: "item_edit"

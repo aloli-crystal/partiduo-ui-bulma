@@ -182,10 +182,11 @@ aussi (DECISIONS D-R5-008, B-CRIT-001 levé).
 |`/stock/items` |Articles suivis en stock : fiche article, code stock, quantité du jour
 |`/stock/changes`, `/stock/changes/new`, `/stock/changes/<id>` |Opérations manuelles (quantité signée, coût unitaire) et inventaires : liste, saisie, consultation, suppression
 |`/stock/inventory` |Inventaire en deux temps : quantités théoriques proposées, puis quantités comptées (l'écart devient un mouvement)
+|`/stock/rights` |Droits par dépôt d'un profil : aucun accès, lecture, lecture et écriture (D-R5-015)
 |`/stock/state`, `/stock/history`, `/stock/valuation` |État des stocks, historique des mouvements (pièce d'origine liée), valorisation au coût moyen pondéré ; CSV du cœur
 |`/accounting/forecasts` |Prévisions budgétaires : prévision, catégories, éléments (formule du réel, montant par période, montants propres), copie
 |`/accounting/forecasts/<id>/report` |Estimé, réel et écart par élément et par période ; totaux par catégorie ; CSV
-|`/followup/actions` |Actions de suivi : recherche (texte, état, type, étiquette, fiche, dates, actions internes), export CSV du cœur
+|`/followup/actions` |Actions de suivi : recherche (texte, état, type, étiquette, fiche, dates, actions internes), export CSV du cœur ; action réservée à un profil (« Visible par », D-R5-016)
 |`/followup/actions/new`, `/followup/actions/<id>` |Saisie et consultation d'une action : fiches par quick code, étiquettes, commentaires, état, actions liées, opérations rattachées (`entry:42`)
 |`/followup/reminders` |Rappels du jour et rappels dépassés
 |`/followup/types`, `/followup/tags` |Types d'action (préfixe, prochain numéro, types de base) ; étiquettes
