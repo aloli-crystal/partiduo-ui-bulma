@@ -182,6 +182,31 @@ describe "Mise en page adaptée à trois tailles d'écran (ADR-005 D5)" do
     end
   end
 
+  it "contraste l'étiquette neutre (« annulée ») à 4,5:1 au moins dans les deux thèmes (WCAG 1.4.3)" do
+    css.should contain(".tag.is-light:not(.is-primary):not(.is-link):not(.is-info):not(.is-success):not(.is-warning):not(.is-danger) {\n  background-color: var(--pd-tag-bg); color: var(--pd-tag-ink); }")
+    theme = File.read(PartiduoUi::SpecSupport.path("src", "ui", "assets", "ui", "css", "theme.css"))
+    token = ->(name : String) { theme.scan(/--pd-#{name}: #([0-9a-f]{6});/).map(&.[1]) }
+    luminance = ->(hex : String) do
+      rgb = {0, 2, 4}.map do |i|
+        c = hex[i, 2].to_i(16) / 255.0
+        c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+      end
+      0.2126 * rgb[0] + 0.7152 * rgb[1] + 0.0722 * rgb[2]
+    end
+    inks = token.call("tag-ink")
+    grounds = token.call("tag-bg")
+    {inks.size, grounds.size}.should eq({3, 3}) # clair, sombre (préférence), sombre (choisi)
+    inks.zip(grounds).each do |ink, ground|
+      a, b = luminance.call(ink), luminance.call(ground)
+      ((Math.max(a, b) + 0.05) / (Math.min(a, b) + 0.05)).should be >= 4.5
+    end
+  end
+
+  it "fait tenir une liste dans 375 px sans couper la colonne « Actions »" do
+    css.should match(/@media \(max-width: 767\.98px\) \{[^@]*\.pd-table\.is-narrow td, \.pd-table\.is-narrow th \{ padding-inline: \.3rem; \}/m)
+    css.should match(/@media \(max-width: 767\.98px\) \{[^@]*\.pd-table tfoot td\.pd-mono \{ white-space: normal;/m)
+  end
+
   it "n'utilise que des propriétés logiques pour les marges et bordures latérales (ADR-005 D7)" do
     css.should_not match(/(margin|padding|border)-(left|right)\s*:/)
     css.should_not match(/text-align:\s*(left|right)/)

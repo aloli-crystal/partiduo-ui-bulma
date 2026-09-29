@@ -193,6 +193,11 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
 .pd-table tr.pd-group-row th { background: var(--pd-row-alt); font-weight: 600; text-align: start;
   padding-block: .5rem; border-block-start: 1px solid var(--pd-rule); }
 .pd-table tr.pd-group-row .tag { font-weight: 400; }
+/* Étiquette neutre (`tag is-light` sans couleur) : fond et texte du thème,
+   contrastés à 4,5:1 dans les deux thèmes (WCAG 1.4.3) ; Bulma lui donne un
+   fond clair et laisse la couleur du texte hériter (illisible en sombre). */
+.tag.is-light:not(.is-primary):not(.is-link):not(.is-info):not(.is-success):not(.is-warning):not(.is-danger) {
+  background-color: var(--pd-tag-bg); color: var(--pd-tag-ink); }
 .pd-table tr.pd-row-locked td:first-child .pd-icon { color: var(--pd-muted); }
 /* Stock final négatif, action de suivi en retard (lot 6). */
 .pd-table tr.pd-row-warning td { color: var(--bulma-danger-40, #a3001b); }
@@ -398,6 +403,18 @@ img.pd-attachment-preview { min-height: 0; height: auto; object-fit: contain; }
   .pd-row-button { min-height: 44px; min-width: 44px; }
   .pd-row-button .pd-icon { margin-inline-end: 0; }
   .pd-row-button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+  /* Listes au téléphone : le tableau tient dans 375 px sans que la
+     dernière colonne (« Actions ») soit coupée — marges de cellule
+     réduites, en-têtes sans interlettrage, chiffres et codes un peu plus
+     petits, libellés de pied
+     (totaux par nature) repliés sur plusieurs lignes, cadenas d'une ligne
+     intangible masqué (le texte pour les lecteurs d'écran reste, l'état de
+     la période est dans l'en-tête du groupe). */
+  .pd-table.is-narrow td, .pd-table.is-narrow th { padding-inline: .3rem; }
+  .pd-table th { letter-spacing: 0; }
+  .pd-table td.pd-mono, .pd-table td.amount { font-size: .8rem; }
+  .pd-table tfoot td.pd-mono { white-space: normal; font-family: inherit; hyphens: auto; }
+  .pd-table tr.pd-row-locked td:first-child .pd-icon { display: none; }
   .pd-sum { grid-template-columns: minmax(0, 1fr); }
   .pd-tiles { grid-template-columns: minmax(0, 1fr); }
   .pd-inv-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }

@@ -40,6 +40,10 @@
   --pd-rule: #dce3e4;
   /* Bordure des champs de saisie : 3:1 au moins sur --pd-surface (WCAG 1.4.11). */
   --pd-field-border: #7d8d92;
+  /* Étiquette neutre (`tag is-light` sans couleur : « annulée », état d'une
+     période…) : texte à 4,5:1 au moins sur son fond (WCAG 1.4.3). */
+  --pd-tag-bg: #e8eef0;
+  --pd-tag-ink: #33434a;
   --pd-row-alt: #f8fafa;
   --pd-debit: #1b2a30;
   --pd-ok: #2e7d4f;
@@ -73,6 +77,8 @@
     --pd-muted: #93a6ab;
     --pd-rule: #26363b;
     --pd-field-border: #6a7d82;
+    --pd-tag-bg: #26383e;
+    --pd-tag-ink: #dbe6e8;
     --pd-row-alt: #182629;
     --pd-debit: #e3eced;
     --pd-ok: #6fcf97;
@@ -102,6 +108,8 @@
   --pd-muted: #93a6ab;
   --pd-rule: #26363b;
   --pd-field-border: #6a7d82;
+  --pd-tag-bg: #26383e;
+  --pd-tag-ink: #dbe6e8;
   --pd-row-alt: #182629;
   --pd-debit: #e3eced;
   --pd-ok: #6fcf97;
