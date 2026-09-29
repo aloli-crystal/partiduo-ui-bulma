@@ -114,6 +114,7 @@ module PartiduoUi
       actions = [link_action("ui.users.new", reverse("core:user_new"), "primary", "plus")]
       actions << link_action("ui.profiles.title", reverse("core:profiles")) if can?(PROFILES)
       actions << link_action("ui.audit.title", reverse("core:audit")) if can?(AuditHandler::AUDIT)
+      actions << link_action("ui.providers.title", reverse("core:identity_providers")) if can?("auth.providers.manage")
       list_page(I18n.t("core.menu.core_users"), table, crumbs[0, 1], "ui.users.csv_name", actions,
         intro: I18n.t("ui.users.intro"))
     end
@@ -172,6 +173,7 @@ module PartiduoUi
       ]
       actions = [link_action("ui.forms.edit", reverse("core:user_edit", id: user.id), "primary")]
       actions << link_action("ui.users.ledgers", reverse("core:user_ledgers", id: user.id)) if module_active?("ACCOUNTING")
+      actions << link_action("ui.providers.identities", reverse("core:user_identities", id: user.id)) if can?("auth.providers.manage")
       actions << post_action("ui.users.reinvite", reverse("core:user_command", id: user.id, command: "invite"), "ui.users.reinvite_confirm")
       actions << post_action("ui.users.unlock", reverse("core:user_command", id: user.id, command: "unlock")) if user.locked
       if user.revoked

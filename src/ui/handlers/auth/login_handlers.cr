@@ -34,13 +34,26 @@ module PartiduoUi
 
     private def login_page(email : String = "", errors = {} of String => Array(String),
                            throttling = {} of String => String | Bool, status : Int32 = 200)
+      next_path = Navigation.safe_path(query("next").presence || field("next").presence) || ""
       page("ui/auth/login.html", {
         "email"      => email,
         "errors"     => errors,
         "throttling" => throttling,
-        "next"       => Navigation.safe_path(query("next").presence || field("next").presence) || "",
+        "next"       => next_path,
         "company"    => company_name,
+        "providers"  => federated_links(next_path),
       }, status)
+    end
+
+    # Boutons de connexion fédérée (ADR-002 D3) : fournisseurs actifs, si la
+    # politique de l'instance admet la méthode ; `nil` sinon.
+    private def federated_links(next_path : String) : Array(Screen::Action)?
+      links = Partiduo::Api::Auth.login_providers(Partiduo::Api::Actor.anonymous).map do |provider|
+        url = reverse("login_federated", code: provider.code)
+        url = "#{url}?#{URI::Params.encode({"next" => next_path})}" unless next_path.empty?
+        Screen::Action.new(I18n.t("ui.login.federated_button", name: provider.name), url, icon: "log-in")
+      end
+      links.empty? ? nil : links
     end
 
     # Nom du dossier sur l'écran de connexion : le contrat ne l'expose qu'à un
@@ -156,6 +169,58 @@ module PartiduoUi
           same_site: "Lax", secure: Current.secure_cookies?(request))
       end
       go(Navigation.next_path(request, reverse("login")))
+    end
+  end
+
+  # Connexion fédérée (ADR-002 D3, D-UI-011 révisée, DECISIONS D-R5-010) :
+  # départ vers le fournisseur. L'identifiant de requête du cœur est gardé
+  # dans un cookie `HttpOnly` ; pour SAML, dont la réponse arrive par un POST
+  # intersite, `SameSite=None; Secure` (en HTTPS), sinon `Lax`.
+  class LoginFederatedHandler < Handler
+    def get
+      code = params["code"].to_s
+      provider = Partiduo::Api::Auth.login_providers(Partiduo::Api::Actor.anonymous).find(&.code.==(code))
+      raise Partiduo::Api::NotFound.new("identity_provider", code) unless provider
+      start = Partiduo::Api::Auth.begin_federated_login(Partiduo::Api::Actor.anonymous, code)
+      secure = Current.secure_cookies?(request)
+      same_site = provider.kind == "saml" && secure ? "None" : "Lax"
+      request.cookies.set(Current::FEDERATED_COOKIE, start.request_id, expires: 10.minutes.from_now, http_only: true,
+        secure: secure, same_site: same_site)
+      if next_path = Navigation.safe_path(query("next").presence)
+        request.cookies.set(Current::FEDERATED_NEXT_COOKIE, next_path, expires: 10.minutes.from_now, http_only: true,
+          secure: secure, same_site: same_site)
+      end
+      Marten::HTTP::Response::Found.new(start.redirect_url)
+    end
+  end
+
+  # Retour du fournisseur : réponse SAML (POST intersite, sans jeton CSRF —
+  # contrôlée par le cœur : signature, `InResponseTo`, usage unique) ou
+  # rappel OpenID Connect (GET, `code` et `state`).
+  class LoginFederatedReturnHandler < Handler
+    protect_from_forgery false
+
+    def get
+      complete({"code" => query("code"), "state" => query("state"), "error" => query("error")})
+    end
+
+    def post
+      complete({"SAMLResponse" => field("SAMLResponse", strip: false), "RelayState" => field("RelayState")})
+    end
+
+    private def complete(payload : Hash(String, String)) : Marten::HTTP::Response
+      code = params["code"].to_s
+      handle = request.cookies[Current::FEDERATED_COOKIE]?.presence || ""
+      next_path = Navigation.safe_path(request.cookies[Current::FEDERATED_NEXT_COOKIE]?.presence) || reverse("core:dashboard")
+      request.cookies.delete(Current::FEDERATED_COOKIE)
+      request.cookies.delete(Current::FEDERATED_NEXT_COOKIE)
+      result = Partiduo::Api::Auth.login_federated(Partiduo::Api::Actor.anonymous, code, handle,
+        payload.reject { |_, value| value.empty? }, Current.login_context(request))
+      if view = result.value?
+        return go(LoginFlow.destination(request, view, next_path))
+      end
+      flash["danger"] = result.errors.map { |error| I18n.t(error.key, error.params) }.join(" ")
+      go(reverse("login"))
     end
   end
 end

@@ -132,6 +132,9 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
 .pd-recommended { border: 1px solid var(--pd-rule); border-radius: var(--bulma-radius); padding: 1rem; background: var(--pd-row-alt); }
 .pd-or { display: flex; align-items: center; gap: .75rem; color: var(--pd-muted); font-size: .85rem; margin-block: 1.25rem; }
 .pd-or::before, .pd-or::after { content: ""; flex: 1; border-block-start: 1px solid var(--pd-rule); }
+/* Connexion fédérée (D-R5-010) : un bouton par fournisseur d'identité. */
+.pd-federated { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+.pd-federated .button { min-block-size: 44px; justify-content: flex-start; }
 .pd-passkey-status:empty { display: none; }
 
 /* Sécurité du compte */

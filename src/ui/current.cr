@@ -17,6 +17,9 @@ module PartiduoUi
     # Cookie de l'identifiant de requête d'une connexion fédérée.
     FEDERATED_COOKIE = "partiduo_federated"
 
+    # Cookie de la page demandée avant une connexion fédérée.
+    FEDERATED_NEXT_COOKIE = "partiduo_federated_next"
+
     getter token : String?
     getter actor : Partiduo::Api::Actor
     getter session : Partiduo::Api::Auth::SessionView?

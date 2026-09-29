@@ -20,7 +20,8 @@ module PartiduoUi
     end
 
     # Champ : `type` `text`, `number` (décimal saisi en texte), `date`,
-    # `email`, `select`, `checkbox`, `textarea`.
+    # `email`, `password` (secret jamais réaffiché), `select`, `checkbox`,
+    # `textarea`, `hidden`.
     class Field
       include Marten::Template::Object::Auto
 
@@ -64,10 +65,11 @@ module PartiduoUi
 
       def input_type : String
         case type
-        when "number" then "text"
-        when "date"   then "date"
-        when "email"  then "email"
-        else               "text"
+        when "number"   then "text"
+        when "date"     then "date"
+        when "email"    then "email"
+        when "password" then "password"
+        else                 "text"
         end
       end
 

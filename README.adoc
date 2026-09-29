@@ -280,7 +280,14 @@ Décisions D-UI-069 à D-UI-073 (DECISIONS du cœur).
 |`/account/passkey-prompt` |Invitation à enrôler une passkey après une connexion par mot de passe
 |`/password/forgotten`, `/password/reset/<jeton>` |Remise à zéro par courriel
 |`/unlock`, `/unlock/<jeton>` |Déblocage par courriel
+|`/login/federated/<code>` |Connexion fédérée : départ vers le fournisseur ; retour OIDC `…/callback` (GET), réponse SAML `…/acs` (POST, sans jeton CSRF, contrôlée par le cœur)
+|`/settings/identity-providers` |Fournisseurs d'identité (SAML 2.0, OpenID Connect) : paramètres du type, niveau reconnu, activation, adresse de retour ; secrets jamais réaffichés
+|`/settings/users/<id>/identities` |Identités fédérées d'un utilisateur : rattacher, détacher (autorisation locale, ADR-002 D3)
 |===
+
+Les boutons de connexion fédérée n'apparaissent que si la politique du
+dossier admet la méthode « Fournisseur d'identité » (paramètres de la
+société). DECISIONS D-R5-009, D-R5-010.
 
 Le jeton de session du cœur est gardé dans le cookie `partiduo_session`
 (`HttpOnly`, `SameSite=Lax`, `Secure` en HTTPS) ; chaque requête le

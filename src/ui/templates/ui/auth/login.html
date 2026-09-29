@@ -15,6 +15,15 @@
   <p class="help pd-passkey-status" id="pd-passkey-status" role="status" aria-live="polite" data-unsupported="{% translate 'ui.passkey.unsupported' %}" data-failed="{% translate 'ui.passkey.failed' %}" data-waiting="{% translate 'ui.passkey.waiting' %}"></p>
 </section>
 
+{% if providers %}<p class="pd-or"><span>{% translate "ui.login.or" %}</span></p>
+
+<section class="pd-auth-block" aria-labelledby="pd-federated-title">
+  <h2 id="pd-federated-title" class="pd-auth-subtitle">{% include "ui/_icon.html" with name="shield-check" %}<span>{% translate "ui.login.federated_title" %}</span></h2>
+  <p class="pd-muted">{% translate "ui.login.federated_help" %}</p>
+  <ul class="pd-federated">{% for action in providers %}<li><a class="button is-fullwidth pd-touch" href="{{ action.url }}">{% include "ui/_icon.html" with name="log-in" %}<span>{{ action.label }}</span></a></li>{% endfor %}</ul>
+</section>
+{% endif %}
+
 <p class="pd-or"><span>{% translate "ui.login.or" %}</span></p>
 
 <form method="post" action="{% url 'login' %}" class="pd-auth-block" novalidate aria-labelledby="pd-password-title">

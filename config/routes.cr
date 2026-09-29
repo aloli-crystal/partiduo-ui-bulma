@@ -31,6 +31,12 @@ CORE_ROUTES = Marten::Routing::Map.draw do
   path "/settings/users/<id:int>/edit", PartiduoUi::UserEditHandler, name: "user_edit"
   path "/settings/users/<id:int>/ledgers", PartiduoUi::UserLedgersHandler, name: "user_ledgers"
   path "/settings/users/<id:int>/access/<command:str>", PartiduoUi::UserCommandHandler, name: "user_command"
+  # Identités fédérées d'un utilisateur et fournisseurs d'identité (ADR-002 D3, D-R5-010).
+  path "/settings/users/<id:int>/identities", PartiduoUi::UserIdentitiesHandler, name: "user_identities"
+  path "/settings/users/<id:int>/identities/<identity:int>/unlink", PartiduoUi::UserIdentityUnlinkHandler, name: "user_identity_unlink"
+  path "/settings/identity-providers", PartiduoUi::IdentityProvidersHandler, name: "identity_providers"
+  path "/settings/identity-providers/new", PartiduoUi::IdentityProviderNewHandler, name: "identity_provider_new"
+  path "/settings/identity-providers/<code:str>", PartiduoUi::IdentityProviderEditHandler, name: "identity_provider_edit"
   path "/settings/audit", PartiduoUi::AuditHandler, name: "audit"
   path "/settings/profiles", PartiduoUi::ProfilesHandler, name: "profiles"
   path "/settings/profiles/new", PartiduoUi::ProfileNewHandler, name: "profile_new"
@@ -376,6 +382,10 @@ Marten.routes.draw do
   path "/login/second-factor", PartiduoUi::LoginSecondFactorHandler, name: "login_second_factor"
   path "/login/passkey/options", PartiduoUi::LoginPasskeyOptionsHandler, name: "login_passkey_options"
   path "/login/passkey", PartiduoUi::LoginPasskeyHandler, name: "login_passkey"
+  # Connexion fédérée (ADR-002 D3) : départ, retour OIDC (GET), réponse SAML (POST).
+  path "/login/federated/<code:str>", PartiduoUi::LoginFederatedHandler, name: "login_federated"
+  path "/login/federated/<code:str>/callback", PartiduoUi::LoginFederatedReturnHandler, name: "login_federated_callback"
+  path "/login/federated/<code:str>/acs", PartiduoUi::LoginFederatedReturnHandler, name: "login_federated_acs"
   path "/logout", PartiduoUi::LogoutHandler, name: "logout"
   path "/invitation/<token:str>", PartiduoUi::InvitationHandler, name: "invitation"
   path "/password/forgotten", PartiduoUi::PasswordForgottenHandler, name: "password_forgotten"
