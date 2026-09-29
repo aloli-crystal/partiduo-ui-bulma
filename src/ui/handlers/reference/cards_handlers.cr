@@ -78,6 +78,7 @@ module PartiduoUi
       else
         groups.concat(party_groups(input))
         groups << customer_group(input) if category.kind == "customer"
+        groups << supplier_group(input) if category.kind == "supplier"
       end
       unless category.attributes.empty?
         groups << Form::Group.new(I18n.t("ui.cards.attributes"), category.attributes.map { |attribute| extra_field(attribute, input.extra[attribute.key]?) })
@@ -134,6 +135,21 @@ module PartiduoUi
       ])
     end
 
+    # Fournisseur personne physique (DAS2) : nature, puis nom, prénoms et
+    # date de naissance, déclarés à la place de la raison sociale.
+    private def supplier_group(input) : Form::Group
+      natures = [option("", I18n.t("ui.cards.nature_unset"))] +
+                Partiduo::Api::Cards::SUPPLIER_NATURES.map { |nature| option(nature, I18n.t("cards.supplier_natures.#{nature}")) }
+      Form::Group.new(I18n.t("ui.cards.supplier_group"), [
+        Form::Field.new("supplier_nature", I18n.t("ui.cards.supplier_nature"), "select", input.supplier_nature || "",
+          options: natures, help: I18n.t("ui.cards.supplier_nature_help")),
+        Form::Field.new("last_name", I18n.t("ui.cards.last_name"), value: input.last_name || "", maxlength: 128,
+          help: I18n.t("ui.cards.person_help")),
+        Form::Field.new("first_names", I18n.t("ui.cards.first_names"), value: input.first_names || "", maxlength: 128),
+        Form::Field.new("birth_date", I18n.t("ui.cards.birth_date"), "date", input.birth_date.try(&.to_s("%F")) || ""),
+      ])
+    end
+
     private def address_fields(prefix : String, address : Partiduo::Api::Cards::AddressInput) : Array(Form::Field)
       [
         Form::Field.new("#{prefix}.line1", I18n.t("ui.cards.line1"), value: address.line1 || "", wide: true),
@@ -183,7 +199,20 @@ module PartiduoUi
         contact_name: field("contact_name"), address: address_input("address"), delivery_addresses: deliveries, extra: extra,
         customer_nature: category.kind == "customer" ? field("customer_nature") : nil,
         pdf_copy: category.kind == "customer" ? checkbox("pdf_copy") : nil,
-      )
+      ).copy_with(**person_input(category, form_errors))
+    end
+
+    # Nature et identité d'un fournisseur ; hors fournisseur, rien (la
+    # nature enregistrée est effacée par le cœur).
+    private def person_input(category, form_errors)
+      supplier = category.kind == "supplier"
+      born = nil.as(Time?)
+      if supplier && !(text = field("birth_date")).empty?
+        born = fmt.parse_date(text)
+        form_errors << {"birth_date", I18n.t("ui.forms.invalid_date")} unless born
+      end
+      {supplier_nature: supplier ? field("supplier_nature") : nil, last_name: supplier ? field("last_name") : nil,
+       first_names: supplier ? field("first_names") : nil, birth_date: born}
     end
 
     private def read_item(category, extra, form_errors) : Partiduo::Api::Cards::CardInput
@@ -489,6 +518,15 @@ module PartiduoUi
                  I18n.t("ui.cards.nature_unset_proposed", {"nature" => I18n.t("cards.natures.#{card.proposed_nature}")})
         contact << Screen::Item.new(I18n.t("ui.cards.nature"), nature)
         contact << Screen::Item.new(I18n.t("ui.cards.pdf_copy"), yes_no(card.pdf_copy))
+      end
+      if card.kind == "supplier"
+        contact << Screen::Item.new(I18n.t("ui.cards.supplier_nature"),
+          card.supplier_nature_key.try { |key| I18n.t(key) } || I18n.t("ui.cards.nature_unset"))
+        if card.individual_supplier?
+          contact << Screen::Item.new(I18n.t("ui.cards.last_name"), card.last_name)
+          contact << Screen::Item.new(I18n.t("ui.cards.first_names"), card.first_names)
+          contact << Screen::Item.new(I18n.t("ui.cards.birth_date"), fmt.date(card.birth_date), mono: true)
+        end
       end
       [
         Screen::Section.new(I18n.t("ui.cards.contact_group"), contact),
