@@ -69,8 +69,13 @@ module PartiduoUi
 
     # `issue_channel` : vide = proposition du cœur selon le client ;
     # `b2c` : vide (selon le client), `1`, `0` (ADR-004 D9).
+    # `payment_terms` : vide (délai des paramètres), `on_receipt`,
+    # `net:<jours>`, `end_of_month:<jours>` ; `delivery` : vide (adresse de
+    # livraison par défaut de la fiche), `none`, `card:<rang>`, `other`
+    # (champs `delivery_*`). DECISIONS D-R5-004.
     HEADER = %w[customer issue_date delivery_date due_date validity_date operation_category buyer_reference order_reference
-      notes global_discount issue_channel b2c]
+      notes global_discount issue_channel b2c payment_terms delivery delivery_line1 delivery_postcode delivery_city
+      delivery_country]
 
     getter kind : String
     getter lines : Array(Line)
@@ -80,6 +85,8 @@ module PartiduoUi
     property category_options : Array(Form::Option)? = nil
     property channel_options : Array(Form::Option)? = nil
     property b2c_options : Array(Form::Option)? = nil
+    property terms_options : Array(Form::Option)? = nil
+    property delivery_options : Array(Form::Option)? = nil
     # Canal proposé pour le client saisi (« Proposé : … »), `nil` sans client.
     property channel_hint : String? = nil
     property customer_name : String = ""
@@ -112,6 +119,16 @@ module PartiduoUi
 
     def quote : Bool
       kind == "quote"
+    end
+
+    # Conditions de paiement : sans objet pour un avoir ou un bon de livraison.
+    def payable : Bool
+      !kind.in?("credit_note", "delivery_note")
+    end
+
+    # Champs de l'autre adresse de livraison ouverts (choix « autre »).
+    def other_delivery : Bool
+      delivery == "other"
     end
 
     def fiscal : Bool
@@ -149,7 +166,7 @@ module PartiduoUi
       self
     end
 
-    FIELD_MAP = {"customer_card_id" => "customer"}
+    FIELD_MAP = {"customer_card_id" => "customer", "payment_terms_days" => "payment_terms"}
 
     def add_error(field : String, message : String) : Nil
       if match = field.match(/\Alines\[(\d+)\]/)

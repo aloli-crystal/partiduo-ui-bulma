@@ -698,6 +698,22 @@ fr:
       pdf_copy_sent_on: "Copie PDF envoyée le %{date} à %{to}."
       pdf_copy_failed_on: "Échec de la copie PDF le %{date} : %{error}"
       pdf_copy_deposited: "Déposée sur la plateforme le %{date}."
+      terms:
+        label: "Conditions"
+        default: "Paramètres (%{days} jours)"
+        on_receipt: "À réception"
+        net: "%{days} jours"
+        end_of_month: "%{days} jours fin de mois"
+        help: "Échéance calculée à l'émission si elle n'est pas saisie ; mentionnée sur la facture."
+        invalid: "Conditions de paiement non reconnues"
+      delivery:
+        label: "Adresse de livraison"
+        default: "Adresse de livraison de la fiche (par défaut)"
+        none: "Aucune (adresse de facturation)"
+        other: "Autre adresse, saisie ci-dessous"
+        line1: "Autre adresse"
+        help: "Les champs ne servent qu'au choix « Autre adresse » ; la liste suit le client saisi."
+        incomplete: "Indiquez au moins l'adresse et la ville de l'autre adresse de livraison"
       express:
         summary: "Nouveau client particulier"
         create: "Créer le client"

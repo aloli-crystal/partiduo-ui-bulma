@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Édition d'un devis ou d'une facture en brouillon (maquette « Édition ») : client complété, dates (saisie abrégée), catégorie d'opération, canal d'émission et marquage B2C (ADR-004 D9), références, lignes au clavier (paquet Opal entry.js : Entrée, Alt+↓, Ctrl+Entrée), totaux instantanés par check_document (HTMX) ; mentions obligatoires générées par le cœur à l'émission. Sans JavaScript : formulaire ordinaire. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Édition d'un devis ou d'une facture en brouillon (maquette « Édition ») : client complété, dates (saisie abrégée), catégorie d'opération, canal d'émission et marquage B2C (ADR-004 D9), conditions de paiement et adresse de livraison (D-R5-004), références, lignes au clavier (paquet Opal entry.js : Entrée, Alt+↓, Ctrl+Entrée), totaux instantanés par check_document (HTMX) ; mentions obligatoires générées par le cœur à l'émission. Sans JavaScript : formulaire ordinaire. #}{% extend "ui/base.html" %}
 {% block title %}{{ title }}{% endblock title %}
 {% block scripts %}<script src="{% asset 'ui/js/opal/runtime.js' %}" defer></script>
     <script src="{% asset 'ui/js/opal/entry.js' %}" defer></script>{% endblock scripts %}
@@ -40,6 +40,12 @@
       <div class="field"><label class="label" for="pd-d-due">{% translate "ui.invoicing.due_date" %}</label><input class="input pd-mono" id="pd-d-due" name="due_date" value="{{ form.due_date }}" inputmode="numeric">
         {% include "ui/_errors.html" with messages=form.due_date_errors, id="pd-d-due-errors" %}</div>
       {% endif %}
+      {% if form.payable %}
+      <div class="field"><label class="label" for="pd-d-terms">{% translate "ui.invoicing.terms.label" %}</label>
+        <div class="select is-fullwidth"><select id="pd-d-terms" name="payment_terms" aria-describedby="pd-d-terms-help{% if form.payment_terms_errors %} pd-d-terms-errors{% endif %}"{% if form.payment_terms_errors %} aria-invalid="true"{% endif %}>{% for option in form.terms_options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div>
+        <p class="help" id="pd-d-terms-help">{% translate "ui.invoicing.terms.help" %}</p>
+        {% include "ui/_errors.html" with messages=form.payment_terms_errors, id="pd-d-terms-errors" %}</div>
+      {% endif %}
       <div class="field"><label class="label" for="pd-d-category">{% translate "ui.invoicing.category" %}</label>
         <div class="select is-fullwidth"><select id="pd-d-category" name="operation_category"><option value="">{% translate "ui.invoicing.category_default" %}</option>{% for option in form.category_options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div></div>
       <div class="field"><label class="label" for="pd-d-discount">{% translate "ui.invoicing.global_discount" %}</label><input class="input pd-mono" id="pd-d-discount" name="global_discount" value="{{ form.global_discount }}" inputmode="decimal">
@@ -54,6 +60,7 @@
       {% endif %}
       <div class="field span2"><label class="label" for="pd-d-buyer">{% translate "ui.invoicing.buyer_reference" %}</label><input class="input" id="pd-d-buyer" name="buyer_reference" value="{{ form.buyer_reference }}"></div>
       <div class="field span2"><label class="label" for="pd-d-order">{% translate "ui.invoicing.order_reference" %}</label><input class="input" id="pd-d-order" name="order_reference" value="{{ form.order_reference }}"></div>
+      {% include "ui/invoicing/_delivery.html" %}
     </div>
     <p class="help" id="pd-d-date-help">{% translate "ui.invoicing.date_help" %}</p>
   </div>

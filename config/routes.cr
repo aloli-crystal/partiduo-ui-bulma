@@ -172,6 +172,7 @@ INVOICING_ROUTES = Marten::Routing::Map.draw do
   path "/invoices/new", PartiduoUi::InvoiceNewHandler, name: "invoice_new"
   path "/documents/check", PartiduoUi::DocumentCheckHandler, name: "document_check"
   path "/documents/line", PartiduoUi::DocumentLineHandler, name: "document_line"
+  path "/documents/delivery", PartiduoUi::DocumentDeliveryHandler, name: "document_delivery"
   path "/documents/<id:int>", PartiduoUi::DocumentHandler, name: "document"
   path "/documents/<id:int>/edit", PartiduoUi::DocumentEditHandler, name: "document_edit"
   path "/documents/<id:int>/preview", PartiduoUi::DocumentPreviewHandler, name: "document_preview"

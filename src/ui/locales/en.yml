@@ -698,6 +698,22 @@ en:
       pdf_copy_sent_on: "PDF copy sent on %{date} to %{to}."
       pdf_copy_failed_on: "PDF copy failed on %{date}: %{error}"
       pdf_copy_deposited: "Uploaded to the platform on %{date}."
+      terms:
+        label: "Terms"
+        default: "Settings (%{days} days)"
+        on_receipt: "On receipt"
+        net: "%{days} days"
+        end_of_month: "%{days} days end of month"
+        help: "Due date computed on issue when not entered; stated on the invoice."
+        invalid: "Unrecognised payment terms"
+      delivery:
+        label: "Delivery address"
+        default: "Card delivery address (default)"
+        none: "None (billing address)"
+        other: "Other address, entered below"
+        line1: "Other address"
+        help: "The fields are only used with “Other address”; the list follows the customer entered."
+        incomplete: "Enter at least the street and city of the other delivery address"
       express:
         summary: "New private customer"
         create: "Create the customer"

@@ -1,0 +1,12 @@
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Adresse de livraison de l'édition d'un document (maquette « Adresse de livraison (si différente) ») : par défaut celle de la fiche, aucune, l'une des adresses de livraison du client, ou une autre saisie ; liste rechargée par HTMX au changement du client (DECISIONS D-R5-004). Sans JavaScript : liste de la fiche enregistrée et champs de l'autre adresse. #}<fieldset class="field span2 pd-delivery" id="pd-d-delivery-box" hx-get="{% url 'invoicing:document_delivery' %}" hx-trigger="change from:#pd-d-customer" hx-include="#pd-d-customer, #pd-d-delivery-choice, #pd-d-delivery-box input" hx-target="this" hx-swap="outerHTML"{% if form.delivery_errors %} aria-describedby="pd-d-delivery-errors"{% endif %}>
+  <legend class="label">{% translate "ui.invoicing.delivery.label" %}</legend>
+  <div class="select is-fullwidth"><select id="pd-d-delivery-choice" name="delivery" aria-label="{% translate 'ui.invoicing.delivery.label' %}"{% if form.delivery_errors %} aria-invalid="true"{% endif %}>{% for option in form.delivery_options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div>
+  <div class="pd-delivery-grid mt-2">
+    <div class="field span2"><label class="label is-small" for="pd-d-dl-line1">{% translate "ui.invoicing.delivery.line1" %}</label><input class="input" id="pd-d-dl-line1" name="delivery_line1" value="{{ form.delivery_line1 }}" autocomplete="off" aria-describedby="pd-d-delivery-help"></div>
+    <div class="field"><label class="label is-small" for="pd-d-dl-postcode">{% translate "ui.cards.postcode" %}</label><input class="input pd-mono" id="pd-d-dl-postcode" name="delivery_postcode" value="{{ form.delivery_postcode }}" autocomplete="off"></div>
+    <div class="field"><label class="label is-small" for="pd-d-dl-city">{% translate "ui.cards.city" %}</label><input class="input" id="pd-d-dl-city" name="delivery_city" value="{{ form.delivery_city }}" autocomplete="off"></div>
+    <div class="field"><label class="label is-small" for="pd-d-dl-country">{% translate "ui.cards.country" %}</label><input class="input pd-mono" id="pd-d-dl-country" name="delivery_country" value="{{ form.delivery_country }}" maxlength="2" autocomplete="off"></div>
+  </div>
+  <p class="help" id="pd-d-delivery-help">{% translate "ui.invoicing.delivery.help" %}</p>
+  {% include "ui/_errors.html" with messages=form.delivery_errors, id="pd-d-delivery-errors" %}
+</fieldset>

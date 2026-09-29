@@ -53,11 +53,53 @@ module PartiduoUi
         Form::Option.new(code, I18n.t("ui.invoicing.categories.#{code}"), code == form.operation_category)
       end
       decorate_channel(form) if form.fiscal
+      form.terms_options = terms_options(form.payment_terms) if form.payable
+      form.delivery_options = delivery_options(form.customer, form.delivery)
       form.each_row do |line|
         line.vat_options = [Form::Option.new("", I18n.t("ui.invoicing.vat_default"), line.vat_rate_id.empty?)] +
                            vat_rates.map { |rate| Form::Option.new(rate.id.to_s, "#{rate.code} · #{fmt.percent(rate.rate)}", rate.id.to_s == line.vat_rate_id) }
       end
       form
+    end
+
+    # Conditions de paiement proposées (maquette : 30 jours, 45 jours fin de
+    # mois, à réception), plus celles du document si elles n'y sont pas.
+    TERMS_PRESETS = %w[on_receipt net:15 net:30 net:45 net:60 end_of_month:30 end_of_month:45]
+
+    def terms_options(value : String) : Array(Form::Option)
+      default_days = Inv.settings(current.actor).payment_terms_days
+      values = TERMS_PRESETS.dup
+      values << value unless value.empty? || values.includes?(value)
+      [Form::Option.new("", I18n.t("ui.invoicing.terms.default", days: default_days), value.empty?)] +
+        values.map { |code| Form::Option.new(code, terms_label(code), code == value) }
+    end
+
+    def terms_label(code : String) : String
+      terms, _, days = code.partition(':')
+      terms == "on_receipt" ? I18n.t("ui.invoicing.terms.on_receipt") : I18n.t("ui.invoicing.terms.#{terms}", days: days)
+    end
+
+    # Adresses de livraison proposées : celle de la fiche par défaut, aucune,
+    # chacune des adresses de livraison de la fiche, une autre saisie.
+    def delivery_options(customer : String, value : String) : Array(Form::Option)
+      options = [Form::Option.new("", I18n.t("ui.invoicing.delivery.default"), value.empty?),
+                 Form::Option.new("none", I18n.t("ui.invoicing.delivery.none"), value == "none")]
+      customer_card(customer).try(&.delivery_addresses.each_with_index do |address, index|
+        options << Form::Option.new("card:#{index}", delivery_text(address), value == "card:#{index}")
+      end)
+      options << Form::Option.new("other", I18n.t("ui.invoicing.delivery.other"), value == "other")
+    end
+
+    def delivery_text(address : Partiduo::Api::Cards::AddressView) : String
+      locality = [address.postcode, address.city].reject(&.empty?).join(" ")
+      [address.label, address.line1, address.line2, locality, address.country_code].reject(&.empty?).join(", ")
+    end
+
+    def customer_card(code : String) : Partiduo::Api::Cards::CardView?
+      return if code.empty?
+      Partiduo::Api::Cards.card_by_code(current.actor, code)
+    rescue Partiduo::Api::AccessDenied
+      nil
     end
 
     # Canal d'émission et marquage B2C (ADR-004 D9) : choix vide = proposition
@@ -144,6 +186,8 @@ module PartiduoUi
       customer = customer_of(form)
       dates = dates_of(form)
       discount = discount_of(form)
+      terms = terms_of(form)
+      delivery = delivery_of(form)
       lines = line_inputs(form)
       return if form.invalid || customer.nil?
       Inv::DocumentInput.new(
@@ -158,7 +202,38 @@ module PartiduoUi
         credited_document_id: existing.try(&.credited.try(&.id)),
         issue_channel: form.fiscal ? form.issue_channel.presence : nil,
         b2c: form.fiscal ? {"1" => true, "0" => false}[form.b2c]? : nil,
+        delivery_address: delivery, payment_terms: terms.try(&.[0]), payment_terms_days: terms.try(&.[1]),
       )
+    end
+
+    # Conditions saisies : `{conditions, jours}` ; `nil` sans condition.
+    private def terms_of(form : DocumentForm) : {String, Int32?}?
+      return if form.payment_terms.empty? || !form.payable
+      terms, separator, days = form.payment_terms.partition(':')
+      count = days.to_i?
+      if !Inv::PAYMENT_TERMS.includes?(terms) || (separator.empty? != (terms == "on_receipt")) || (!separator.empty? && count.nil?)
+        form.add_error("payment_terms", I18n.t("ui.invoicing.terms.invalid"))
+        return
+      end
+      {terms, count}
+    end
+
+    # Adresse de livraison choisie : `nil` (celle de la fiche par défaut),
+    # adresse vide (aucune), adresse de la fiche ou autre adresse saisie.
+    private def delivery_of(form : DocumentForm) : Partiduo::Api::Cards::AddressInput?
+      case choice = form.delivery
+      when "none"
+        Partiduo::Api::Cards::AddressInput.new
+      when "other"
+        if form.delivery_line1.empty? || form.delivery_city.empty?
+          form.add_error("delivery", I18n.t("ui.invoicing.delivery.incomplete"))
+          return
+        end
+        Partiduo::Api::Cards::AddressInput.new(line1: form.delivery_line1, postcode: form.delivery_postcode,
+          city: form.delivery_city, country_code: form.delivery_country.upcase.presence)
+      when .starts_with?("card:")
+        customer_card(form.customer).try(&.delivery_addresses[choice.lchop("card:").to_i? || -1]?.try(&.to_input))
+      end
     end
 
     private def customer_of(form : DocumentForm) : Int64?
@@ -210,9 +285,41 @@ module PartiduoUi
         form.issue_channel = document.issue_channel
         form.b2c = document.b2c ? "1" : "0"
       end
+      form.payment_terms = terms_value(document)
+      delivery_form(form, document)
       document.lines.each_with_index { |line, index| form.lines << form_line(line, index) }
       form.add_line if form.lines.empty?
       form
+    end
+
+    private def terms_value(document : Inv::DocumentView) : String
+      case document.payment_terms
+      when ""           then ""
+      when "on_receipt" then "on_receipt"
+      else                   "#{document.payment_terms}:#{document.payment_terms_days || Inv.settings(current.actor).payment_terms_days}"
+      end
+    end
+
+    # Adresse enregistrée : aucune, l'une de celles de la fiche, ou autre.
+    private def delivery_form(form : DocumentForm, document : Inv::DocumentView) : Nil
+      address = document.delivery_address
+      return form.delivery = "none" unless address
+      card = Partiduo::Api::Cards.card(current.actor, document.customer_card_id)
+      index = card.delivery_addresses.index do |item|
+        {item.line1, item.line2, item.postcode, item.city, item.country_code} ==
+          {address.line1, address.line2, address.postcode, address.city, address.country_code}
+      end
+      if index
+        form.delivery = "card:#{index}"
+      else
+        form.delivery = "other"
+        form.delivery_line1 = address.line1
+        form.delivery_postcode = address.postcode
+        form.delivery_city = address.city
+        form.delivery_country = address.country_code
+      end
+    rescue Partiduo::Api::NotFound | Partiduo::Api::AccessDenied
+      form.delivery = "other"
     end
 
     private def form_line(line : Inv::LineView, index : Int32) : DocumentForm::Line
@@ -629,6 +736,24 @@ module PartiduoUi
       @gross = [fmt.amount(totals.total_gross), currency].reject(&.empty?).join(" ")
       @prepaid = totals.prepaid.zero? ? nil : fmt.amount(totals.prepaid)
       @payable = totals.prepaid.zero? ? nil : fmt.amount(totals.payable)
+    end
+  end
+
+  # Choix de l'adresse de livraison parmi celles du client saisi (HTMX, au
+  # changement du champ « Client »). DECISIONS D-R5-004.
+  class DocumentDeliveryHandler < InvoicingScreen
+    def get
+      require!(MODULE, WRITE)
+      form = DocumentForm.new("invoice")
+      form.customer = query("customer").strip
+      form.delivery = query("delivery").strip
+      form.delivery = "" if form.delivery.starts_with?("card:")
+      form.delivery_line1 = query("delivery_line1").strip
+      form.delivery_postcode = query("delivery_postcode").strip
+      form.delivery_city = query("delivery_city").strip
+      form.delivery_country = query("delivery_country").strip
+      form.delivery_options = delivery_options(form.customer, form.delivery)
+      render("ui/invoicing/_delivery.html", {"form" => form})
     end
   end
 

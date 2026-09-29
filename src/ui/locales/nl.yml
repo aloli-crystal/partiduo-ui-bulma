@@ -698,6 +698,22 @@ nl:
       pdf_copy_sent_on: "Pdf-kopie verzonden op %{date} naar %{to}."
       pdf_copy_failed_on: "Pdf-kopie mislukt op %{date}: %{error}"
       pdf_copy_deposited: "Op het platform geplaatst op %{date}."
+      terms:
+        label: "Voorwaarden"
+        default: "Parameters (%{days} dagen)"
+        on_receipt: "Bij ontvangst"
+        net: "%{days} dagen"
+        end_of_month: "%{days} dagen einde maand"
+        help: "Vervaldatum berekend bij uitgifte als ze niet is ingevuld; vermeld op de factuur."
+        invalid: "Onbekende betalingsvoorwaarden"
+      delivery:
+        label: "Leveringsadres"
+        default: "Leveringsadres van de fiche (standaard)"
+        none: "Geen (factuuradres)"
+        other: "Ander adres, hieronder ingevuld"
+        line1: "Ander adres"
+        help: "De velden dienen alleen bij „Ander adres”; de lijst volgt de ingevulde klant."
+        incomplete: "Vul minstens de straat en de gemeente van het andere leveringsadres in"
       express:
         summary: "Nieuwe particuliere klant"
         create: "Klant aanmaken"
