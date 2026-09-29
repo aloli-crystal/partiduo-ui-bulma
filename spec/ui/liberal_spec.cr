@@ -195,7 +195,7 @@ describe "Écrans de la profession libérale (ADR-007 D6)" do
     page.should contain("Recettes encaissées")
     page.should contain("60 000 €")
     page.should contain("9 600 €")
-    page.should contain("2035-B · Totaux des immobilisations")
+    page.should contain("2035-B · Détermination du résultat")
     page.should contain("Immobilisations et amortissements")
     page.should contain("Table de massage")
     page.should contain("Contrôles")
