@@ -354,6 +354,8 @@ L'en-tête de chaque paquet porte l'empreinte SHA-256 des sources : la spec
 Un seul jeu, *Lucide* (licence ISC, version dans `icons/lucide/VERSION`) :
 chaque icône retenue est un fichier de `icons/lucide/`, assemblé dans
 `src/ui/assets/ui/icons/sprite.svg` par `crystal run scripts/icon_sprite.cr`.
+Les extensions utilisent la même planche : une icône qui leur manque est
+ajoutée ici (fichier de la même version de Lucide), jamais dans l'extension.
 Dans un gabarit :
 
 [source,html]
