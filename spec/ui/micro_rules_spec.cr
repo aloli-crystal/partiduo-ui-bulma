@@ -49,7 +49,8 @@ describe "Mode simplifié de la micro-entreprise — permissions à l'écran" do
     list.html.should_not contain(%(href="/micro/receipts/new"))
     detail = reader.get("/micro/receipts/#{line.id}")
     detail.status.should eq(200)
-    detail.html.should_not contain("Annuler cette ligne")
+    detail.html.should_not contain("Modifier")
+    detail.html.should_not contain("Supprimer")
     reader.get("/micro/receipts/new").status.should eq(403)
     reader.post("/micro/receipts/new", {"amount" => "5", "date" => "2026-03-11", "nature_id" => micro_nature("SALE").id.to_s,
                                         "method" => "cash"}).status.should eq(403)

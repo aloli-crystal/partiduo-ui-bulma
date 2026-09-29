@@ -1,8 +1,9 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Saisie d'une recette ou d'un achat (mode simplifié, ADR-007 D3) : quelques champs sur une colonne, pensée d'abord pour le téléphone (montant en premier, clavier décimal, photo du justificatif par l'appareil photo), le reste sous « Plus de détails ». Variables : form (erreurs d'ensemble), main, more, attachment_kept, form_action, cancel_url. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Saisie d'une recette ou d'un achat (mode simplifié, ADR-007 D3) : quelques champs sur une colonne, pensée d'abord pour le téléphone (montant en premier, clavier décimal, photo du justificatif par l'appareil photo), le reste sous « Plus de détails ». Variables : form (erreurs d'ensemble), main, more, attachment_kept, form_action, cancel_url ; editing et intro pour la modification d'une ligne d'une période ouverte (D-MIC2-005). #}{% extend "ui/base.html" %}
 {% block title %}{{ title }}{% endblock title %}
 {% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
 {% block heading %}{{ title }}{% endblock heading %}
 {% block content %}
+{% if intro %}<p class="pd-muted mb-3">{{ intro }}</p>{% endif %}
 <section class="pd-panel pd-quick" aria-label="{{ title }}"><div class="pd-body">
 <form method="post" action="{{ form_action }}" class="pd-form" enctype="multipart/form-data" novalidate>
   {% csrf_input %}
@@ -26,7 +27,7 @@
   </details>
   <div class="pd-form-actions pd-quick-actions">
     <button class="button is-primary pd-touch" type="submit">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.micro.save" %}</span></button>
-    <button class="button pd-touch" type="submit" name="again" value="1">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "ui.micro.save_again" %}</span></button>
+    {% if not editing %}<button class="button pd-touch" type="submit" name="again" value="1">{% include "ui/_icon.html" with name="plus" %}<span>{% translate "ui.micro.save_again" %}</span></button>{% endif %}
     <a href="{{ cancel_url }}">{% translate "ui.forms.cancel" %}</a>
   </div>
 </form>

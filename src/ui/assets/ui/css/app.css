@@ -188,6 +188,12 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
 .pd-table tr.pd-depth-4 td:first-child { padding-inline-start: 3.8rem; }
 .pd-table tr.pd-depth-5 td:first-child, .pd-table tr.pd-depth-6 td:first-child { padding-inline-start: 4.6rem; }
 .pd-table tr.pd-row-closed td { color: var(--pd-muted); }
+/* En-tête d'un groupe de lignes : période de déclaration d'un registre
+   micro (D-MIC2-005) ; cadenas d'une ligne intangible. */
+.pd-table tr.pd-group-row th { background: var(--pd-row-alt); font-weight: 600; text-align: start;
+  padding-block: .5rem; border-block-start: 1px solid var(--pd-rule); }
+.pd-table tr.pd-group-row .tag { font-weight: 400; }
+.pd-table tr.pd-row-locked td:first-child .pd-icon { color: var(--pd-muted); }
 /* Stock final négatif, action de suivi en retard (lot 6). */
 .pd-table tr.pd-row-warning td { color: var(--bulma-danger-40, #a3001b); }
 .pd-link { color: var(--bulma-link); text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 2px; }
@@ -387,6 +393,11 @@ img.pd-attachment-preview { min-height: 0; height: auto; object-fit: contain; }
   .pd-grow { order: 7; flex-basis: 100%; }
   .pd-hide-s { display: none; }
   .pd-show-s { display: table-cell; }
+  /* Boutons d'une ligne de liste : cibles tactiles de 44 px au téléphone,
+     libellé masqué (le nom accessible reste, aria-label). */
+  .pd-row-button { min-height: 44px; min-width: 44px; }
+  .pd-row-button .pd-icon { margin-inline-end: 0; }
+  .pd-row-button > span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
   .pd-sum { grid-template-columns: minmax(0, 1fr); }
   .pd-tiles { grid-template-columns: minmax(0, 1fr); }
   .pd-inv-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }

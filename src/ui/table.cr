@@ -55,6 +55,9 @@ module PartiduoUi
       # Texte lu par les technologies d'assistance seulement, avant le
       # contenu (profondeur d'un compte dans l'arbre).
       property hidden_text : String? = nil
+      # Icône décorative affichée avant le texte (cadenas d'une ligne
+      # intangible) ; son sens est donné par `hidden_text`.
+      property icon : String? = nil
 
       # `tag` : texte affiché comme étiquette (« désactivé », « clos ») ;
       # `actions` : boutons de la ligne (colonne sans tri ni export).
@@ -71,8 +74,25 @@ module PartiduoUi
 
       getter cells : Array(Cell)
       getter css : String
+      # Groupe de la ligne (clé de `Table#groups`) ; en-tête du groupe à
+      # afficher avant elle, posé par `Table#visible_rows`.
+      property group : String? = nil
+      property group_header : Group? = nil
 
-      def initialize(@cells, @css = "")
+      def initialize(@cells, @css = "", @group = nil)
+      end
+    end
+
+    # En-tête d'un groupe de lignes (période de déclaration d'un registre) :
+    # libellé, état, icône décorative facultative.
+    class Group
+      include Marten::Template::Object::Auto
+
+      getter label : String
+      getter status : String
+      getter icon : String?
+
+      def initialize(@label, @status = "", @icon = nil)
       end
     end
 
@@ -123,6 +143,12 @@ module PartiduoUi
     # pour un tableau dont l'écran exporte autrement.
     property exportable : Bool = true
     property pdf : Bool = false
+    # En-têtes des groupes de lignes, par clé (`Row#group`) : affichés
+    # avant la première ligne de chaque suite de lignes du même groupe,
+    # dans l'ordre du handler ou trié par `group_sort` (sinon le tri
+    # disperserait les groupes).
+    property groups : Hash(String, Group)? = nil
+    property group_sort : String = "date"
 
     def initialize(@caption : String, @columns : Array(Column), @rows : Array(Row), @path : String,
                    @params : Hash(String, String) = {} of String => String, @empty_message : String = "",
@@ -183,9 +209,23 @@ module PartiduoUi
       self
     end
 
-    # Rangées d'un paquet (liste vide : `nil`, pour le `{% if %}` de Marten).
+    # Rangées d'un paquet (liste vide : `nil`, pour le `{% if %}` de Marten),
+    # en-têtes de groupe posés.
     def visible_rows : Array(Row)?
-      @rows.empty? ? nil : @rows
+      return if @rows.empty?
+      mark_groups
+      @rows
+    end
+
+    private def mark_groups : Nil
+      headers = @groups
+      grouped = headers && (@sort_key.nil? || @sort_key == @group_sort)
+      previous = nil
+      @rows.each do |row|
+        key = row.group
+        row.group_header = grouped && key && key != previous ? headers.try(&.[key]?) : nil
+        previous = key
+      end
     end
 
     def headers : Array(Header)

@@ -25,7 +25,8 @@
       <div class="field"><label class="label" for="pd-urssaf-reference">{% translate "ui.micro.urssaf.reference" %}</label>
         <div class="control"><input class="input" type="text" id="pd-urssaf-reference" name="reference" maxlength="100" aria-describedby="pd-urssaf-reference-help"></div>
         <p class="help" id="pd-urssaf-reference-help">{% translate "ui.micro.urssaf.reference_help" %}</p></div>
-      <div class="pd-form-actions"><button class="button is-primary pd-touch" type="submit">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.micro.urssaf.declare" %}</span></button></div>
+      <p class="help" id="pd-urssaf-declare-help">{% include "ui/_icon.html" with name="lock" %} {% translate "ui.micro.urssaf.declare_locks" %}</p>
+      <div class="pd-form-actions"><button class="button is-primary pd-touch" type="submit" aria-describedby="pd-urssaf-declare-help">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.micro.urssaf.declare" %}</span></button></div>
     </form>
     {% endif %}
   </div>

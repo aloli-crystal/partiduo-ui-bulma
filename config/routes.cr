@@ -302,8 +302,9 @@ end
 
 # Module micro-entreprise (ADR-007 D1, D3 ; menus `micro:receipts`,
 # `purchases`, `urssaf`, `tax_return`, `thresholds`, `settings`) : livre des
-# recettes, registre des achats (saisie en quelques champs, annulation par
-# contre-passation, éditions `?format=csv|pdf`), aide URSSAF, 2042-C-PRO,
+# recettes, registre des achats (saisie en quelques champs, modification et
+# suppression en période ouverte, contre-passation en période déclarée ou
+# close, D-MIC2-001, éditions `?format=csv|pdf`), aide URSSAF, 2042-C-PRO,
 # seuils, paramètres (natures, paramètres datés, natures des articles,
 # bascules guidées vers la TVA et le régime réel, republication vers la
 # Comptabilité), facture allégée. Module inactif : 404.
@@ -312,10 +313,14 @@ MICRO_ROUTES = Marten::Routing::Map.draw do
   path "/receipts/new", PartiduoUi::ReceiptNewHandler, name: "receipt_new"
   path "/receipts/<id:int>", PartiduoUi::ReceiptHandler, name: "receipt"
   path "/receipts/<id:int>/reverse", PartiduoUi::ReceiptReverseHandler, name: "receipt_reverse"
+  path "/receipts/<id:int>/edit", PartiduoUi::ReceiptEditHandler, name: "receipt_edit"
+  path "/receipts/<id:int>/delete", PartiduoUi::ReceiptDeleteHandler, name: "receipt_delete"
   path "/purchases", PartiduoUi::PurchasesHandler, name: "purchases"
   path "/purchases/new", PartiduoUi::PurchaseNewHandler, name: "purchase_new"
   path "/purchases/<id:int>", PartiduoUi::PurchaseHandler, name: "purchase"
   path "/purchases/<id:int>/reverse", PartiduoUi::PurchaseReverseHandler, name: "purchase_reverse"
+  path "/purchases/<id:int>/edit", PartiduoUi::PurchaseEditHandler, name: "purchase_edit"
+  path "/purchases/<id:int>/delete", PartiduoUi::PurchaseDeleteHandler, name: "purchase_delete"
   path "/urssaf", PartiduoUi::UrssafHandler, name: "urssaf"
   path "/urssaf/declare", PartiduoUi::UrssafDeclareHandler, name: "urssaf_declare"
   path "/tax-return", PartiduoUi::TaxReturnHandler, name: "tax_return"

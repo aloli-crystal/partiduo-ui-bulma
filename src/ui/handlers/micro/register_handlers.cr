@@ -2,11 +2,15 @@
 
 module PartiduoUi
   # Livre des recettes et registre des achats (ADR-007 D1, D3) : liste de
-  # l'année et total, éditions CSV et PDF du contrat, saisie en quelques
-  # champs pensée d'abord pour le téléphone (montant, date, nature, mode de
-  # règlement, client ou fournisseur, photo du justificatif), consultation
-  # d'une ligne et annulation par contre-passation datée du jour (une ligne
-  # inscrite ne se modifie jamais, D-MIC-003).
+  # l'année groupée par période de déclaration URSSAF et total, éditions CSV
+  # et PDF du contrat, saisie en quelques champs pensée d'abord pour le
+  # téléphone (montant, date, nature, mode de règlement, client ou
+  # fournisseur, photo du justificatif), consultation d'une ligne.
+  #
+  # Période ouverte (mois ou trimestre non déclaré, D-MIC2-001) : la ligne
+  # se modifie et se supprime (confirmation) ; période déclarée ou close :
+  # cadenas et « Contre-passer » (ligne inverse datée du jour, reportée sur
+  # la déclaration suivante).
   #
   # `register` : `receipt` (recettes) ou `purchase` (achats) ; les routes
   # `micro:receipts…` et `micro:purchases…` ont chacune leurs handlers.
@@ -32,6 +36,75 @@ module PartiduoUi
 
     def new_url : String
       reverse("micro:#{route_base.rchop('s')}_new")
+    end
+
+    def edit_url(id : Int64) : String
+      reverse("micro:#{route_base.rchop('s')}_edit", id: id)
+    end
+
+    def delete_url(id : Int64) : String
+      reverse("micro:#{route_base.rchop('s')}_delete", id: id)
+    end
+
+    def reverse_url(id : Int64) : String
+      reverse("micro:#{route_base.rchop('s')}_reverse", id: id)
+    end
+
+    # Actions d'une ligne selon sa période (D-MIC2-001) : ouverte, modifier
+    # et supprimer ; déclarée ou close, contre-passer. `row` : boutons d'une
+    # ligne de liste (nom accessible avec le numéro).
+    def line_actions(item : Micro::LineView, row : Bool = false) : Array(Screen::Action)
+      actions = [] of Screen::Action
+      return actions unless can?(WRITE)
+      if item.editable?
+        actions << link_action("ui.micro.line.edit", edit_url(item.id), row ? "row" : "", "pencil")
+      end
+      if item.deletable?
+        actions << post_action("ui.micro.line.delete", delete_url(item.id), "ui.micro.line.delete_confirm",
+          row ? "row-danger" : "danger", "trash-2")
+      end
+      if item.locked && item.reversible?
+        actions << post_action("ui.micro.line.cancel", reverse_url(item.id), "ui.micro.line.cancel_confirm",
+          row ? "row" : "", "undo-2")
+      end
+      if row
+        actions.each { |action| action.aria_label = "#{action.label} #{item.number}" }
+      end
+      actions
+    end
+
+    # Périodes de déclaration de l'année (périodicité des paramètres) et
+    # en-têtes de groupe : libellé, état (« Déclarée le … », cadenas).
+    def period_groups(year : Int32) : {Array(Micro::DeclarationView), Hash(String, Table::Group)}
+      periods = Micro.declarations(current.actor, year, today)
+      groups = periods.to_h do |period|
+        {period_key(period), Table::Group.new(period_label(period), period_status(period),
+          period.status == "declared" ? "lock" : nil)}
+      end
+      {periods, groups}
+    end
+
+    def period_key(period : Micro::DeclarationView) : String
+      period.starts_on.to_s("%Y-%m-%d")
+    end
+
+    # « 3e trimestre 2026 », « Septembre 2026 ».
+    def period_label(period : Micro::DeclarationView) : String
+      if period.starts_on.month == period.ends_on.month
+        fmt.month(period.starts_on).capitalize
+      else
+        number = (period.starts_on.month - 1) // 3 + 1
+        I18n.t(number == 1 ? "ui.micro.periods.quarter_1" : "ui.micro.periods.quarter",
+          {"number" => number.to_s, "year" => period.starts_on.year.to_s})
+      end
+    end
+
+    def period_status(period : Micro::DeclarationView) : String
+      if declared_on = period.declared_on
+        I18n.t("ui.micro.periods.declared_on", {"date" => fmt.date(declared_on)})
+      else
+        I18n.t("ui.micro.periods.open")
+      end
     end
 
     # Clé i18n propre au registre (`ui.micro.receipt.title`).
@@ -103,6 +176,8 @@ module PartiduoUi
       end
       summary = totals(query)
       offset = Math.max(summary.count - Micro::MAX_LIMIT, 0)
+      periods, groups = period_groups(year)
+      @periods = periods
       rows = lines(query.copy_with(offset: offset)).reverse!
       footers = [footer(t("total"), summary.amount, "pd-class")]
       footers << footer(I18n.t("ui.micro.fields.vat_amount"), summary.vat_amount) unless summary.vat_amount.zero?
@@ -112,10 +187,19 @@ module PartiduoUi
       table = Table.new(t("title"), columns, rows.map { |item| row(item) }, list_url, {"year" => year.to_s},
         empty_message: t("empty"), footer_rows: footers)
       table.pdf = true
+      table.groups = groups
       actions = [] of Screen::Action
       actions << link_action("ui.micro.#{register}.new", new_url, "primary", "plus") if can?(WRITE)
       list_page("#{t("title")} #{year}", table, micro_crumbs, "ui.micro.#{register}.csv_name", actions,
-        tabs: year_tabs(list_url, year), tabs_label: I18n.t("ui.micro.year"), intro: t("intro"))
+        tabs: year_tabs(list_url, year), tabs_label: I18n.t("ui.micro.year"),
+        intro: "#{t("intro")} #{I18n.t("ui.micro.periods.intro")}")
+    end
+
+    @periods = [] of Micro::DeclarationView
+
+    # Période de déclaration de l'année qui contient `date`.
+    private def period_of(date : Time) : String?
+      @periods.find { |period| period.starts_on <= date <= period.ends_on }.try { |period| period_key(period) }
     end
 
     private def export(query : Micro::RegisterQuery, format : Micro::ExportFormat) : Marten::HTTP::Response
@@ -133,6 +217,7 @@ module PartiduoUi
         Table::Column.new("nature", I18n.t("ui.micro.columns.nature"), secondary: true),
         Table::Column.new("method", I18n.t("ui.micro.columns.method"), secondary: true),
         Table::Column.new("amount", t("amount"), "amount"),
+        Table::Column.new("actions", I18n.t("ui.micro.columns.actions"), "actions"),
       ]
     end
 
@@ -142,20 +227,29 @@ module PartiduoUi
               elsif item.reversed_by_id
                 I18n.t("ui.micro.line.cancelled")
               end
+      date = Table::Cell.new(fmt.date(item.date), line_url(item.id), sort: date_key(item.date), csv: date_key(item.date))
+      if item.locked
+        date.icon = "lock"
+        date.hidden_text = I18n.t("ui.micro.line.locked_short")
+      end
+      css = [] of String
+      css << "pd-row-closed" if item.reversed_by_id || item.reversal?
+      css << "pd-row-locked" if item.locked
       Table::Row.new([
-        Table::Cell.new(fmt.date(item.date), line_url(item.id), sort: date_key(item.date), csv: date_key(item.date)),
+        date,
         Table::Cell.new(item.number),
         Table::Cell.new(party(item).presence || item.label, tag: state),
         Table::Cell.new(item.nature_label),
         Table::Cell.new(method_label(item.method)),
         Table::Cell.new(euros(item.amount), sort: item.amount, csv: fmt.csv_amount(item.amount)),
-      ], item.reversed_by_id || item.reversal? ? "pd-row-closed" : "")
+        Table::Cell.new("", actions: line_actions(item, row: true)),
+      ], css.join(" "), period_of(item.date))
     end
 
     private def footer(label : String, total : BigDecimal, css : String = "") : Table::Row
       Table::Row.new([
         Table::Cell.new(label), Table::Cell.new(""), Table::Cell.new(""), Table::Cell.new(""), Table::Cell.new(""),
-        Table::Cell.new(euros(total), sort: total, csv: fmt.csv_amount(total)),
+        Table::Cell.new(euros(total), sort: total, csv: fmt.csv_amount(total)), Table::Cell.new(""),
       ], css)
     end
   end
@@ -292,6 +386,11 @@ module PartiduoUi
     end
 
     private def show(form : Form, status : Int32 = 200) : Marten::HTTP::Response
+      fill(form)
+      page("ui/micro/entry.html", status: status)
+    end
+
+    private def fill(form : Form) : Nil
       context["title"] = t("new")
       context["crumbs"] = register_crumbs
       context["form"] = form
@@ -301,7 +400,6 @@ module PartiduoUi
       context["attachment_kept"] = form.fields.find(&.name.==("attachment_id")).try(&.value.presence)
       context["form_action"] = new_url
       context["cancel_url"] = list_url
-      page("ui/micro/entry.html", status: status)
     end
   end
 
@@ -313,8 +411,10 @@ module PartiduoUi
     include PurchaseRegister
   end
 
-  # Consultation d'une ligne ; annulation (contre-passation datée du jour)
-  # tant qu'elle n'est ni annulée ni elle-même une annulation.
+  # Consultation d'une ligne et de sa période : ouverte, modifier ou
+  # supprimer ; déclarée ou close, contre-passer (ligne inverse datée du
+  # jour) tant qu'elle n'est ni contre-passée ni elle-même une
+  # contre-passation (D-MIC2-001).
   abstract class RegisterLineHandler < RegisterScreen
     def get
       item = line(id_param)
@@ -336,15 +436,26 @@ module PartiduoUi
       end
       item.reversal_of_id.try { |id| details << Screen::Item.new(I18n.t("ui.micro.line.cancels"), line(id).number, line_url(id), mono: true) }
       item.reversed_by_id.try { |id| details << Screen::Item.new(I18n.t("ui.micro.line.cancelled_by"), line(id).number, line_url(id), mono: true) }
-      actions = [] of Screen::Action
-      if can?(WRITE) && !item.reversal? && item.reversed_by_id.nil?
-        actions << post_action("ui.micro.line.cancel", reverse("micro:#{route_base.rchop('s')}_reverse", id: item.id),
-          "ui.micro.line.cancel_confirm", "danger", "x")
-      end
+      period = Micro.declarations(current.actor, item.date.year, today).find { |view| view.starts_on <= item.date <= view.ends_on }
+      period.try { |view| details << Screen::Item.new(I18n.t("ui.micro.periods.title"), "#{period_label(view)} · #{period_status(view)}") }
       status = item.reversal? ? I18n.t("ui.micro.line.reversal") : (item.reversed_by_id ? I18n.t("ui.micro.line.cancelled") : nil)
-      intro = item.locked ? I18n.t("ui.micro.line.locked") : I18n.t("ui.micro.line.intangible")
-      detail_page("#{t("one")} #{item.number}", register_crumbs, [Screen::Section.new(t("one"), details)], actions,
-        status_tag: status, intro: intro)
+      detail_page("#{t("one")} #{item.number}", register_crumbs, [Screen::Section.new(t("one"), details)], line_actions(item),
+        status_tag: status, intro: intro(item))
+    end
+
+    # Ce que l'on peut faire de la ligne, et pourquoi.
+    private def intro(item : Micro::LineView) : String
+      if declared_on = item.declared_on
+        I18n.t("ui.micro.line.declared", {"date" => fmt.date(declared_on)})
+      elsif item.locked
+        I18n.t("ui.micro.line.locked")
+      elsif item.origin != "manual"
+        I18n.t("ui.micro.line.from_invoicing")
+      elsif item.reversed_by_id
+        I18n.t("ui.micro.line.reversed_open")
+      else
+        I18n.t("ui.micro.line.open")
+      end
     end
   end
 
@@ -378,6 +489,113 @@ module PartiduoUi
   end
 
   class PurchaseReverseHandler < RegisterReverseHandler
+    include PurchaseRegister
+  end
+
+  # Modification d'une ligne d'une période ouverte (D-MIC2-001) : même
+  # formulaire que la saisie, prérempli ; le contrat refuse une ligne
+  # déclarée, close, issue de la Facturation ou contre-passée, et une
+  # nouvelle date dans une période déclarée ou close.
+  abstract class RegisterEditHandler < RegisterNewHandler
+    def get
+      require!(MODULE, WRITE)
+      item = line(id_param)
+      return refuse(item) unless item.editable?
+      values = {
+        "amount"        => fmt.amount(item.amount, 2, group: false),
+        "date"          => item.date.to_s("%Y-%m-%d"),
+        "nature_id"     => item.nature_id.to_s,
+        "method"        => item.method,
+        "party_name"    => item.party_name,
+        "label"         => item.label,
+        "reference"     => item.reference,
+        "vat_amount"    => item.vat_amount.zero? ? "" : fmt.amount(item.vat_amount, 2, group: false),
+        "attachment_id" => item.attachment_id.to_s,
+      }
+      show_edit(item, build_form(values))
+    end
+
+    def post
+      require!(MODULE, WRITE)
+      item = line(id_param)
+      values = FIELDS.to_h { |name| {name, field(name)} }
+      form = build_form(values)
+      upload(form, values)
+      input = read(form, values)
+      return show_edit(item, build_form(values).tap { |shown| copy_errors(form, shown) }, 422) if input.nil?
+      result = if receipt?
+                 Micro.update_receipt(current.actor, item.id, input.as(Micro::ReceiptInput))
+               else
+                 Micro.update_purchase(current.actor, item.id, input.as(Micro::PurchaseInput))
+               end
+      if changed = result.value?
+        flash["success"] = I18n.t("ui.micro.line.updated", {"number" => changed.number})
+        return go(line_url(changed.id))
+      end
+      shown = build_form(values)
+      shown.add_errors(result.errors, fmt)
+      show_edit(item, shown, 422)
+    end
+
+    # Ligne qui ne se modifie plus : retour à sa consultation, avec la
+    # raison que donnerait le contrat.
+    private def refuse(item : Micro::LineView) : Marten::HTTP::Response
+      reason = if item.declared_on
+                 "declared_period"
+               elsif item.locked
+                 "closed_period"
+               elsif item.origin != "manual"
+                 "from_invoicing"
+               elsif item.reversal?
+                 "is_reversal"
+               else
+                 "reversed"
+               end
+      flash["danger"] = I18n.t("micro.errors.line.change.#{reason}")
+      go(line_url(item.id))
+    end
+
+    private def show_edit(item : Micro::LineView, form : Form, status : Int32 = 200) : Marten::HTTP::Response
+      fill(form)
+      context["title"] = I18n.t("ui.micro.line.edit_title", {"line" => "#{t("one")} #{item.number}"})
+      context["crumbs"] = register_crumbs << Screen::Crumb.new(item.number, line_url(item.id))
+      context["form_action"] = edit_url(item.id)
+      context["cancel_url"] = line_url(item.id)
+      context["editing"] = true
+      context["intro"] = I18n.t("ui.micro.line.edit_intro")
+      page("ui/micro/entry.html", status: status)
+    end
+  end
+
+  class ReceiptEditHandler < RegisterEditHandler
+    include ReceiptRegister
+  end
+
+  class PurchaseEditHandler < RegisterEditHandler
+    include PurchaseRegister
+  end
+
+  # Suppression d'une ligne d'une période ouverte, après confirmation ; le
+  # numéro n'est pas repris. Refus du contrat : message sur la ligne.
+  abstract class RegisterDeleteHandler < RegisterScreen
+    def post
+      require!(MODULE, WRITE)
+      item = line(id_param)
+      result = receipt? ? Micro.delete_receipt(current.actor, item.id) : Micro.delete_purchase(current.actor, item.id)
+      if result.success?
+        flash["success"] = I18n.t("ui.micro.line.deleted", {"number" => item.number})
+        return go("#{list_url}?year=#{item.date.year}")
+      end
+      flash["danger"] = result.errors.map { |error| fmt.message(error) }.join(" ")
+      go(line_url(item.id))
+    end
+  end
+
+  class ReceiptDeleteHandler < RegisterDeleteHandler
+    include ReceiptRegister
+  end
+
+  class PurchaseDeleteHandler < RegisterDeleteHandler
     include PurchaseRegister
   end
 end

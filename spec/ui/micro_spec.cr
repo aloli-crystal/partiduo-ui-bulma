@@ -123,7 +123,7 @@ describe "Mode simplifié de la micro-entreprise (ADR-007 D3)" do
     again.headers["Location"].should eq("/micro/receipts/new")
   end
 
-  it "saisit un achat, l'annule par une ligne datée du jour et édite les registres" do
+  it "saisit un achat, le contre-passe une fois le trimestre déclaré et édite les registres" do
     browser = micro_books
     saved = browser.post("/micro/purchases/new", {"amount" => "42", "date" => "2026-03-12", "nature_id" => nature("SUPPLIES").id.to_s,
                                                   "method" => "card", "party_name" => "Papeterie Centrale"})
@@ -131,8 +131,16 @@ describe "Mode simplifié de la micro-entreprise (ADR-007 D3)" do
     line = Micro.purchases(Books.system).first
     browser.follow(saved).html.should contain("Achat #{line.number} enregistré : 42,00 € dépensés.")
     show = browser.get("/micro/purchases/#{line.id}").html
-    show.should contain("Annuler cette ligne")
+    # Trimestre pas encore déclaré : modifier ou supprimer (D-MIC2-001).
+    show.should contain("Modifier")
+    show.should contain("Supprimer")
+    show.should_not contain("Contre-passer")
     show.should contain("Papeterie Centrale")
+    Micro.mark_declared(Books.system, Micro::DeclarationInput.new(Books.date("2026-01-01"), Books.date("2026-04-10"))).value!
+    show = browser.get("/micro/purchases/#{line.id}").html
+    show.should contain("Contre-passer")
+    show.should contain("Période déclarée à l'URSSAF le 10/04/2026")
+    show.should_not contain(%(href="/micro/purchases/#{line.id}/edit"))
 
     cancelled = browser.post("/micro/purchases/#{line.id}/reverse")
     cancelled.headers["Location"].should eq("/micro/purchases/#{line.id}")
@@ -142,7 +150,7 @@ describe "Mode simplifié de la micro-entreprise (ADR-007 D3)" do
     reversal.date.should eq(Partiduo::Api::Core.today)
     page = browser.follow(cancelled).html
     page.should contain("annulée par #{reversal.number}")
-    page.should_not contain("Annuler cette ligne")
+    page.should_not contain("Contre-passer")
     browser.post("/micro/purchases/#{line.id}/reverse").status.should eq(302)
     Micro.purchases(Books.system).size.should eq(2)
 

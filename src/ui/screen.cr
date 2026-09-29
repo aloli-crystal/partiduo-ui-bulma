@@ -42,6 +42,9 @@ module PartiduoUi
       getter style : String
       getter icon : String?
       getter confirm : String?
+      # Nom accessible quand le libellé seul est ambigu (« Modifier » sur
+      # chaque ligne d'une liste : « Modifier R2026-00001 »).
+      property aria_label : String? = nil
 
       def initialize(@label, @url, @method = "get", @style = "", @icon = nil, @confirm = nil)
       end
@@ -55,7 +58,11 @@ module PartiduoUi
         when "primary" then "button is-primary pd-touch"
         when "danger"  then "button is-danger is-light pd-touch"
         when "small"   then "button is-small"
-        else                "button pd-touch"
+          # Bouton d'une ligne de liste (D-MIC2-005) : petit à l'écran,
+          # cible de 44 px au téléphone.
+        when "row"        then "button is-small pd-row-button"
+        when "row-danger" then "button is-small is-danger is-light pd-row-button"
+        else                   "button pd-touch"
         end
       end
     end
