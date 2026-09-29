@@ -87,7 +87,8 @@ module PartiduoUi
     # Adresse de retour à donner au fournisseur (ACS SAML, redirection OIDC).
     def return_url(kind : String, code : String) : String
       name = kind == "saml" ? "login_federated_acs" : "login_federated_callback"
-      "#{request.scheme}://#{request.host}#{request.port.try { |port| ":#{port}" }}#{reverse(name, code: code)}"
+      # `request.host` porte déjà le port éventuel (en-tête Host).
+      "#{request.scheme}://#{request.host}#{reverse(name, code: code)}"
     end
   end
 
