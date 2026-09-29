@@ -69,7 +69,8 @@ module PartiduoUi
     end
 
     def export_actions : Array(Screen::Action)
-      [link_action("ui.table.export_csv", export_url("csv"), icon: "download")]
+      [link_action("ui.table.export_csv", export_url("csv"), icon: "download"),
+       link_action("ui.reports.export_pdf", export_url("pdf"), icon: "printer")]
     end
 
     def ana_file_response(file : Ana::FileView) : Marten::HTTP::Response
@@ -268,7 +269,8 @@ module PartiduoUi
       criteria = report_query(plan, from, to)
       return ana_file_response(Ana.export_history(current.actor, criteria)) if csv?
       page_number = {query("page").to_i? || 1, 1}.max
-      view = Ana.history(current.actor, criteria, (page_number - 1) * PER_PAGE, PER_PAGE)
+      # PDF : toutes les opérations (limite du contrat), pas la seule page.
+      view = pdf? ? Ana.history(current.actor, criteria, 0, 10_000) : Ana.history(current.actor, criteria, (page_number - 1) * PER_PAGE, PER_PAGE)
       columns = [
         column("date", "ui.analytic.date", "mono"), column("post", "ui.analytic.post", "mono"),
         column("ledger", "ui.analytic.ledger", "mono", secondary: true), column("receipt", "ui.analytic.receipt", "mono"),

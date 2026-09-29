@@ -134,7 +134,8 @@ module PartiduoUi
         Screen::Item.new(I18n.t("ui.fiscal_years.status"), status_of(year.closed?)),
       ])
       table = periods_table(year)
-      return csv_response(table, "periodes-#{year.year}") if csv?
+      table.pdf = table.exportable
+      return export_response(table, "periodes-#{year.year}") if export?
       periods = Screen::Section.new(I18n.t("ui.fiscal_years.periods"), table: table)
       actions = [] of Screen::Action
       unless year.closed?

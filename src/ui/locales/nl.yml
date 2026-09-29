@@ -269,6 +269,7 @@ nl:
       m11: "november"
       m12: "december"
     table:
+      pdf_criterion: "%{label}: %{value}"
       count:
         zero: "Geen regels"
         one: "%{count} regel"

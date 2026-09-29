@@ -165,6 +165,13 @@ oublie, DECISIONS D-UI-035) ; tout compte, tiers ou montant agrégé est un
 lien vers sa consultation (D-UI-036). Le plan comptable affiche les soldes
 (D-UI-037).
 
+Chaque liste exporte aussi en PDF/A-2b (lien « Export PDF » au pied du
+tableau, `?format=pdf`) : toutes les lignes filtrées et triées, mises en
+forme par l'interface et rendues par le service neutre du cœur
+`Partiduo::Api::Core.table_pdf` ; les éditions de l'analytique, du stock,
+des prévisions, l'extrait d'un compte et la liste des actions de suivi
+aussi (DECISIONS D-R5-008, B-CRIT-001 levé).
+
 == Stock, prévisions et suivi (lot 6)
 
 [cols="2,3",options="header"]

@@ -127,6 +127,11 @@ module PartiduoUi
       ]
     end
 
+    # Nom du fichier exporté : chemin de l'écran (`analytic-history`).
+    def export_name : String
+      request.path.strip('/').gsub('/', '-').presence || "export"
+    end
+
     def current_params : Hash(String, String)
       PersistentFilters.pick(request.query_params, filter_names)
     end
@@ -196,6 +201,9 @@ module PartiduoUi
     def report_page(title : String, filters : Form?, sections : Array(Screen::Section), summary : Array(Screen::Item)? = nil,
                     warnings : Array(String) = [] of String, actions : Array(Screen::Action) = export_actions,
                     intro : String? = nil, submit : String = I18n.t("ui.reports.show"), status : Int32 = 200) : Marten::HTTP::Response
+      # Édition sans PDF du cœur (analytique, stock…) : PDF de ses tableaux
+      # par le service neutre (B-CRIT-001).
+      return sections_pdf_response(title, sections, export_name, summary) if pdf?
       context["title"] = title
       context["crumbs"] = reports_crumbs
       context["actions"] = actions

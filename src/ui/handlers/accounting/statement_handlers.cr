@@ -89,7 +89,7 @@ module PartiduoUi
         context["not_found"] = I18n.t("ui.accounts.not_found", q: text)
         return page("ui/accounting/statement.html", status: 404)
       end
-      return csv_response(csv_table(statement), I18n.t("ui.accounts.csv_name")) if csv?
+      return export_response(csv_table(statement), I18n.t("ui.accounts.csv_name")) if export?
       context["statement"] = view(statement)
       context["actions"] = actions(statement, text)
       page("ui/accounting/statement.html")
@@ -182,6 +182,8 @@ module PartiduoUi
       params = {"q" => text, "format" => "csv"}
       {"from", "to", "open"}.each { |name| params[name] = query(name) unless query(name).empty? }
       actions << link_action("ui.table.export_csv", "#{reverse("accounting:accounts")}?#{URI::Params.encode(params)}", icon: "download")
+      params["format"] = "pdf"
+      actions << link_action("ui.reports.export_pdf", "#{reverse("accounting:accounts")}?#{URI::Params.encode(params)}", icon: "printer")
       actions
     end
 

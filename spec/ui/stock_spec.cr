@@ -193,5 +193,15 @@ describe "Stock (lot 6)" do
       response.content_type.should start_with("text/csv")
       response.content.should contain("VIS")
     end
+    # PDF/A-2b des mêmes éditions (B-CRIT-001), lien dans l'en-tête.
+    history.should contain("format=pdf")
+    %w[/stock/state?f=1&from=2026-01-01&to=2026-12-31&format=pdf /stock/history?f=1&format=pdf
+      /stock/valuation?f=1&date=2026-12-31&format=pdf].each do |path|
+      response = setup.browser.get(path)
+      response.status.should eq(200)
+      response.content_type.should eq("application/pdf")
+      response.content.should start_with("%PDF-")
+      response.headers["Content-Disposition"].should contain(".pdf")
+    end
   end
 end

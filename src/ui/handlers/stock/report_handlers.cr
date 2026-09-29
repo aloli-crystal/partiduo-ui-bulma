@@ -54,7 +54,8 @@ module PartiduoUi
     end
 
     def export_actions : Array(Screen::Action)
-      [link_action("ui.table.export_csv", export_url("csv"), icon: "download")]
+      [link_action("ui.table.export_csv", export_url("csv"), icon: "download"),
+       link_action("ui.reports.export_pdf", export_url("pdf"), icon: "printer")]
     end
 
     def stock_file_response(file : Stk::FileView) : Marten::HTTP::Response
@@ -151,7 +152,9 @@ module PartiduoUi
       source = query("source").presence
       page_number = {query("page").to_i? || 1, 1}.max
       criteria = Stk::MovementQuery.new(repository_id: repository_filter, stock_code: query("stock_code").presence.try(&.upcase),
-        direction: direction, date_from: from, date_to: to, source: source, limit: PER_PAGE, offset: (page_number - 1) * PER_PAGE)
+        direction: direction, date_from: from, date_to: to, source: source,
+        # PDF : tous les mouvements (limite du contrat), pas la seule page.
+        limit: pdf? ? 10_000 : PER_PAGE, offset: pdf? ? 0 : (page_number - 1) * PER_PAGE)
       return stock_file_response(Stk.export_movements(current.actor, criteria)) if csv?
       movements = Stk.movements(current.actor, criteria)
       count = Stk.count_movements(current.actor, criteria)

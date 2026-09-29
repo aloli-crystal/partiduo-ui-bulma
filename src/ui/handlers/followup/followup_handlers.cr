@@ -134,6 +134,8 @@ module PartiduoUi
       export = params.merge({"format" => "csv"})
       page_actions << Screen::Action.new(I18n.t("ui.table.export_csv"), "#{reverse("followup:actions")}?#{URI::Params.encode(export)}",
         icon: "download")
+      page_actions << Screen::Action.new(I18n.t("ui.reports.export_pdf"),
+        "#{reverse("followup:actions")}?#{URI::Params.encode(params.merge({"format" => "pdf"}))}", icon: "printer")
       intro = count > LIST_LIMIT ? I18n.t("ui.followup.truncated", count: count, limit: LIST_LIMIT) : nil
       list_page(I18n.t("followup.menu.fup_actions"), table, followup_crumbs, "ui.followup.actions_csv", page_actions,
         filters: filters, intro: intro, filter: false)

@@ -269,6 +269,7 @@ en:
       m11: "November"
       m12: "December"
     table:
+      pdf_criterion: "%{label}: %{value}"
       count:
         zero: "No rows"
         one: "%{count} row"

@@ -249,6 +249,13 @@ describe "Analytique (lot 5)" do
     csv.status.should eq(200)
     csv.content_type.should start_with("text/csv")
     csv.content.should contain("ATELIER")
+    balance.should contain("format=pdf")
+    %w[reports reports/history reports/groups reports/ledger].each do |report|
+      pdf = setup.browser.get("/analytic/#{report}?f=1&plan=#{setup.activity.id}&#{range}&format=pdf")
+      pdf.status.should eq(200)
+      pdf.content_type.should eq("application/pdf")
+      pdf.content.should start_with("%PDF-")
+    end
 
     cross = setup.browser.get("/analytic/reports/cross?f=1&plan=#{setup.activity.id}&other_plan=#{setup.project.id}&#{range}").html
     cross.should contain("ACTIVITE × PROJET")

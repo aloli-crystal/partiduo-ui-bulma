@@ -624,9 +624,10 @@ module PartiduoUi
       table = Table.new(view.forecast.name, columns, rows, request.path, empty_message: I18n.t("ui.forecasts.no_items"),
         id: "pd-forecast-report")
       table.exportable = false
-      return csv_response(table, I18n.t("ui.forecasts.report_csv_name")) if csv?
+      return export_response(table, I18n.t("ui.forecasts.report_csv_name")) if export?
       warnings = view.invalid_items.map { |label| I18n.t("ui.forecasts.invalid_formula", label: label) }
-      actions = [link_action("ui.table.export_csv", "#{request.path}?format=csv", icon: "download")]
+      actions = [link_action("ui.table.export_csv", "#{request.path}?format=csv", icon: "download"),
+                 link_action("ui.reports.export_pdf", "#{request.path}?format=pdf", icon: "printer")]
       actions << link_action("ui.forecasts.back", forecast_url(view.forecast.id))
       summary = [
         Screen::Item.new(I18n.t("ui.forecasts.starts_on"), fmt.date(view.forecast.starts_on), mono: true),

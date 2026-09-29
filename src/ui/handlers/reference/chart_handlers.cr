@@ -191,7 +191,7 @@ module PartiduoUi
       table = Table.new(I18n.t("ui.chart.sub_accounts"), account_columns, children.map { |line| account_row(line, line.depth - 1, tree_order?) },
         reverse("accounting:account", id: account.id), empty_message: I18n.t("ui.chart.no_sub_account"), id: "pd-sub-accounts")
       prepare(table)
-      return csv_response(table, "compte-#{account.number}") if csv?
+      return export_response(table, "compte-#{account.number}") if export?
       sections << Screen::Section.new(I18n.t("ui.chart.sub_accounts"), table: table)
       sections << cards_section(account) if can?("cards.card.read")
 

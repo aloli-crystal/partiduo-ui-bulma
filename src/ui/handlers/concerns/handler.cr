@@ -141,17 +141,59 @@ module PartiduoUi
       params[name].to_s.to_i64
     end
 
-    # Liste préparée : filtre `q`, tri `sort`, puis export CSV
-    # (`format=csv`) ou page `page`.
+    # Liste préparée : filtre `q`, tri `sort`, puis export CSV ou PDF
+    # (`format=csv`, `format=pdf`) ou page `page`. Le tableau offre alors
+    # les deux exports (B-CRIT-001).
     def prepare(table : Table, filter : Bool = true) : Table
       table.filter!(query("q")) if filter
       table.sort!(query("sort")) unless query("sort").empty?
-      table.paginate!(query("page").to_i? || 1) unless csv?
+      table.paginate!(query("page").to_i? || 1) unless export?
+      table.pdf = true if table.exportable
       table
     end
 
     def csv? : Bool
       query("format") == "csv"
+    end
+
+    def pdf? : Bool
+      query("format") == "pdf"
+    end
+
+    def export? : Bool
+      csv? || pdf?
+    end
+
+    # Export d'une liste dans le format demandé.
+    def export_response(table : Table, name : String) : Marten::HTTP::Response
+      pdf? ? pdf_response([{nil, table}], table.caption, name) : csv_response(table, name)
+    end
+
+    # PDF/A-2b de tableaux déjà préparés (toutes les lignes filtrées et
+    # triées), par le service neutre du cœur (`Api::Core.table_pdf`) :
+    # plusieurs tableaux se suivent sous leur titre de section. `summary` :
+    # sous-titres (période, critères).
+    def pdf_response(tables : Array({String?, Table}), title : String, name : String,
+                     summary : Array(String) = [] of String) : Marten::HTTP::Response
+      input = TablePdf.input(tables, title, "#{name}-#{Time.local.to_s("%Y%m%d")}", summary)
+      result = Partiduo::Api::Core.table_pdf(current.actor, input)
+      if file = result.value?
+        response = Marten::HTTP::Response.new(content: String.new(file.content), content_type: file.content_type)
+        response["Content-Disposition"] = %(attachment; filename="#{file.filename}")
+        return response
+      end
+      Marten::HTTP::Response.new(content: result.errors.map { |error| fmt.message(error) }.join("\n"),
+        content_type: "text/plain; charset=utf-8", status: 422)
+    end
+
+    # PDF des tableaux des sections d'un écran (éditions, rapports).
+    def sections_pdf_response(title : String, sections : Array(Screen::Section), name : String,
+                              summary : Array(Screen::Item)? = nil) : Marten::HTTP::Response
+      tables = sections.compact_map { |section| section.table.try { |table| {section.title.as(String?), table} } }
+      lines = (summary || [] of Screen::Item).compact_map do |item|
+        I18n.t("ui.table.pdf_criterion", label: item.label, value: item.value) unless item.value.empty?
+      end
+      pdf_response(tables, title, name, lines)
     end
 
     def csv_response(table : Table, name : String) : Marten::HTTP::Response

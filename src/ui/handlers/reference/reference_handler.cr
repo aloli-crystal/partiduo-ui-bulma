@@ -5,14 +5,14 @@ module PartiduoUi
   # consultations rendus par les gabarits génériques `ui/reference/*.html`
   # (DECISIONS D-UI-016). Tout passe par `Partiduo::Api`.
   abstract class ReferenceHandler < ScreenHandler
-    # Page de liste : tableau préparé (filtre, tri, pages) ou export CSV.
-    # `csv_name` : clé i18n du nom du fichier exporté (`ui.chart.csv_name`).
+    # Page de liste : tableau préparé (filtre, tri, pages) ou export CSV ou
+    # PDF. `csv_name` : clé i18n du nom du fichier exporté (`ui.chart.csv_name`).
     def list_page(title : String, table : Table, crumbs : Array(Screen::Crumb), csv_name : String,
                   actions = [] of Screen::Action, tabs : Array(Screen::Tab)? = nil, tabs_label : String = "",
                   filters : Form? = nil, intro : String? = nil, status : Int32 = 200,
                   filter : Bool = true) : Marten::HTTP::Response
       prepare(table, filter)
-      return csv_response(table, I18n.t(csv_name)) if csv?
+      return export_response(table, I18n.t(csv_name)) if export?
       context["title"] = title
       context["crumbs"] = crumbs
       context["actions"] = actions

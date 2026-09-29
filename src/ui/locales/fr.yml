@@ -269,6 +269,7 @@ fr:
       m11: "novembre"
       m12: "décembre"
     table:
+      pdf_criterion: "%{label} : %{value}"
       count:
         zero: "Aucune ligne"
         one: "%{count} ligne"
