@@ -6,7 +6,8 @@ class Marten::HTTP::Request
 end
 
 class Marten::HTTP::Request
-  # Module du mode simplifié (`MICRO`, `LIBERAL`, chaîne vide en mode
-  # complet), calculé une seule fois par `PartiduoUi::SimpleMode.mode`.
-  property partiduo_simple_mode : String? = nil
+  # Choix d'interface de l'utilisateur (`PartiduoUi::SimpleMode::Choice`,
+  # `false` sans mode simplifié offert), calculé une seule fois par
+  # `PartiduoUi::SimpleMode.choice`.
+  property partiduo_interface_choice : (PartiduoUi::SimpleMode::Choice | Bool)? = nil
 end

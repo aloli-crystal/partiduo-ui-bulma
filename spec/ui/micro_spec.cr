@@ -266,12 +266,11 @@ describe "Mode simplifié de la micro-entreprise (ADR-007 D3)" do
     end
   end
 
-  it "laisse le mode complet au comptable, qui choisit son mode" do
-    PartiduoUi::SimpleMode.choose("member", nil).should be_true
-    PartiduoUi::SimpleMode.choose("member", "full").should be_true
-    PartiduoUi::SimpleMode.choose("accountant", nil).should be_false
-    PartiduoUi::SimpleMode.choose("accountant", "full").should be_false
-    PartiduoUi::SimpleMode.choose("accountant", "simple").should be_true
+  it "laisse le mode complet au comptable, qui choisit son mode et le retrouve d'une session à l'autre (D-UI-077)" do
+    PartiduoUi::SimpleMode.interfaces("MICRO", "member", true).should eq(["simple"])
+    PartiduoUi::SimpleMode.interfaces("MICRO", "accountant", false).should eq(["simple", "full"])
+    PartiduoUi::SimpleMode.choose("full", ["simple"]).should eq("simple")
+    PartiduoUi::SimpleMode.choose("simple", ["simple", "full"]).should eq("simple")
 
     micro_books
     PartiduoUi::Accounts.create(email: "compta@example.com", role: "accountant", profile: "ACCOUNTANT")
@@ -279,9 +278,13 @@ describe "Mode simplifié de la micro-entreprise (ADR-007 D3)" do
     authenticator = PartiduoUi::FakeAuthenticator.new
     options = browser.post("/account/passkeys/options").html
     JSON.parse(browser.post("/account/passkeys", authenticator.register(options)).html)["ok"].as_bool.should be_true
-    accountant = PartiduoUi::Browser.new
-    login = accountant.post("/login/passkey/options").html
-    JSON.parse(accountant.post("/login/passkey", authenticator.assert(login)).html)["ok"].as_bool.should be_true
+    sign_in = -> do
+      session = PartiduoUi::Browser.new
+      login = session.post("/login/passkey/options").html
+      JSON.parse(session.post("/login/passkey", authenticator.assert(login)).html)["ok"].as_bool.should be_true
+      session
+    end
+    accountant = sign_in.call
 
     full = accountant.get("/").html
     full.should_not contain("pd-simple")
@@ -290,7 +293,24 @@ describe "Mode simplifié de la micro-entreprise (ADR-007 D3)" do
     simple = accountant.get("/").html
     simple.should contain("pd-simple")
     simple.should contain("Passer au mode complet")
-    accountant.post("/mode", {"mode" => "full"})
+    # Préférence enregistrée avec le compte, sans cookie : retrouvée à la connexion suivante.
+    accountant.jar.has_key?("partiduo_mode").should be_false
+    sign_in.call.get("/").html.should contain("pd-simple")
+    preferences = accountant.get("/account/preferences").html
+    preferences.should contain(%(<option value="simple" selected>Mode simplifié</option>))
+    preferences.should contain(%(<option value="full">Mode complet</option>))
+    accountant.post("/account/preferences", {"interface" => "full"}).headers["Location"].should eq("/account/preferences")
     accountant.get("/").html.should_not contain("pd-simple")
+    accountant.post("/mode", {"mode" => "full"}).status.should eq(403) # déjà en mode complet
+  end
+
+  it "garde le mode simplifié aux utilisateurs de la société, quelle que soit leur préférence" do
+    browser = micro_books
+    page = browser.get("/account/preferences").html
+    page.should_not contain(%(name="interface"))
+    page.should contain("Interface appliquée : Mode simplifié.")
+    page.should contain("aux utilisateurs de la société")
+    browser.post("/account/preferences", {"interface" => "full"}).status.should eq(422)
+    browser.get("/").html.should contain("pd-simple")
   end
 end

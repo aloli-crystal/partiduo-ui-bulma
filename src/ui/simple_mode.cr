@@ -9,19 +9,31 @@ module PartiduoUi
   # « dépensé »). Les deux modules actifs à la fois : la micro-entreprise
   # l'emporte (ordre de `FLAVORS`).
   #
-  # Le mode complet reste accessible au comptable (rôle `accountant`,
-  # ADR-002 D4) : il y est par défaut et peut passer d'un mode à l'autre
-  # (cookie `partiduo_mode`). Pour la profession libérale, l'interface des
-  # autres utilisateurs est un réglage du dossier (paramètres du module,
-  # « Recettes et dépenses » ou « Comptabilité », DECISIONS D-UI-076,
-  # D-LIB3-001), sans bascule personnelle. Le mode ne change que la
-  # présentation : les droits restent ceux du contrat (`Partiduo::Api`),
-  # toute route permise reste joignable.
+  # L'interface appliquée suit la *préférence de chaque utilisateur*,
+  # enregistrée par le cœur avec son compte (`Partiduo::Api::Auth.preferences`,
+  # DECISIONS D-UI-077, D-AUTH-016) : « Recettes et dépenses » ou mode
+  # simplifié (`simple`), « Comptabilité » ou mode complet (`full`). Tant
+  # que la personne n'a rien choisi, défaut de son rôle : `simple` pour un
+  # utilisateur de la société, `full` pour le comptable (rôle `accountant`,
+  # ADR-002 D4). Elle la règle dans ses préférences (`/account/preferences`)
+  # ou par le raccourci de son menu, qui l'enregistre de même.
+  #
+  # Interfaces offertes (`interfaces`) : pour la profession libérale, la
+  # comptabilité seulement si le module Comptabilité est actif ; pour la
+  # micro-entreprise, le mode complet au seul comptable (ses utilisateurs de
+  # la société restent en mode simplifié, ADR-007 D3). Une préférence qui
+  # n'est pas offerte laisse l'interface simplifiée, sans être effacée : elle
+  # revient avec le module. Le mode ne change que la présentation : les
+  # droits restent ceux du contrat (`Partiduo::Api`), toute route permise
+  # reste joignable.
   module SimpleMode
-    COOKIE = "partiduo_mode"
-    MODULE = "MICRO"
-    READ   = "micro.register.read"
-    ROLE   = "accountant"
+    MODULE     = "MICRO"
+    READ       = "micro.register.read"
+    ROLE       = "accountant"
+    LIBERAL    = "LIBERAL"
+    ACCOUNTING = "ACCOUNTING"
+    SIMPLE     = Partiduo::Api::Auth::INTERFACE_SIMPLE
+    FULL       = Partiduo::Api::Auth::INTERFACE_FULL
 
     # Entrée du menu réduit : code de menu d'un manifeste (présent dans le
     # menu de l'utilisateur, donc module actif et permission accordée),
@@ -63,14 +75,44 @@ module PartiduoUi
         "ui.liberal.settings.title"),
     ]
 
+    # Choix d'interface de l'utilisateur de la requête : module du mode
+    # simplifié (`flavor`), interfaces offertes, préférence en vigueur
+    # (celle qu'il a choisie ou le défaut de son rôle).
+    record Choice, flavor : Flavor, interfaces : Array(String), preferences : Partiduo::Api::Auth::PreferencesView do
+      # Interface appliquée : la préférence si elle est offerte, sinon
+      # l'interface simplifiée.
+      def applied : String
+        SimpleMode.choose(preferences.interface, interfaces)
+      end
+
+      # Plus d'une interface offerte : la personne peut passer de l'une à
+      # l'autre.
+      def switchable? : Bool
+        interfaces.size > 1
+      end
+
+      # Libellé d'une interface, dans le vocabulaire du module.
+      def label_key(interface : String) : String
+        "ui.preferences.#{flavor.module_code == LIBERAL ? "liberal" : "micro"}_#{interface}"
+      end
+    end
+
     # Module du mode simplifié offert à cet acteur (module actif, lecture
     # des registres), `nil` s'il n'y en a pas.
     def self.flavor(actor : Partiduo::Api::Actor) : Flavor?
+      flavor(actor, active_modules(actor))
+    end
+
+    private def self.flavor(actor : Partiduo::Api::Actor, active : Set(String)) : Flavor?
       return unless actor.authenticated?
-      active = Partiduo::Api::Modules.list(actor).select(&.active).map(&.code).to_set
       FLAVORS.find { |item| active.includes?(item.module_code) && actor.can?(item.read) }
+    end
+
+    private def self.active_modules(actor : Partiduo::Api::Actor) : Set(String)
+      return Set(String).new unless actor.authenticated?
+      Partiduo::Api::Modules.list(actor).select(&.active).map(&.code).to_set
     rescue Partiduo::Api::AccessDenied
-      nil
+      Set(String).new
     end
 
     # Le mode simplifié s'offre-t-il à cet acteur ?
@@ -78,59 +120,65 @@ module PartiduoUi
       !flavor(actor).nil?
     end
 
+    # Choix d'interface de la requête, `nil` sans mode simplifié offert
+    # (aucun module `MICRO` ou `LIBERAL` lisible) ; calculé une seule fois.
+    def self.choice(request : Marten::HTTP::Request) : Choice?
+      cached = request.partiduo_interface_choice
+      return cached.as?(Choice) unless cached.nil?
+      value = compute_choice(Current.for(request))
+      request.partiduo_interface_choice = value || false
+      value
+    end
+
+    private def self.compute_choice(current : Current) : Choice?
+      return unless current.authenticated?
+      actor = current.actor
+      active = active_modules(actor)
+      chosen = flavor(actor, active) || return
+      Choice.new(chosen, interfaces(chosen.module_code, current.session.try(&.role), active.includes?(ACCOUNTING)),
+        Partiduo::Api::Auth.preferences(actor))
+    rescue Partiduo::Api::AccessDenied
+      nil
+    end
+
     # Module du mode simplifié de la requête (`MICRO`, `LIBERAL`), `nil` en
     # mode complet.
     def self.mode(request : Marten::HTTP::Request) : String?
-      cached = request.partiduo_simple_mode
-      return cached.presence unless cached.nil?
-      current = Current.for(request)
-      chosen = current.authenticated? ? flavor(current.actor) : nil
-      value = chosen && choose(current.session.try(&.role), request.cookies[COOKIE]?,
-        folder_simple?(chosen, current.actor)) ? chosen.module_code : ""
-      request.partiduo_simple_mode = value
-      value.presence
+      choice(request).try { |item| item.flavor.module_code if item.applied == SIMPLE }
     end
 
-    # Mode de la requête : pour un utilisateur de la société, celui du
-    # dossier ; pour un comptable, seulement s'il l'a choisi.
     def self.enabled?(request : Marten::HTTP::Request) : Bool
       !mode(request).nil?
     end
 
-    # Règle du choix, à part pour les specs : `role` de la session, valeur
-    # du cookie (`simple`, `full` ou absente), réglage du dossier
-    # (`folder_simple`). Le comptable suit son cookie, jamais le dossier ;
-    # un autre utilisateur suit le dossier, jamais un cookie.
-    def self.choose(role : String?, cookie : String?, folder_simple : Bool = true) : Bool
-      role == ROLE ? cookie == "simple" : folder_simple
+    # Interfaces offertes, à part pour les specs : profession libérale, la
+    # comptabilité avec le module Comptabilité actif ; micro-entreprise, le
+    # mode complet au seul comptable.
+    def self.interfaces(module_code : String, role : String?, accounting_active : Bool) : Array(String)
+      offered = module_code == LIBERAL ? accounting_active : role == ROLE
+      offered ? [SIMPLE, FULL] : [SIMPLE]
     end
 
-    # Réglage du dossier : la profession libérale peut présenter la
-    # comptabilité à tous ses utilisateurs (paramètres du module, interface
-    # `accounting`, que le contrat ne rend qu'avec la Comptabilité active) ;
-    # la micro-entreprise reste en mode simplifié.
-    def self.folder_simple?(chosen : Flavor, actor : Partiduo::Api::Actor) : Bool
-      return true unless chosen.module_code == Partiduo::Api::Liberal::MODULE_CODE
-      !Partiduo::Api::Liberal.settings(actor).accounting_interface?
-    rescue Partiduo::Api::AccessDenied
-      true
+    # Interface appliquée, à part pour les specs : la préférence si elle est
+    # offerte, sinon l'interface simplifiée (la préférence n'est pas effacée).
+    def self.choose(preference : String, interfaces : Array(String)) : String
+      interfaces.includes?(preference) ? preference : SIMPLE
     end
 
-    # Seul le comptable passe d'un mode à l'autre ; mode proposé (`simple`
-    # ou `full`), `nil` pour un autre utilisateur.
+    # Raccourci du menu de l'utilisateur : interface vers laquelle il bascule
+    # (`simple` ou `full`), `nil` s'il n'a pas le choix.
     def self.switch_target(request : Marten::HTTP::Request) : String?
-      current = Current.for(request)
-      return unless current.session.try(&.role) == ROLE && available?(current.actor)
-      enabled?(request) ? "full" : "simple"
+      item = choice(request) || return
+      return unless item.switchable?
+      item.applied == SIMPLE ? FULL : SIMPLE
     end
 
-    # Clé du libellé du bouton de bascule vers `target` : vocabulaire du
-    # module (« Passer à la comptabilité » pour la profession libérale).
+    # Clé du libellé du raccourci vers `target` : vocabulaire du module
+    # (« Passer à la comptabilité » pour la profession libérale).
     def self.switch_label(request : Marten::HTTP::Request, target : String) : String
-      current = Current.for(request)
-      code = current.authenticated? ? flavor(current.actor).try(&.module_code) : nil
-      scope = code == "LIBERAL" ? "ui.liberal.mode" : "ui.micro.mode"
-      "#{scope}.#{target == "simple" ? "to_simple" : "to_full"}"
+      code = choice(request).try(&.flavor.module_code)
+      scope = code == LIBERAL ? "ui.liberal.mode" : "ui.micro.mode"
+      "#{scope}.#{target == SIMPLE ? "to_simple" : "to_full"}"
     end
 
     # Paramètres du module du mode simplifié (menu de l'utilisateur) : URL

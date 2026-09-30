@@ -115,4 +115,26 @@ describe "Coquille de l'écran (maquette, ADR-005 D5)" do
     body = PartiduoUi::Accounts.signed_in.get("/search?q=411").html
     body.should contain("Recherche : « 411 »")
   end
+
+  it "mène aux préférences depuis le menu de l'utilisateur, à côté de la sécurité (D-UI-077)" do
+    PartiduoUi::Accounts.create
+    browser = PartiduoUi::Accounts.signed_in
+    menu = browser.get("/").html
+    menu.should contain(%(href="/account/security"))
+    menu.should contain(%(<a href="/account/preferences">))
+    menu.should contain("/assets/ui/icons/sprite.svg#sliders-horizontal")
+    %w[fr en nl].each do |locale|
+      browser.post("/language", {"locale" => locale, "next" => "/account/preferences"})
+      page = browser.get("/account/preferences").html
+      page.should contain(%(<html lang="#{locale}">))
+      page.should_not contain("missing translation")
+    end
+    browser.post("/language", {"locale" => "fr", "next" => "/"})
+    # Sans micro-entreprise ni profession libérale : rien à choisir.
+    page = browser.get("/account/preferences").html
+    page.should contain("aucune préférence à régler")
+    page.should_not contain(%(name="interface"))
+    browser.post("/account/preferences", {"interface" => "full"}).status.should eq(422)
+    browser.post("/mode", {"mode" => "full"}).status.should eq(403)
+  end
 end

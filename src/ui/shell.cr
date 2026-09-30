@@ -59,13 +59,14 @@ module PartiduoUi
     getter period : String?
     getter period_groups : Array(PeriodGroup)?
     # Mode simplifié de la micro-entreprise (`SimpleMode`, ADR-007 D3) ;
-    # `mode_target` : mode proposé au comptable (`simple` ou `full`) ;
+    # `mode_target` : interface vers laquelle bascule le raccourci du menu
+    # de l'utilisateur (`simple` ou `full`, préférence enregistrée, D-UI-077) ;
     # `settings_url` : paramètres du module du mode simplifié (micro-entreprise
     # ou profession libérale), dans le menu de l'utilisateur ;
     # `settings_label` : leur libellé.
     property simple : Bool = false
     property mode_target : String? = nil
-    # Clé du libellé du bouton de bascule de mode.
+    # Clé du libellé du raccourci de bascule.
     property mode_label : String? = nil
     property settings_url : String? = nil
     property settings_label : String = "ui.micro.settings.title"

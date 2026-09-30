@@ -394,8 +394,9 @@ Marten.routes.draw do
   path "/followup", FOLLOWUP_ROUTES, name: "followup"
   path "/micro", MICRO_ROUTES, name: "micro"
   path "/liberal", LIBERAL_ROUTES, name: "liberal"
-  # Mode simplifié ou complet, au choix du comptable (ADR-007 D3).
-  path "/mode", PartiduoUi::MicroModeHandler, name: "micro_mode"
+  # Raccourci du menu de l'utilisateur : enregistre sa préférence
+  # d'interface (DECISIONS D-UI-077).
+  path "/mode", PartiduoUi::InterfaceModeHandler, name: "interface_mode"
 
   # Connexion (ADR-002).
   path "/login", PartiduoUi::LoginHandler, name: "login"
@@ -431,6 +432,8 @@ Marten.routes.draw do
   path "/account/elevate/totp", PartiduoUi::ElevateTotpHandler, name: "account_elevate_totp"
   path "/account/elevate/passkey/options", PartiduoUi::ElevatePasskeyOptionsHandler, name: "account_elevate_passkey_options"
   path "/account/elevate/passkey", PartiduoUi::ElevatePasskeyHandler, name: "account_elevate_passkey"
+  # Préférences de l'utilisateur : interface (DECISIONS D-UI-077).
+  path "/account/preferences", PartiduoUi::PreferencesHandler, name: "account_preferences"
 
   path "/search", PartiduoUi::SearchHandler, name: "search"
   path "/about", PartiduoUi::AboutHandler, name: "about"

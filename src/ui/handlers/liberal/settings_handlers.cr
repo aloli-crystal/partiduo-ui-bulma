@@ -3,9 +3,6 @@
 module PartiduoUi
   # Paramétrage de la profession libérale (ADR-007 D6) : profession et début
   # d'activité (identification de la 2035), nature des factures encaissées,
-  # interface du dossier pour tous ses utilisateurs (« Recettes et
-  # dépenses » ou « Comptabilité », celle-ci seulement avec le module
-  # Comptabilité actif, DECISIONS D-UI-076),
   # natures (rubrique de la 2035-A de chaque recette ou dépense), table de
   # correspondance datée par millésime (poste → formulaire, ligne, case),
   # chargement des valeurs par défaut, republication vers la Comptabilité.
@@ -25,20 +22,19 @@ module PartiduoUi
         "profession"          => settings.profession,
         "activity_started_on" => settings.activity_started_on.try(&.to_s("%Y-%m-%d")) || "",
         "default_nature_id"   => settings.default_nature_id.try(&.to_s) || "",
-        "interface"           => settings.interface,
       }))
     end
 
     def post
       require!(MODULE, SETTINGS)
       values = {"profession" => field("profession"), "activity_started_on" => field("activity_started_on"),
-                "default_nature_id" => field("default_nature_id"), "interface" => field("interface")}
+                "default_nature_id" => field("default_nature_id")}
       shown = form(values)
       started = values["activity_started_on"].empty? ? nil : fmt.parse_date(values["activity_started_on"])
       shown.add_error("activity_started_on", I18n.t("ui.forms.invalid_date")) if started.nil? && !values["activity_started_on"].empty?
       return show(shown, 422) if shown.invalid
       input = Liberal::SettingsInput.new(profession: values["profession"], activity_started_on: started,
-        default_nature_id: values["default_nature_id"].to_i64?, interface: values["interface"].presence)
+        default_nature_id: values["default_nature_id"].to_i64?)
       result = Liberal.update_settings(current.actor, input)
       if result.success?
         flash["success"] = I18n.t("ui.liberal.settings.saved")
@@ -50,17 +46,12 @@ module PartiduoUi
     private def form(values : Hash(String, String)) : Form
       natures = [option("", I18n.t("ui.liberal.settings.no_nature"))] +
                 Liberal.natures(current.actor, "receipt", enabled_only: true).map { |item| option(item.id.to_s, item.label) }
-      interfaces = Liberal.interfaces(current.actor)
-      choices = interfaces.map { |code| option(code, I18n.t("ui.liberal.settings.interface_#{code}")) }
-      help = interfaces.includes?(Liberal::INTERFACE_ACCOUNTING) ? "interface_help" : "interface_help_inactive"
       Form.new([Form::Group.new(nil, [
         Form::Field.new("profession", I18n.t("ui.liberal.settings.profession"), value: values["profession"], maxlength: 100,
           help: I18n.t("ui.liberal.settings.profession_help")),
         Form::Field.new("activity_started_on", I18n.t("ui.liberal.settings.activity_started_on"), "date", values["activity_started_on"]),
         Form::Field.new("default_nature_id", I18n.t("ui.liberal.settings.default_nature"), "select", values["default_nature_id"],
           options: natures, help: I18n.t("ui.liberal.settings.default_nature_help")),
-        Form::Field.new("interface", I18n.t("ui.liberal.settings.interface"), "select", values["interface"],
-          options: choices, help: I18n.t("ui.liberal.settings.#{help}")),
       ])])
     end
 
