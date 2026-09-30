@@ -180,6 +180,13 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
 .pd-table th[aria-sort="ascending"] a.pd-sort::after { content: "▲"; opacity: 1; }
 .pd-table th[aria-sort="descending"] a.pd-sort::after { content: "▼"; opacity: 1; }
 .pd-table td.pd-mono { white-space: nowrap; }
+/* Libellé de pied dans une colonne de dates (« Dont Fournitures de bureau,
+   documentation… ») : replié, pour que la colonne garde la largeur d'une
+   date et que la colonne des actions reste visible (D-LIB2-006) ; au
+   téléphone, la règle de D-UI-074 les replie déjà. */
+@media (min-width: 768px) {
+  .pd-table tfoot td.pd-mono:first-child { white-space: normal; font-family: inherit; min-inline-size: 11rem; }
+}
 .pd-table .pd-empty { text-align: center; padding-block: 1.5rem; }
 .pd-table tr.pd-class { font-weight: 600; background: var(--pd-row-alt); }
 .pd-table tr.pd-depth-1 td:first-child { padding-inline-start: 1.4rem; }
@@ -415,6 +422,9 @@ img.pd-attachment-preview { min-height: 0; height: auto; object-fit: contain; }
      la période est dans l'en-tête du groupe). */
   .pd-table.is-narrow td, .pd-table.is-narrow th { padding-inline: .3rem; }
   .pd-table th { letter-spacing: 0; }
+  /* En-tête d'une colonne de montants (« Valeur d'origine ») replié : la
+     colonne garde la largeur de ses montants (D-LIB2-006). */
+  .pd-table thead th.amount { white-space: normal; }
   .pd-table td.pd-mono, .pd-table td.amount { font-size: .8rem; }
   .pd-table tfoot td.pd-mono { white-space: normal; font-family: inherit; hyphens: auto; }
   .pd-table tr.pd-row-locked td:first-child .pd-icon { display: none; }
