@@ -2272,6 +2272,9 @@ en:
         gauge_detail: "%{turnover} of %{limit}"
         recent_receipts: "Latest income"
     liberal:
+      mode:
+        to_simple: "Switch to income and expenses"
+        to_full: "Switch to accounting"
       menu:
         dashboard: "Dashboard"
         receipts: "Income"

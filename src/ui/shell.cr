@@ -65,6 +65,8 @@ module PartiduoUi
     # `settings_label` : leur libellé.
     property simple : Bool = false
     property mode_target : String? = nil
+    # Clé du libellé du bouton de bascule de mode.
+    property mode_label : String? = nil
     property settings_url : String? = nil
     property settings_label : String = "ui.micro.settings.title"
 
@@ -148,6 +150,7 @@ module PartiduoUi
       )
       shell.simple = simple
       shell.mode_target = SimpleMode.switch_target(request)
+      shell.mode_target.try { |target| shell.mode_label = SimpleMode.switch_label(request, target) }
       if link = simple_module.try { |code| SimpleMode.settings_link(code, actor) }
         shell.settings_url, shell.settings_label = link
       end

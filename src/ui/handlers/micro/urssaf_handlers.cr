@@ -258,8 +258,9 @@ module PartiduoUi
     end
   end
 
-  # Choix du mode par le comptable (ADR-007 D3) : simplifié ou complet ;
-  # refusé à tout autre utilisateur.
+  # Choix du mode (ADR-007 D3) : simplifié ou complet, par le comptable et,
+  # pour la profession libérale, par tout utilisateur (D-UI-075) ; refusé
+  # aux autres.
   class MicroModeHandler < ScreenHandler
     def post
       target = SimpleMode.switch_target(request)

@@ -2272,6 +2272,9 @@ nl:
         gauge_detail: "%{turnover} van %{limit}"
         recent_receipts: "Laatste ontvangsten"
     liberal:
+      mode:
+        to_simple: "Naar ontvangsten en uitgaven"
+        to_full: "Naar de boekhouding"
       menu:
         dashboard: "Dashboard"
         receipts: "Ontvangsten"

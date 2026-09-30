@@ -2272,6 +2272,9 @@ fr:
         gauge_detail: "%{turnover} sur %{limit}"
         recent_receipts: "Dernières recettes"
     liberal:
+      mode:
+        to_simple: "Passer aux recettes et dépenses"
+        to_full: "Passer à la comptabilité"
       menu:
         dashboard: "Tableau de bord"
         receipts: "Recettes"

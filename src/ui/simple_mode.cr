@@ -11,7 +11,9 @@ module PartiduoUi
   #
   # Le mode complet reste accessible au comptable (rôle `accountant`,
   # ADR-002 D4) : il y est par défaut et peut passer d'un mode à l'autre
-  # (cookie `partiduo_mode`). Le mode ne change que la présentation : les
+  # (cookie `partiduo_mode`). Le professionnel libéral passe lui aussi de
+  # ses recettes et dépenses à la comptabilité et retour (`SWITCHABLE`,
+  # DECISIONS D-UI-075) ; il commence en recettes et dépenses. Le mode ne change que la présentation : les
   # droits restent ceux du contrat (`Partiduo::Api`), toute route permise
   # reste joignable.
   module SimpleMode
@@ -19,6 +21,8 @@ module PartiduoUi
     MODULE = "MICRO"
     READ   = "micro.register.read"
     ROLE   = "accountant"
+    # Modules dont tout utilisateur peut quitter le mode simplifié.
+    SWITCHABLE = Set{"LIBERAL"}
 
     # Entrée du menu réduit : code de menu d'un manifeste (présent dans le
     # menu de l'utilisateur, donc module actif et permission accordée),
@@ -82,7 +86,7 @@ module PartiduoUi
       return cached.presence unless cached.nil?
       current = Current.for(request)
       chosen = current.authenticated? ? flavor(current.actor) : nil
-      value = chosen && choose(current.session.try(&.role), request.cookies[COOKIE]?) ? chosen.module_code : ""
+      value = chosen && choose(current.session.try(&.role), request.cookies[COOKIE]?, SWITCHABLE.includes?(chosen.module_code)) ? chosen.module_code : ""
       request.partiduo_simple_mode = value
       value.presence
     end
@@ -94,17 +98,31 @@ module PartiduoUi
     end
 
     # Règle du choix, à part pour les specs : `role` de la session, valeur
-    # du cookie (`simple`, `full` ou absente).
-    def self.choose(role : String?, cookie : String?) : Bool
-      role == ROLE ? cookie == "simple" : true
+    # du cookie (`simple`, `full` ou absente), module dont tout utilisateur
+    # peut quitter le mode simplifié (`switchable`).
+    def self.choose(role : String?, cookie : String?, switchable : Bool = false) : Bool
+      return cookie == "simple" if role == ROLE
+      switchable ? cookie != "full" : true
     end
 
-    # Le comptable peut passer d'un mode à l'autre ; mode proposé
-    # (`simple` ou `full`), `nil` pour un autre utilisateur.
+    # Le comptable, et tout utilisateur d'un module de `SWITCHABLE`, peut
+    # passer d'un mode à l'autre ; mode proposé (`simple` ou `full`), `nil`
+    # pour un autre utilisateur.
     def self.switch_target(request : Marten::HTTP::Request) : String?
       current = Current.for(request)
-      return unless current.session.try(&.role) == ROLE && available?(current.actor)
+      return unless current.authenticated?
+      chosen = flavor(current.actor) || return
+      return unless current.session.try(&.role) == ROLE || SWITCHABLE.includes?(chosen.module_code)
       enabled?(request) ? "full" : "simple"
+    end
+
+    # Clé du libellé du bouton de bascule vers `target` : vocabulaire du
+    # module (« Passer à la comptabilité » pour la profession libérale).
+    def self.switch_label(request : Marten::HTTP::Request, target : String) : String
+      current = Current.for(request)
+      code = current.authenticated? ? flavor(current.actor).try(&.module_code) : nil
+      scope = code == "LIBERAL" ? "ui.liberal.mode" : "ui.micro.mode"
+      "#{scope}.#{target == "simple" ? "to_simple" : "to_full"}"
     end
 
     # Paramètres du module du mode simplifié (menu de l'utilisateur) : URL

@@ -91,6 +91,23 @@ describe "Écrans de la profession libérale (ADR-007 D6)" do
     browser.get("/invoicing/documents").html.should contain(%(href="/invoicing/invoices/new"))
   end
 
+  it "passe des recettes et dépenses à la comptabilité et retour (D-UI-075)" do
+    PartiduoUi::SimpleMode.choose("member", nil, true).should be_true
+    PartiduoUi::SimpleMode.choose("member", "full", true).should be_false
+    PartiduoUi::SimpleMode.choose("member", "simple", true).should be_true
+    browser = liberal_books(accounting: true)
+    simple = browser.get("/").html
+    simple.should contain("pd-simple")
+    simple.should contain("Passer à la comptabilité")
+    browser.post("/mode", {"mode" => "full"}).headers["Location"].should eq("/")
+    full = browser.get("/").html
+    full.should_not contain("pd-simple")
+    full.should contain("Passer aux recettes et dépenses")
+    full.should contain(%(href="/accounting/))
+    browser.post("/mode", {"mode" => "simple"})
+    browser.get("/").html.should contain("pd-simple")
+  end
+
   it "saisit une dépense en quelques champs avec le choix de la rubrique, pensée pour le téléphone" do
     browser = liberal_books
     form = browser.get("/liberal/expenses/new").html
