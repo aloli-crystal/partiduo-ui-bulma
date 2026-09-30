@@ -2485,7 +2485,7 @@ fr:
         todo_ready: "2035 des revenus %{year} prête : relisez-la et déposez-la"
       settings:
         title: "Paramètres de la profession libérale"
-        intro: "Identification de la 2035 et nature des factures encaissées."
+        intro: "Identification de la 2035, nature des factures encaissées et interface du dossier."
         saved: "Paramètres enregistrés."
         profession: "Profession exercée"
         profession_help: "Telle qu'elle figure sur la 2035 (par exemple : masseur-kinésithérapeute)."
@@ -2493,6 +2493,11 @@ fr:
         default_nature: "Nature des factures encaissées"
         default_nature_help: "Une facture encaissée devient une recette de cette nature."
         no_nature: "Aucune"
+        interface: "Interface"
+        interface_simple: "Recettes et dépenses"
+        interface_accounting: "Comptabilité"
+        interface_help: "Recettes et dépenses : un menu réduit et des mots de tous les jours ; Comptabilité : les journaux, les écritures et le plan comptable, pour tous les utilisateurs du dossier."
+        interface_help_inactive: "Recettes et dépenses : un menu réduit et des mots de tous les jours ; la comptabilité se choisit une fois le module Comptabilité activé."
       natures:
         title: "Natures"
         intro: "Chaque recette ou dépense porte une nature, rattachée à une rubrique de la 2035-A. Une nature déjà employée ne change plus que de libellé et d'activation."

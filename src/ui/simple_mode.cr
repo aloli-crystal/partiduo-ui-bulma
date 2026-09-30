@@ -11,18 +11,17 @@ module PartiduoUi
   #
   # Le mode complet reste accessible au comptable (rôle `accountant`,
   # ADR-002 D4) : il y est par défaut et peut passer d'un mode à l'autre
-  # (cookie `partiduo_mode`). Le professionnel libéral passe lui aussi de
-  # ses recettes et dépenses à la comptabilité et retour (`SWITCHABLE`,
-  # DECISIONS D-UI-075) ; il commence en recettes et dépenses. Le mode ne change que la présentation : les
-  # droits restent ceux du contrat (`Partiduo::Api`), toute route permise
-  # reste joignable.
+  # (cookie `partiduo_mode`). Pour la profession libérale, l'interface des
+  # autres utilisateurs est un réglage du dossier (paramètres du module,
+  # « Recettes et dépenses » ou « Comptabilité », DECISIONS D-UI-076,
+  # D-LIB3-001), sans bascule personnelle. Le mode ne change que la
+  # présentation : les droits restent ceux du contrat (`Partiduo::Api`),
+  # toute route permise reste joignable.
   module SimpleMode
     COOKIE = "partiduo_mode"
     MODULE = "MICRO"
     READ   = "micro.register.read"
     ROLE   = "accountant"
-    # Modules dont tout utilisateur peut quitter le mode simplifié.
-    SWITCHABLE = Set{"LIBERAL"}
 
     # Entrée du menu réduit : code de menu d'un manifeste (présent dans le
     # menu de l'utilisateur, donc module actif et permission accordée),
@@ -86,33 +85,42 @@ module PartiduoUi
       return cached.presence unless cached.nil?
       current = Current.for(request)
       chosen = current.authenticated? ? flavor(current.actor) : nil
-      value = chosen && choose(current.session.try(&.role), request.cookies[COOKIE]?, SWITCHABLE.includes?(chosen.module_code)) ? chosen.module_code : ""
+      value = chosen && choose(current.session.try(&.role), request.cookies[COOKIE]?,
+        folder_simple?(chosen, current.actor)) ? chosen.module_code : ""
       request.partiduo_simple_mode = value
       value.presence
     end
 
-    # Mode de la requête : simplifié pour un utilisateur de la société ;
-    # pour un comptable, seulement s'il l'a choisi.
+    # Mode de la requête : pour un utilisateur de la société, celui du
+    # dossier ; pour un comptable, seulement s'il l'a choisi.
     def self.enabled?(request : Marten::HTTP::Request) : Bool
       !mode(request).nil?
     end
 
     # Règle du choix, à part pour les specs : `role` de la session, valeur
-    # du cookie (`simple`, `full` ou absente), module dont tout utilisateur
-    # peut quitter le mode simplifié (`switchable`).
-    def self.choose(role : String?, cookie : String?, switchable : Bool = false) : Bool
-      return cookie == "simple" if role == ROLE
-      switchable ? cookie != "full" : true
+    # du cookie (`simple`, `full` ou absente), réglage du dossier
+    # (`folder_simple`). Le comptable suit son cookie, jamais le dossier ;
+    # un autre utilisateur suit le dossier, jamais un cookie.
+    def self.choose(role : String?, cookie : String?, folder_simple : Bool = true) : Bool
+      role == ROLE ? cookie == "simple" : folder_simple
     end
 
-    # Le comptable, et tout utilisateur d'un module de `SWITCHABLE`, peut
-    # passer d'un mode à l'autre ; mode proposé (`simple` ou `full`), `nil`
-    # pour un autre utilisateur.
+    # Réglage du dossier : la profession libérale peut présenter la
+    # comptabilité à tous ses utilisateurs (paramètres du module, interface
+    # `accounting`, que le contrat ne rend qu'avec la Comptabilité active) ;
+    # la micro-entreprise reste en mode simplifié.
+    def self.folder_simple?(chosen : Flavor, actor : Partiduo::Api::Actor) : Bool
+      return true unless chosen.module_code == Partiduo::Api::Liberal::MODULE_CODE
+      !Partiduo::Api::Liberal.settings(actor).accounting_interface?
+    rescue Partiduo::Api::AccessDenied
+      true
+    end
+
+    # Seul le comptable passe d'un mode à l'autre ; mode proposé (`simple`
+    # ou `full`), `nil` pour un autre utilisateur.
     def self.switch_target(request : Marten::HTTP::Request) : String?
       current = Current.for(request)
-      return unless current.authenticated?
-      chosen = flavor(current.actor) || return
-      return unless current.session.try(&.role) == ROLE || SWITCHABLE.includes?(chosen.module_code)
+      return unless current.session.try(&.role) == ROLE && available?(current.actor)
       enabled?(request) ? "full" : "simple"
     end
 

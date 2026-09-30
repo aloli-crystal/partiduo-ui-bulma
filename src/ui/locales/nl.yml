@@ -2485,7 +2485,7 @@ nl:
         todo_ready: "2035 van de inkomsten %{year} klaar: lees ze na en dien ze in"
       settings:
         title: "Instellingen van het vrij beroep"
-        intro: "Identificatie van de 2035 en aard van de geïnde facturen."
+        intro: "Identificatie van de 2035, aard van de geïnde facturen en interface van het dossier."
         saved: "Instellingen opgeslagen."
         profession: "Uitgeoefend beroep"
         profession_help: "Zoals vermeld op de 2035 (bijvoorbeeld: kinesitherapeut)."
@@ -2493,6 +2493,11 @@ nl:
         default_nature: "Aard van de geïnde facturen"
         default_nature_help: "Een geïnde factuur wordt een ontvangst van deze aard."
         no_nature: "Geen"
+        interface: "Interface"
+        interface_simple: "Ontvangsten en uitgaven"
+        interface_accounting: "Boekhouding"
+        interface_help: "Ontvangsten en uitgaven: een beperkt menu en alledaagse woorden; Boekhouding: de dagboeken, de boekingen en het rekeningenstelsel, voor alle gebruikers van het dossier."
+        interface_help_inactive: "Ontvangsten en uitgaven: een beperkt menu en alledaagse woorden; de boekhouding kan worden gekozen zodra de module Boekhouding actief is."
       natures:
         title: "Aarden"
         intro: "Elke ontvangst of uitgave heeft een aard, gekoppeld aan een rubriek van de 2035-A. Een reeds gebruikte aard wijzigt enkel nog van omschrijving en activering."

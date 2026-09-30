@@ -91,21 +91,74 @@ describe "Écrans de la profession libérale (ADR-007 D6)" do
     browser.get("/invoicing/documents").html.should contain(%(href="/invoicing/invoices/new"))
   end
 
-  it "passe des recettes et dépenses à la comptabilité et retour (D-UI-075)" do
-    PartiduoUi::SimpleMode.choose("member", nil, true).should be_true
-    PartiduoUi::SimpleMode.choose("member", "full", true).should be_false
-    PartiduoUi::SimpleMode.choose("member", "simple", true).should be_true
+  it "règle l'interface du dossier dans les paramètres, pour tous ses utilisateurs (D-UI-076)" do
+    PartiduoUi::SimpleMode.choose("member", nil).should be_true
+    PartiduoUi::SimpleMode.choose("member", "full").should be_true
+    PartiduoUi::SimpleMode.choose("member", "simple", false).should be_false
+    PartiduoUi::SimpleMode.choose("accountant", nil, true).should be_false
     browser = liberal_books(accounting: true)
     simple = browser.get("/").html
     simple.should contain("pd-simple")
-    simple.should contain("Passer à la comptabilité")
-    browser.post("/mode", {"mode" => "full"}).headers["Location"].should eq("/")
+    simple.should_not contain("Passer à la comptabilité")
+    simple.should_not contain(%(action="/mode"))
+    # Plus de bascule personnelle : le formulaire et le cookie ne changent rien.
+    browser.post("/mode", {"mode" => "full"}).status.should eq(403)
+    browser.jar[PartiduoUi::SimpleMode::COOKIE] = "full"
+    browser.get("/").html.should contain("pd-simple")
+
+    form = browser.get("/liberal/settings").html
+    form.should contain(%(<option value="simple" selected>Recettes et dépenses</option>))
+    form.should contain(%(<option value="accounting">Comptabilité</option>))
+    form.should contain("les journaux, les écritures et le plan comptable")
+    saved = browser.post("/liberal/settings", {"profession" => "Masseur-kinésithérapeute", "activity_started_on" => "",
+                                               "default_nature_id" => "", "interface" => "accounting"})
+    saved.headers["Location"].should eq("/liberal/settings")
+    Liberal.settings(Books.system).interface.should eq("accounting")
     full = browser.get("/").html
     full.should_not contain("pd-simple")
-    full.should contain("Passer aux recettes et dépenses")
     full.should contain(%(href="/accounting/))
-    browser.post("/mode", {"mode" => "simple"})
+    full.should_not contain(%(action="/mode"))
+    browser.get("/liberal/settings").html.should contain(%(<option value="accounting" selected>Comptabilité</option>))
+
+    # Comptabilité désactivée : l'interface revient d'elle-même aux recettes et dépenses.
+    Partiduo::Api::Modules.deactivate(Books.system, "ANALYTIC").success?.should be_true
+    Partiduo::Api::Modules.deactivate(Books.system, "ACCOUNTING").success?.should be_true
     browser.get("/").html.should contain("pd-simple")
+    form = browser.get("/liberal/settings").html
+    form.should contain(%(<option value="simple" selected>Recettes et dépenses</option>))
+    form.should_not contain(%(<option value="accounting"))
+    form.should contain("une fois le module Comptabilité activé")
+  end
+
+  it "refuse la comptabilité comme interface sans le module Comptabilité actif" do
+    browser = liberal_books
+    refused = browser.post("/liberal/settings", {"profession" => "", "activity_started_on" => "", "default_nature_id" => "",
+                                                 "interface" => "accounting"})
+    refused.status.should eq(422)
+    refused.html.should contain("La comptabilité suppose le module Comptabilité actif")
+    Liberal.settings(Books.system).interface.should eq("simple")
+  end
+
+  it "laisse au comptable sa bascule personnelle, quel que soit le réglage du dossier" do
+    liberal_books(accounting: true)
+    PartiduoUi::Accounts.create(email: "compta@example.com", role: "accountant", profile: "ACCOUNTANT")
+    browser = PartiduoUi::Accounts.signed_in("compta@example.com")
+    authenticator = PartiduoUi::FakeAuthenticator.new
+    options = browser.post("/account/passkeys/options").html
+    JSON.parse(browser.post("/account/passkeys", authenticator.register(options)).html)["ok"].as_bool.should be_true
+    accountant = PartiduoUi::Browser.new
+    login = accountant.post("/login/passkey/options").html
+    JSON.parse(accountant.post("/login/passkey", authenticator.assert(login)).html)["ok"].as_bool.should be_true
+
+    full = accountant.get("/").html
+    full.should_not contain("pd-simple")
+    full.should contain("Passer aux recettes et dépenses")
+    accountant.post("/mode", {"mode" => "simple"}).headers["Location"].should eq("/")
+    simple = accountant.get("/").html
+    simple.should contain("pd-simple")
+    simple.should contain("Passer à la comptabilité")
+    accountant.post("/mode", {"mode" => "full"})
+    accountant.get("/").html.should_not contain("pd-simple")
   end
 
   it "saisit une dépense en quelques champs avec le choix de la rubrique, pensée pour le téléphone" do

@@ -2485,7 +2485,7 @@ en:
         todo_ready: "2035 for %{year} income ready: review and file it"
       settings:
         title: "Liberal profession settings"
-        intro: "2035 identification and nature of collected invoices."
+        intro: "2035 identification, nature of collected invoices and interface of the file."
         saved: "Settings saved."
         profession: "Profession"
         profession_help: "As shown on the 2035 (for example: physiotherapist)."
@@ -2493,6 +2493,11 @@ en:
         default_nature: "Nature of collected invoices"
         default_nature_help: "A collected invoice becomes income of this nature."
         no_nature: "None"
+        interface: "Interface"
+        interface_simple: "Income and expenses"
+        interface_accounting: "Accounting"
+        interface_help: "Income and expenses: a reduced menu and everyday words; Accounting: journals, entries and the chart of accounts, for every user of the file."
+        interface_help_inactive: "Income and expenses: a reduced menu and everyday words; accounting can be chosen once the Accounting module is active."
       natures:
         title: "Natures"
         intro: "Each income or expense has a nature, linked to a 2035-A heading. A nature already used can only change its label and activation."
