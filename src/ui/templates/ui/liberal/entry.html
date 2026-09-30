@@ -1,8 +1,9 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Saisie d'une recette, d'une dépense ou d'une immobilisation de la profession libérale (mode simplifié, ADR-007 D3, D6) : quelques champs sur une colonne, pensée d'abord pour le téléphone (montant en premier, clavier décimal, photo du justificatif par l'appareil photo), le reste sous « Plus de détails ». Variables : form (erreurs d'ensemble), main, more, attachment_kept, form_action, cancel_url, again. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Saisie d'une recette, d'une dépense ou d'une immobilisation de la profession libérale (mode simplifié, ADR-007 D3, D6) : quelques champs sur une colonne, pensée d'abord pour le téléphone (montant en premier, clavier décimal, photo du justificatif par l'appareil photo), le reste sous « Plus de détails ». Variables : form (erreurs d'ensemble), main, more, attachment_kept, form_action, cancel_url, again ; intro pour la modification d'une ligne d'un exercice ouvert (D-LIB2-001). #}{% extend "ui/base.html" %}
 {% block title %}{{ title }}{% endblock title %}
 {% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
 {% block heading %}{{ title }}{% endblock heading %}
 {% block content %}
+{% if intro %}<p class="pd-muted mb-3">{{ intro }}</p>{% endif %}
 <section class="pd-panel pd-quick" aria-label="{{ title }}"><div class="pd-body">
 <form method="post" action="{{ form_action }}" class="pd-form" enctype="multipart/form-data" novalidate>
   {% csrf_input %}

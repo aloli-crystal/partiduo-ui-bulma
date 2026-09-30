@@ -131,11 +131,12 @@ describe "Écrans de la profession libérale (ADR-007 D6)" do
     Liberal.lines(Books.system, Liberal::JournalQuery.new(kind: "receipt")).size.should eq(1)
   end
 
-  it "annule une ligne par une contre-passation datée du jour et édite le livre-journal" do
+  it "contre-passe une ligne par une ligne inverse datée du jour et édite le livre-journal" do
     browser = liberal_books
     line = expense("2026-03-12", "80")
     show = browser.get("/liberal/lines/#{line.id}").html
-    show.should contain("Annuler cette ligne")
+    # Exercice ouvert : modifier ou supprimer (D-LIB2-001).
+    show.should contain(%(action="/liberal/lines/#{line.id}/delete"))
     show.should contain("SCI du Parc")
     cancelled = browser.post("/liberal/lines/#{line.id}/reverse")
     cancelled.headers["Location"].should eq("/liberal/lines/#{line.id}")

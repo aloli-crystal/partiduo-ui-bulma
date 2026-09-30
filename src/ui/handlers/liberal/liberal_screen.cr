@@ -97,8 +97,9 @@ module PartiduoUi
     # Saisie rapide (gabarit `ui/liberal/entry.html`) : champs principaux,
     # « Plus de détails », photo du justificatif.
     def entry_page(title : String, crumbs : Array(Screen::Crumb), form : Form, action : String, cancel_url : String,
-                   again : Bool = true, status : Int32 = 200) : Marten::HTTP::Response
+                   again : Bool = true, status : Int32 = 200, intro : String? = nil) : Marten::HTTP::Response
       context["title"] = title
+      context["intro"] = intro
       context["crumbs"] = crumbs
       context["form"] = form
       context["main"] = form.groups[0].fields
@@ -109,6 +110,53 @@ module PartiduoUi
       context["cancel_url"] = cancel_url
       context["again"] = again
       page("ui/liberal/entry.html", status: status)
+    end
+
+    # --- Exercices (D-LIB2-001) -------------------------------------------------------
+
+    # État d'un exercice, en clair : « ouvert, modifiable », « clôturé le
+    # … », « 2035 transmise le … ».
+    def exercise_status(view : Liberal::YearView) : String
+      at = view.frozen_at
+      case view.state
+      when "transmitted" then I18n.t("ui.liberal.exercise.transmitted", date: at ? fmt.date(at) : "")
+      when "closed"      then I18n.t("ui.liberal.exercise.closed", date: at ? fmt.date(at) : "")
+      else                    I18n.t("ui.liberal.exercise.open")
+      end
+    end
+
+    # En-tête de groupe d'un exercice : « Exercice 2026 », état, cadenas s'il
+    # est figé.
+    def exercise_group(view : Liberal::YearView) : Table::Group
+      Table::Group.new(I18n.t("ui.liberal.exercise.label", year: view.year.to_s), exercise_status(view),
+        view.frozen? ? "lock" : nil)
+    end
+
+    # Exercices des années citées, par année.
+    def exercises(years : Enumerable(Int32)) : Hash(Int32, Liberal::YearView)
+      years.to_set.to_h { |year| {year, Liberal.year(current.actor, year)} }
+    end
+
+    # Actions d'une ligne du livre-journal selon son exercice (D-LIB2-001) :
+    # ouvert, modifier et supprimer ; figé (ou période close), contre-passer
+    # (ligne inverse datée du jour, dans l'exercice ouvert). `row` : boutons
+    # d'une ligne de liste (nom accessible avec le numéro).
+    def line_actions(item : Liberal::LineView, row : Bool = false) : Array(Screen::Action)
+      actions = [] of Screen::Action
+      return actions unless can?(WRITE)
+      if item.editable?
+        actions << link_action("ui.liberal.line.edit", reverse("liberal:line_edit", id: item.id), row ? "row" : "", "pencil")
+      end
+      if item.deletable?
+        actions << post_action("ui.liberal.line.delete", reverse("liberal:line_delete", id: item.id),
+          "ui.liberal.line.delete_confirm", row ? "row-danger" : "danger", "trash-2")
+      end
+      if item.locked && item.reversible?
+        actions << post_action("ui.liberal.line.cancel", reverse("liberal:line_reverse", id: item.id),
+          "ui.liberal.line.cancel_confirm", row ? "row" : "", "undo-2")
+      end
+      actions.each { |action| action.aria_label = "#{action.label} #{item.number}" } if row
+      actions
     end
 
     # Recopie les erreurs d'un formulaire lu dans le formulaire réaffiché.

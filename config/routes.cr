@@ -339,9 +339,11 @@ end
 
 # Module de la profession libérale (ADR-007 D6 ; menus `liberal:journal`,
 # `assets`, `tax_return`, `settings`) : livre-journal (tout, recettes,
-# dépenses ; saisie en quelques champs, annulation par contre-passation,
-# éditions `?format=csv|pdf`), immobilisations (acquisition, annulation,
-# cession, plan d'amortissement), 2035 préparée (réintégrations et
+# dépenses ; saisie en quelques champs, modification et suppression tant
+# que l'exercice est ouvert, contre-passation une fois figé, D-LIB2-001,
+# éditions `?format=csv|pdf`), immobilisations (acquisition, modification et
+# suppression dans un exercice ouvert, contre-passation, cession et sa
+# suppression, plan d'amortissement), 2035 préparée (réintégrations et
 # déductions, édition de contrôle `?format=pdf`), paramètres (natures, table
 # de correspondance, valeurs par défaut, republication). Module inactif : 404.
 LIBERAL_ROUTES = Marten::Routing::Map.draw do
@@ -352,11 +354,16 @@ LIBERAL_ROUTES = Marten::Routing::Map.draw do
   path "/expenses/new", PartiduoUi::LiberalExpenseNewHandler, name: "expense_new"
   path "/lines/<id:int>", PartiduoUi::LiberalLineHandler, name: "line"
   path "/lines/<id:int>/reverse", PartiduoUi::LiberalLineReverseHandler, name: "line_reverse"
+  path "/lines/<id:int>/edit", PartiduoUi::LiberalLineEditHandler, name: "line_edit"
+  path "/lines/<id:int>/delete", PartiduoUi::LiberalLineDeleteHandler, name: "line_delete"
   path "/assets", PartiduoUi::LiberalAssetsHandler, name: "assets"
   path "/assets/new", PartiduoUi::LiberalAssetNewHandler, name: "asset_new"
   path "/assets/<id:int>", PartiduoUi::LiberalAssetHandler, name: "asset"
   path "/assets/<id:int>/reverse", PartiduoUi::LiberalAssetReverseHandler, name: "asset_reverse"
   path "/assets/<id:int>/dispose", PartiduoUi::LiberalAssetDisposeHandler, name: "asset_dispose"
+  path "/assets/<id:int>/edit", PartiduoUi::LiberalAssetEditHandler, name: "asset_edit"
+  path "/assets/<id:int>/delete", PartiduoUi::LiberalAssetDeleteHandler, name: "asset_delete"
+  path "/assets/<id:int>/disposal/delete", PartiduoUi::LiberalDisposalDeleteHandler, name: "asset_disposal_delete"
   path "/tax-return", PartiduoUi::LiberalTaxReturnHandler, name: "tax_return"
   path "/tax-return/adjustments", PartiduoUi::LiberalAdjustmentNewHandler, name: "adjustment_new"
   path "/adjustments/<id:int>/delete", PartiduoUi::LiberalAdjustmentDeleteHandler, name: "adjustment_delete"

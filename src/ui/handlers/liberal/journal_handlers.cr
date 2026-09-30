@@ -6,8 +6,12 @@ module PartiduoUi
   # dépenses du mode simplifié), totaux et ventilation par rubrique,
   # éditions CSV et PDF du contrat ; saisie en quelques champs avec choix de
   # la rubrique (nature), pensée d'abord pour le téléphone ; consultation
-  # d'une ligne et annulation par contre-passation datée du jour (une ligne
-  # inscrite ne se modifie jamais).
+  # d'une ligne.
+  #
+  # Exercice ouvert (année civile de la 2035, D-LIB2-001) : la ligne se
+  # modifie et se supprime (confirmation) ; exercice figé — clôturé ou 2035
+  # transmise — ou période close : cadenas et « Contre-passer » (ligne
+  # inverse datée du jour, dans l'exercice ouvert).
   abstract class JournalScreen < LiberalScreen
     # Sens présenté : `receipt`, `expense`, `nil` pour tout le livre-journal.
     abstract def kind : String?
@@ -72,13 +76,16 @@ module PartiduoUi
       table = Table.new("#{t("title")} #{year}", columns, rows.map { |item| row(item) }, list_url, {"year" => year.to_s},
         empty_message: t("empty"), footer_rows: footers(year, summary))
       table.pdf = true
+      # En-tête de l'exercice de l'année : ouvert, clôturé, 2035 transmise.
+      table.groups = {year.to_s => exercise_group(Liberal.year(current.actor, year))}
       actions = [] of Screen::Action
       if can?(WRITE)
         actions << link_action("ui.liberal.receipt.new", new_url("receipt"), kind == "expense" ? "" : "primary", "plus") unless kind == "expense"
         actions << link_action("ui.liberal.expense.new", new_url("expense"), kind == "expense" ? "primary" : "", "plus") unless kind == "receipt"
       end
       list_page("#{t("title")} #{year}", table, liberal_crumbs, "ui.liberal.#{kind || "journal"}.csv_name", actions,
-        tabs: year_tabs(list_url, year), tabs_label: I18n.t("ui.liberal.year"), intro: t("intro"))
+        tabs: year_tabs(list_url, year), tabs_label: I18n.t("ui.liberal.year"),
+        intro: "#{t("intro")} #{I18n.t("ui.liberal.exercise.intro")}")
     end
 
     private def columns : Array(Table::Column)
@@ -92,6 +99,7 @@ module PartiduoUi
         Table::Column.new("heading", I18n.t("ui.liberal.columns.heading"), secondary: true),
         Table::Column.new("method", I18n.t("ui.liberal.columns.method"), secondary: true),
         Table::Column.new("amount", I18n.t("ui.liberal.columns.amount"), "amount"),
+        Table::Column.new("actions", I18n.t("ui.liberal.columns.actions"), "actions"),
       ]
     end
 
@@ -101,18 +109,24 @@ module PartiduoUi
               elsif item.reversed_by_id
                 I18n.t("ui.liberal.line.cancelled")
               end
-      cells = [
-        Table::Cell.new(fmt.date(item.date), reverse("liberal:line", id: item.id), sort: date_key(item.date), csv: date_key(item.date)),
-        Table::Cell.new(item.number),
-      ]
+      date = Table::Cell.new(fmt.date(item.date), reverse("liberal:line", id: item.id), sort: date_key(item.date), csv: date_key(item.date))
+      if item.locked
+        date.icon = "lock"
+        date.hidden_text = I18n.t("ui.liberal.line.locked_short")
+      end
+      cells = [date, Table::Cell.new(item.number)]
       cells << Table::Cell.new(I18n.t("ui.liberal.kinds.#{item.kind}")) if kind.nil?
       cells.concat([
         Table::Cell.new(party(item.party_name, item.card_id).presence || item.label, tag: state),
         Table::Cell.new(item.nature_label),
         Table::Cell.new(method_label(item.method)),
         Table::Cell.new(signed(item), sort: item.cash_flow, csv: fmt.csv_amount(item.cash_flow)),
+        Table::Cell.new("", actions: line_actions(item, row: true)),
       ])
-      Table::Row.new(cells, item.reversed_by_id || item.reversal? ? "pd-row-closed" : "")
+      css = [] of String
+      css << "pd-row-closed" if item.reversed_by_id || item.reversal?
+      css << "pd-row-locked" if item.locked
+      Table::Row.new(cells, css.join(" "), item.date.year.to_s)
     end
 
     # Montant présenté : dans le livre-journal complet, une dépense est
@@ -142,9 +156,9 @@ module PartiduoUi
     end
 
     private def footer(label : String, total : BigDecimal, css : String = "") : Table::Row
-      blanks = columns.size - 2
+      blanks = columns.size - 3
       Table::Row.new([Table::Cell.new(label)] + Array.new(blanks) { Table::Cell.new("") } +
-                     [Table::Cell.new(euros(total), sort: total, csv: fmt.csv_amount(total))], css)
+                     [Table::Cell.new(euros(total), sort: total, csv: fmt.csv_amount(total)), Table::Cell.new("")], css)
     end
   end
 
@@ -260,6 +274,94 @@ module PartiduoUi
     end
   end
 
+  # Modification d'une ligne d'un exercice ouvert (D-LIB2-001) : même
+  # formulaire que la saisie, prérempli, sans « en saisir une autre » ; le
+  # contrat refuse une ligne d'un exercice figé, issue de la Facturation ou
+  # contre-passée, et une nouvelle date dans un exercice figé.
+  class LiberalLineEditHandler < JournalNewHandler
+    @item : Liberal::LineView? = nil
+
+    def kind : String?
+      item.kind
+    end
+
+    private def item : Liberal::LineView
+      @item ||= Liberal.line(current.actor, id_param)
+    end
+
+    def get
+      require!(MODULE, WRITE)
+      return refuse(item) unless item.editable?
+      values = {
+        "amount"               => fmt.amount(item.amount, 2, group: false),
+        "date"                 => item.date.to_s("%Y-%m-%d"),
+        "nature_id"            => item.nature_id.to_s,
+        "method"               => item.method,
+        "party_name"           => item.party_name,
+        "label"                => item.label,
+        "reference"            => item.reference,
+        "nondeductible_amount" => item.nondeductible_amount.zero? ? "" : fmt.amount(item.nondeductible_amount, 2, group: false),
+        "attachment_id"        => item.attachment_id.to_s,
+      }
+      show_edit(build_form(values))
+    end
+
+    def post
+      require!(MODULE, WRITE)
+      values = FIELDS.to_h { |name| {name, field(name)} }
+      form = build_form(values)
+      upload(form, values)
+      input = read(form, values)
+      return show_edit(copy_errors(form, build_form(values)), 422) if input.nil?
+      result = Liberal.update_line(current.actor, item.id, input)
+      if changed = result.value?
+        flash["success"] = I18n.t("ui.liberal.line.updated", number: changed.number)
+        return go(reverse("liberal:line", id: changed.id))
+      end
+      show_edit(build_form(values).add_errors(result.errors, fmt), 422)
+    end
+
+    # Ligne qui ne se modifie plus : retour à sa consultation, avec la
+    # raison que donnerait le contrat.
+    private def refuse(line : Liberal::LineView) : Marten::HTTP::Response
+      reason = if line.locked
+                 line.transmitted_at ? "transmitted" : "closed_period"
+               elsif line.origin != "manual"
+                 "from_invoicing"
+               elsif line.reversal?
+                 "is_reversal"
+               else
+                 "reversed"
+               end
+      flash["danger"] = I18n.t("liberal.errors.line.change.#{reason}", year: line.date.year.to_s)
+      go(reverse("liberal:line", id: line.id))
+    end
+
+    private def show_edit(form : Form, status : Int32 = 200) : Marten::HTTP::Response
+      title = I18n.t("ui.liberal.line.edit_title", line: "#{t("one")} #{item.number}")
+      crumbs = list_crumbs << Screen::Crumb.new(item.number, reverse("liberal:line", id: item.id))
+      entry_page(title, crumbs, form, reverse("liberal:line_edit", id: item.id), reverse("liberal:line", id: item.id),
+        again: false, status: status, intro: I18n.t("ui.liberal.line.edit_intro"))
+    end
+  end
+
+  # Suppression d'une ligne d'un exercice ouvert, après confirmation ; le
+  # numéro n'est pas repris. Refus du contrat : message sur la ligne.
+  class LiberalLineDeleteHandler < LiberalScreen
+    def post
+      require!(MODULE, WRITE)
+      item = Liberal.line(current.actor, id_param)
+      result = Liberal.delete_line(current.actor, item.id)
+      if result.success?
+        flash["success"] = I18n.t("ui.liberal.line.deleted", number: item.number)
+        list = item.receipt? ? reverse("liberal:receipts") : reverse("liberal:expenses")
+        return go("#{list}?year=#{item.date.year}")
+      end
+      flash["danger"] = messages(result.errors)
+      go(reverse("liberal:line", id: item.id))
+    end
+  end
+
   class LiberalReceiptNewHandler < JournalNewHandler
     include ReceiptJournal
   end
@@ -268,8 +370,10 @@ module PartiduoUi
     include ExpenseJournal
   end
 
-  # Consultation d'une ligne ; annulation (contre-passation datée du jour)
-  # tant qu'elle n'est ni annulée ni elle-même une annulation.
+  # Consultation d'une ligne et de son exercice : ouvert, modifier ou
+  # supprimer ; figé ou période close, contre-passer (ligne inverse datée du
+  # jour) tant qu'elle n'est ni contre-passée ni elle-même une
+  # contre-passation (D-LIB2-001).
   class LiberalLineHandler < LiberalScreen
     def get
       item = Liberal.line(current.actor, id_param)
@@ -292,17 +396,34 @@ module PartiduoUi
       end
       item.reversal_of_id.try { |id| details << Screen::Item.new(I18n.t("ui.liberal.line.cancels"), number(id), reverse("liberal:line", id: id), mono: true) }
       item.reversed_by_id.try { |id| details << Screen::Item.new(I18n.t("ui.liberal.line.cancelled_by"), number(id), reverse("liberal:line", id: id), mono: true) }
-      actions = [] of Screen::Action
-      if can?(WRITE) && !item.reversal? && item.reversed_by_id.nil?
-        actions << post_action("ui.liberal.line.cancel", reverse("liberal:line_reverse", id: item.id),
-          "ui.liberal.line.cancel_confirm", "danger", "x")
-      end
+      exercise = Liberal.year(current.actor, item.date.year)
+      details << Screen::Item.new(I18n.t("ui.liberal.exercise.title"),
+        "#{I18n.t("ui.liberal.exercise.label", year: exercise.year.to_s)} · #{exercise_status(exercise)}")
+      item.modified_at.try { |moment| details << Screen::Item.new(I18n.t("ui.liberal.line.modified_at"), fmt.date(moment)) }
       status = item.reversal? ? I18n.t("ui.liberal.line.reversal") : (item.reversed_by_id ? I18n.t("ui.liberal.line.cancelled") : nil)
-      intro = item.locked ? I18n.t("ui.liberal.line.locked") : I18n.t("ui.liberal.line.intangible")
       list = item.receipt? ? reverse("liberal:receipts") : reverse("liberal:expenses")
       crumbs = liberal_crumbs << Screen::Crumb.new(I18n.t("#{prefix}.title"), list)
       detail_page("#{I18n.t("#{prefix}.one")} #{item.number}", crumbs, [Screen::Section.new(I18n.t("#{prefix}.one"), details)],
-        actions, status_tag: status, intro: intro)
+        line_actions(item), status_tag: status, intro: intro(item, exercise))
+    end
+
+    # Ce que l'on peut faire de la ligne, et pourquoi.
+    private def intro(item : Liberal::LineView, exercise : Liberal::YearView) : String
+      year = exercise.year.to_s
+      date = exercise.frozen_at.try { |moment| fmt.date(moment) } || ""
+      if exercise.state == "transmitted"
+        I18n.t("ui.liberal.line.transmitted", year: year, date: date)
+      elsif exercise.state == "closed"
+        I18n.t("ui.liberal.line.closed", year: year, date: date)
+      elsif item.locked
+        I18n.t("ui.liberal.line.locked")
+      elsif item.origin != "manual"
+        I18n.t("ui.liberal.line.from_invoicing")
+      elsif item.reversed_by_id
+        I18n.t("ui.liberal.line.reversed_open")
+      else
+        I18n.t("ui.liberal.line.open")
+      end
     end
 
     private def number(id : Int64) : String
@@ -310,7 +431,7 @@ module PartiduoUi
     end
   end
 
-  # Annulation d'une ligne : contre-passation datée du jour.
+  # Contre-passation d'une ligne, datée du jour (exercice ouvert).
   class LiberalLineReverseHandler < LiberalScreen
     def post
       require!(MODULE, WRITE)

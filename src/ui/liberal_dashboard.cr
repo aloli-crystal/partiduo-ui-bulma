@@ -119,10 +119,12 @@ module PartiduoUi
     end
 
     # 2035 des revenus de l'année écoulée : à préparer tant qu'elle compte
-    # des contrôles bloquants (de janvier à juin).
+    # des contrôles bloquants (de janvier à juin) ; rien une fois l'exercice
+    # figé (clôturé ou 2035 transmise, D-LIB2-001).
     private def previous_return : Nil
       return if @today.month > 6
       previous = @year - 1
+      return if Liberal.year(@actor, previous).frozen?
       return if Liberal.journal_totals(@actor, Liberal::JournalQuery.new(from: Time.utc(previous, 1, 1), to: Time.utc(previous, 12, 31))).count.zero?
       view = Liberal.tax_return(@actor, previous)
       errors = view.controls.count(&.error?)

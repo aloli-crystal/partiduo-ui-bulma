@@ -199,6 +199,9 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
 .tag.is-light:not(.is-primary):not(.is-link):not(.is-info):not(.is-success):not(.is-warning):not(.is-danger) {
   background-color: var(--pd-tag-bg); color: var(--pd-tag-ink); }
 .pd-table tr.pd-row-locked td:first-child .pd-icon { color: var(--pd-muted); }
+/* État de l'exercice en tête de la 2035 libérale (D-LIB2-005) : cadenas
+   discret d'un exercice figé. */
+.pd-exercise .pd-icon { color: var(--pd-muted); margin-inline-end: .25rem; }
 /* Stock final négatif, action de suivi en retard (lot 6). */
 .pd-table tr.pd-row-warning td { color: var(--bulma-danger-40, #a3001b); }
 .pd-link { color: var(--bulma-link); text-decoration: underline; text-decoration-color: color-mix(in srgb, currentColor 35%, transparent); text-underline-offset: 2px; }

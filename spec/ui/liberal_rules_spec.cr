@@ -57,7 +57,8 @@ describe "Écrans de la profession libérale — permissions à l'écran" do
     list.html.should_not contain(%(href="/liberal/expenses/new"))
     detail = reader.get("/liberal/lines/#{line.id}")
     detail.status.should eq(200)
-    detail.html.should_not contain("Annuler cette ligne")
+    detail.html.should_not contain("/liberal/lines/#{line.id}/edit")
+    detail.html.should_not contain("/liberal/lines/#{line.id}/delete")
     asset_page = reader.get("/liberal/assets/#{item.id}")
     asset_page.status.should eq(200)
     asset_page.html.should_not contain(%(href="/liberal/assets/#{item.id}/dispose"))
@@ -162,7 +163,7 @@ describe "Écrans de la profession libérale — refus et cas limites" do
     again = browser.post("/liberal/lines/#{line.id}/reverse")
     again.headers["Location"].should eq("/liberal/lines/#{line.id}")
     browser.follow(again).html.should contain("is-danger")
-    browser.get("/liberal/lines/#{reversal_id}").html.should_not contain("Annuler cette ligne")
+    browser.get("/liberal/lines/#{reversal_id}").html.should_not contain(%(action="/liberal/lines/#{reversal_id}/reverse"))
     browser.post("/liberal/lines/#{reversal_id}/reverse").status.should eq(302)
     Liberal.lines(Books.system).size.should eq(2)
   end

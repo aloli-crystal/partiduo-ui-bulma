@@ -7,7 +7,9 @@ module PartiduoUi
   # amortissements, plus et moins-values), réintégrations et déductions
   # (ajout et retrait tant que l'année est ouverte), contrôles de cohérence,
   # préparation du dépôt (empreinte, montants par case), édition de contrôle
-  # PDF. Tout vient de `Partiduo::Api::Liberal.tax_return` : rien n'est figé.
+  # PDF. Tout vient de `Partiduo::Api::Liberal.tax_return`, recalculée à
+  # chaque lecture ; l'état de l'exercice est en tête : ouvert (la 2035 suit
+  # le livre-journal), clôturé ou 2035 transmise (figée, D-LIB2-005).
   class LiberalTaxReturnHandler < LiberalScreen
     # Postes toujours présentés, même nuls : ce que le déclarant cherche.
     KEY_ITEMS = %w[total_receipts total_expenses profit]
@@ -27,7 +29,8 @@ module PartiduoUi
     def get
       year = year_param
       return file_response(Liberal.export_tax_return(current.actor, year)) if query("format") == "pdf"
-      render(year, can?(WRITE) ? adjustment_form({"kind" => "reintegration", "label" => "", "amount" => ""}) : nil)
+      open = Liberal.year(current.actor, year).open?
+      render(year, can?(WRITE) && open ? adjustment_form({"kind" => "reintegration", "label" => "", "amount" => ""}) : nil)
     end
 
     def render(year : Int32, form : Form?, status : Int32 = 200) : Marten::HTTP::Response
@@ -52,6 +55,9 @@ module PartiduoUi
       context["tabs"] = year_tabs(reverse("liberal:tax_return"), year)
       context["year"] = year.to_s
       context["ready"] = view.ready?
+      context["exercise_frozen"] = view.exercise.frozen?
+      context["transmitted"] = view.exercise.state == "transmitted"
+      context["exercise_text"] = exercise_text(view.exercise)
       context["blocking"] = Screen.listed(controls.select(&.error).map(&.text))
       context["sections"] = sections
       context["form"] = form
@@ -60,6 +66,12 @@ module PartiduoUi
       context["form_title"] = I18n.t("ui.liberal.adjustments.new")
       context["cancel_url"] = nil
       page("ui/liberal/tax_return.html", status: status)
+    end
+
+    # État de l'exercice en tête de la 2035 (D-LIB2-005).
+    private def exercise_text(exercise : Liberal::YearView) : String
+      date = exercise.frozen_at.try { |moment| fmt.date(moment) } || ""
+      I18n.t("ui.liberal.tax_return.exercise_#{exercise.state}", year: exercise.year.to_s, date: date)
     end
 
     def adjustment_form(values : Hash(String, String)) : Form

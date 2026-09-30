@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Déclaration 2035 préparée (ADR-007 D6) : onglets d'années, état du dépôt en tête (prête, ou contrôles bloquants), puis rubriques (identification, 2035-A, 2035-B, immobilisations, cessions, réintégrations et déductions, contrôles, préparation du dépôt) et formulaire d'ajout d'une réintégration ou d'une déduction. Variables : tabs, ready, blocking, sections, form. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Déclaration 2035 préparée (ADR-007 D6) : onglets d'années, état du dépôt en tête (prête, ou contrôles bloquants), puis rubriques (identification, 2035-A, 2035-B, immobilisations, cessions, réintégrations et déductions, contrôles, préparation du dépôt) et formulaire d'ajout d'une réintégration ou d'une déduction. Variables : tabs, exercise_text, exercise_frozen et transmitted (état de l'exercice, D-LIB2-005 : 2035 transmise, pas de bandeau de dépôt), ready, blocking, sections, form. #}{% extend "ui/base.html" %}
 {% block title %}{{ title }}{% endblock title %}
 {% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
 {% block heading %}{{ title }}{% endblock heading %}
@@ -6,7 +6,8 @@
 {% block content %}
 <p class="pd-muted mb-3">{% translate "ui.liberal.tax_return.intro" %}</p>
 <nav class="pd-tabs mb-3" aria-label="{% translate 'ui.liberal.year' %}">{% for tab in tabs %}<a href="{{ tab.url }}"{% if tab.current %} aria-current="page"{% endif %}>{{ tab.label }}</a>{% endfor %}</nav>
-{% if ready %}
+<p class="pd-exercise mb-3">{% if exercise_frozen %}{% include "ui/_icon.html" with name="lock" %} {% endif %}{{ exercise_text }}</p>
+{% if transmitted %}{% elsif ready %}
 <div class="notification is-success is-light pd-callout pd-tax-ready" role="status">{% include "ui/_icon.html" with name="check" %}<div><p><strong>{% translate "ui.liberal.tax_return.ready_title" %}</strong></p><p>{% translate "ui.liberal.tax_return.ready_text" %}</p></div></div>
 {% else %}
 <div class="notification is-danger is-light pd-callout pd-tax-blocked" role="status">{% include "ui/_icon.html" with name="triangle-alert" %}<div><p><strong>{% translate "ui.liberal.tax_return.blocked_title" %}</strong></p><ul>{% for message in blocking %}<li>{{ message }}</li>{% endfor %}</ul></div></div>
