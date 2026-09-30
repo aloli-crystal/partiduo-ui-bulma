@@ -933,6 +933,7 @@ nl:
         apply: "Filteren"
         notes: "Te factureren leveringsbonnen"
         select: "Selectie"
+        select_note: "Leveringsbon %{number} selecteren"
         delivered_on: "Geleverd op"
         rhythm: "Ritme"
         exposure: "Uitstaand excl. btw / limiet"

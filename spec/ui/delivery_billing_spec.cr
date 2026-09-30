@@ -72,8 +72,10 @@ describe "Bons à facturer (D-INV2-010)" do
     browser.get("/invoicing/to-invoice").html.should contain("Repris dans un brouillon de facture")
 
     browser.post("/invoicing/documents/#{invoice.id}/issue").status.should eq(302)
+    browser.get("/invoicing/documents/#{invoice.id}").html.should contain("Livraisons du 03/09/2026 au 10/09/2026")
     note_page = browser.get("/invoicing/documents/#{first.id}").html
     note_page.should contain("Facturé")
+    note_page.should_not contain("Transformer en facture")
     note_page.should contain(Inv.document(Books.system, invoice.id).number.to_s)
     browser.get("/invoicing/to-invoice").html.should_not contain(%(name="note" value="#{first.id}"))
   end

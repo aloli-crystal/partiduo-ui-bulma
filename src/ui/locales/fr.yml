@@ -933,6 +933,7 @@ fr:
         apply: "Filtrer"
         notes: "Bons de livraison à facturer"
         select: "Sélection"
+        select_note: "Sélectionner le bon %{number}"
         delivered_on: "Livré le"
         rhythm: "Rythme"
         exposure: "Encours HT / plafond"

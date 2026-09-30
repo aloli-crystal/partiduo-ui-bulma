@@ -454,7 +454,7 @@ module PartiduoUi
     # `Invoicing::Output.mention_text`).
     def self.mention_text(mention : Partiduo::Api::Invoicing::MentionView, fmt : Format) : String
       params = mention.params.to_h do |key, value|
-        formatted = if key == "date" && value.matches?(/\A\d{4}-\d{2}-\d{2}\z/)
+        formatted = if key.in?("date", "from", "to") && value.matches?(/\A\d{4}-\d{2}-\d{2}\z/)
                       fmt.date(Time.parse_utc(value, "%Y-%m-%d"))
                     elsif key.in?("amount", "capital")
                       BigDecimal.new(value) rescue nil
@@ -863,6 +863,8 @@ module PartiduoUi
     private def transforms(document : Inv::DocumentView) : Array(Screen::Action)?
       return if document.draft? || !can?(WRITE) || document.effective_status == "cancelled"
       kinds = Inv::TRANSFORMATIONS[document.kind]? || [] of String
+      # Bon déjà repris par une facture (D-INV2-002) : plus de facture à en tirer.
+      kinds = kinds.reject(&.==("invoice")) if document.billed_in
       list = kinds.reject(&.==("deposit_invoice")).map do |kind|
         label = kind == "credit_note" ? I18n.t("ui.invoicing.make_credit_note") : I18n.t("ui.invoicing.transform_to", kind: kind_label(kind).downcase)
         Screen::Action.new(label, "#{reverse("invoicing:document_transform", id: document.id)}?kind=#{kind}", "post", "", "file-text")

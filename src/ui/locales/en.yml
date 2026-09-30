@@ -933,6 +933,7 @@ en:
         apply: "Filter"
         notes: "Delivery notes to invoice"
         select: "Selection"
+        select_note: "Select delivery note %{number}"
         delivered_on: "Delivered on"
         rhythm: "Rhythm"
         exposure: "Exposure excl. VAT / limit"
