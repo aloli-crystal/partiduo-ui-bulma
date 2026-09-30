@@ -80,7 +80,25 @@ module PartiduoUi
       end
     end
 
-    # Rubrique de consultation : définitions, tableau ou note.
+    # Jauge d'une rubrique (encours d'un client…) : barre décorative et
+    # texte ; le sens n'est jamais porté par la seule couleur (`status`,
+    # `detail`, nom accessible de la barre). `tone` : `ok`, `warn`, `gap`.
+    class Gauge
+      include Marten::Template::Object::Auto
+
+      getter label : String
+      getter detail : String
+      getter status : String
+      getter percent : String
+      getter width : Int32
+      getter tone : String
+
+      def initialize(@label, @detail, @status, @percent, @width, @tone)
+      end
+    end
+
+    # Rubrique de consultation : définitions, tableau ou note ; jauge
+    # facultative.
     class Section
       include Marten::Template::Object::Auto
 
@@ -89,6 +107,7 @@ module PartiduoUi
       getter table : Table?
       getter note : String?
       getter actions : Array(Action)?
+      property gauge : Gauge? = nil
 
       def initialize(@title, items : Array(Item)? = nil, @table = nil, @note = nil, actions : Array(Action)? = nil)
         @items = items.try { |list| Screen.listed(list.reject(&.value.empty?)) }

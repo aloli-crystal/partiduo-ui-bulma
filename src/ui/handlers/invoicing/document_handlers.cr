@@ -155,7 +155,8 @@ module PartiduoUi
     # Ligne de titre ou de sous-total (D-UI-055) ; `nil` pour une autre.
     private def layout_input(line : DocumentForm::Line) : Inv::LineInput?
       return unless line.title || line.subtotal
-      Inv::LineInput.new(kind: line.layout, description: line.title ? line.description.presence : nil)
+      Inv::LineInput.new(kind: line.layout, description: line.title ? line.description.presence : nil,
+        delivery_note_id: line.delivery_note.to_i64?)
     end
 
     private def priced_input(line : DocumentForm::Line) : Inv::LineInput
@@ -177,7 +178,7 @@ module PartiduoUi
       Inv::LineInput.new(kind: kind, item_card_id: item_id, description: line.description.presence,
         quantity: quantity || BigDecimal.new(1), unit_code: line.unit.presence, unit_price: price,
         discount_kind: discount && !discount.zero? ? "percent" : "none", discount_value: discount || BigDecimal.new(0),
-        vat_rate_id: line.vat_rate_id.to_i64?)
+        vat_rate_id: line.vat_rate_id.to_i64?, delivery_note_id: line.delivery_note.to_i64?)
     end
 
     # Document saisi ; `existing` : brouillon modifié (liens d'avoir et
@@ -327,6 +328,7 @@ module PartiduoUi
         layout = DocumentForm::Line.new(index, description: line.kind == "title" ? line.description : "")
         layout.layout = line.kind
         layout.total = line.kind == "subtotal" ? fmt.amount(line.net_amount) : ""
+        layout.delivery_note = note_of(line)
         return layout
       end
       item = line.item_card_id.try { |id| card_code(id) } || ""
@@ -335,7 +337,15 @@ module PartiduoUi
         priced ? fmt.input_number(line.quantity) : "", priced ? line.unit_code : "",
         priced ? fmt.input_number(line.unit_price) : "",
         line.discount_kind == "percent" ? fmt.input_number(line.discount_value) : "",
-        line.vat_rate_id.try(&.to_s) || "").tap { |copy| copy.total = priced ? fmt.amount(line.net_amount) : "" }
+        line.vat_rate_id.try(&.to_s) || "").tap do |copy|
+        copy.total = priced ? fmt.amount(line.net_amount) : ""
+        copy.delivery_note = note_of(line)
+      end
+    end
+
+    # Bon de livraison cité par une ligne (champ caché), vide sinon.
+    private def note_of(line : Inv::LineView) : String
+      line.delivery_note_id.try(&.to_s) || ""
     end
 
     def card_code(id : Int64) : String
@@ -492,8 +502,14 @@ module PartiduoUi
       mentions = view.mentions.map { |mention| DocumentDisplay.mention_text(mention, fmt) }
       @mentions = mentions.empty? ? nil : mentions
       @origin = view.origin_mention.try(&.message)
-      links = ([view.source] + view.derived + [view.credited] + view.credit_notes).compact.map do |link|
+      links = ([view.source] + view.derived + [view.credited] + view.credit_notes + [view.billed_in]).compact.uniq!(&.id).map do |link|
         Link.new(link_label(handler, link), handler.reverse("invoicing:document", id: link.id))
+      end
+      # Facture récapitulative : chaque bon repris, avec sa date de livraison.
+      view.delivery_notes.each do |note|
+        next if view.source.try(&.id) == note.id
+        label = I18n.t("ui.invoicing.delivery_note_link", number: note.number, date: fmt.date(note.delivery_date))
+        links << Link.new(label, handler.reverse("invoicing:document", id: note.id))
       end
       @links = links.empty? ? nil : links
     end
@@ -537,7 +553,7 @@ module PartiduoUi
   class DocumentsHandler < InvoicingScreen
     LIMIT = 500
 
-    STATUSES = %w[draft sent accepted refused expired confirmed issued partially_paid paid overdue cancelled]
+    STATUSES = %w[draft sent accepted refused expired confirmed issued invoiced partially_paid paid overdue cancelled]
 
     def get
       kind = Inv::KINDS.includes?(query("kind")) ? query("kind") : nil
@@ -785,6 +801,9 @@ module PartiduoUi
       context["payment_note"] = payment_note(document)
       context["customer_url"] = customer_url(document)
       context["channel"] = document.fiscal? ? ChannelDisplay.new(document, fmt, self) : nil
+      # Encours maximum HT du client (D-INV2-009) : avertissement sur un
+      # brouillon ; dérogation motivée pour qui en a la permission.
+      context["credit"] = document.draft? ? CreditDisplay.build(document, fmt, self) : nil
       # Actions et fichiers des extensions actives (DECISIONS D-HOOK-002).
       context["extension_panels"] = listed(Extensions.document_panels(actor, document))
       page("ui/invoicing/show.html")
@@ -1049,11 +1068,39 @@ module PartiduoUi
     end
   end
 
-  # Validation : émission (numéro, mentions figées, PDF Factur-X).
+  # Avertissement d'encours d'un brouillon (D-INV2-009) : encours actuel HT,
+  # montant du document, plafond, dépassement ; formulaire de dérogation
+  # (motif obligatoire) pour qui a `invoicing.credit_limit.override`.
+  class CreditDisplay
+    include Marten::Template::Object::Auto
+
+    getter message : String
+    getter blocking : Bool
+    getter override_url : String?
+
+    def initialize(@message, @blocking, @override_url)
+    end
+
+    def self.build(document : Partiduo::Api::Invoicing::DocumentView, fmt : Format, handler : InvoicingScreen) : self?
+      check = Partiduo::Api::Invoicing.credit_check(handler.current.actor, document.id) || return
+      return unless check.exceeded?
+      params = check.params.to_h do |key, value|
+        {key, key.in?("customer", "currency") ? value : fmt.amount(BigDecimal.new(value))}
+      end
+      key = check.controlled ? "ui.invoicing.credit.blocking" : "ui.invoicing.credit.warning"
+      can_override = check.controlled && handler.can?(Partiduo::Api::Invoicing::CREDIT_OVERRIDE) &&
+                     handler.can?("invoicing.invoice.issue")
+      new(I18n.t(key, params), check.controlled, can_override ? handler.reverse("invoicing:document_issue", id: document.id) : nil)
+    end
+  end
+
+  # Validation : émission (numéro, mentions figées, PDF Factur-X) ; motif de
+  # dérogation à l'encours maximum (`credit_override_reason`) s'il est donné.
   class DocumentIssueHandler < InvoicingScreen
     def post
       document = Inv.document(current.actor, id_param)
-      result = Inv.issue(current.actor, document.id)
+      reason = field("credit_override_reason").presence
+      result = Inv.issue(current.actor, document.id, Inv::IssueInput.new(credit_override_reason: reason))
       if issued = result.value?
         flash["success"] = I18n.t("ui.invoicing.issued", title: document_title(issued))
       else

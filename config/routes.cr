@@ -170,8 +170,8 @@ ACCOUNTING_ROUTES = Marten::Routing::Map.draw do
   path "/vat/reset-rules/<regime:str>", PartiduoUi::VatRulesResetHandler, name: "vat_rules_reset"
 end
 
-# Module Facturation (menus `invoicing:documents`, `invoice_new`, `payments`,
-# `reminders`, `export`, `templates`, `settings`). Module inactif : le contrat refuse, l'écran répond 404.
+# Module Facturation (menus `invoicing:documents`, `to_invoice`, `invoice_new`,
+# `payments`, `reminders`, `export`, `templates`, `settings`). Module inactif : le contrat refuse, l'écran répond 404.
 INVOICING_ROUTES = Marten::Routing::Map.draw do
   path "/documents", PartiduoUi::DocumentsHandler, name: "documents"
   path "/documents/new", PartiduoUi::DocumentNewHandler, name: "document_new"
@@ -200,6 +200,13 @@ INVOICING_ROUTES = Marten::Routing::Map.draw do
   path "/reminders/<id:int>/send", PartiduoUi::ReminderSendHandler, name: "reminder_send"
   path "/reminders/<id:int>/dismiss", PartiduoUi::ReminderDismissHandler, name: "reminder_dismiss"
   path "/export", PartiduoUi::ExportHandler, name: "export"
+  # Bons à facturer, facture récapitulative, fin de mois, réglage client
+  # (DECISIONS D-INV2-010).
+  path "/to-invoice", PartiduoUi::ToInvoiceHandler, name: "to_invoice"
+  path "/to-invoice/month", PartiduoUi::MonthPrepareHandler, name: "month_prepare"
+  path "/to-invoice/send-all", PartiduoUi::ProposalsIssueSendHandler, name: "proposals_issue_send"
+  path "/documents/<id:int>/issue-send", PartiduoUi::DocumentIssueSendHandler, name: "document_issue_send"
+  path "/customers/<id:int>/billing", PartiduoUi::CustomerBillingHandler, name: "customer_billing"
   path "/documents/<id:int>/send", PartiduoUi::DocumentSendHandler, name: "document_send"
   # Paramètres et modèles de mise en page (menus `invoicing:settings`, `templates`).
   path "/settings", PartiduoUi::InvoicingSettingsHandler, name: "settings"

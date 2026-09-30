@@ -112,6 +112,13 @@ body { background: var(--pd-ground); color: var(--pd-ink); font-family: var(--bu
 .pd-inline-form { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .pd-inline-form .input { width: auto; flex: 1 1 10rem; min-height: 44px; }
 .pd-inline-form .label { flex-basis: 100%; margin: 0; }
+/* Filtres et commandes en ligne (Bons à facturer, D-INV2-010) : champs et
+   bouton alignés en bas, repliés au téléphone ; cibles de 44 px. */
+.pd-filters-row { display: flex; flex-wrap: wrap; gap: .75rem; align-items: flex-end; }
+.pd-filters-row .field { margin-block-end: 0; }
+.pd-filters-row .input, .pd-filters-row select { min-height: 44px; }
+/* Dérogation à l'encours maximum (D-INV2-009) : zone de motif. */
+.pd-credit-override textarea { min-height: 5rem; }
 .pd-code { font-family: var(--bulma-family-code); letter-spacing: .15em; font-size: 1.1rem; max-width: 14rem; }
 .pd-narrow { max-width: 32rem; }
 .pd-rules { font-size: .8rem; color: var(--pd-muted); margin: 0 0 .4rem; padding-inline-start: 1.1rem; list-style: disc; }

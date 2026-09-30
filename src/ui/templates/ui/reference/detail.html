@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Écran de consultation d'un élément du référentiel : rubriques (définitions, tableaux, notes), actions, formulaire facultatif. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Écran de consultation d'un élément du référentiel : rubriques (jauge, définitions, tableaux, notes), actions, formulaire facultatif. #}{% extend "ui/base.html" %}
 {% block title %}{{ title }}{% endblock title %}
 {% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
 {% block heading %}{{ title }}{% if status %} <span class="tag is-light pd-status-tag">{{ status }}</span>{% endif %}{% endblock heading %}
@@ -9,6 +9,9 @@
 {% for section in sections %}
 <section class="pd-panel" aria-labelledby="{{ section.anchor }}">
   <header><h2 id="{{ section.anchor }}">{{ section.title }}</h2>{% if section.actions %}<div class="pd-row-actions">{% for action in section.actions %}{% include "ui/_action.html" %}{% endfor %}</div>{% endif %}</header>
+  {% if section.gauge %}<div class="pd-body"><div class="pd-gauge-head"><span>{{ section.gauge.label }}</span><span class="pd-mono">{{ section.gauge.percent }}</span></div>
+    <div class="pd-gauge" role="img" aria-label="{{ section.gauge.label }} : {{ section.gauge.detail }}, {{ section.gauge.status }}"><span class="pd-gauge-bar pd-gauge-{{ section.gauge.tone }}" style="width: {{ section.gauge.width }}%"></span></div>
+    <small class="pd-muted">{{ section.gauge.detail }} · <strong>{{ section.gauge.status }}</strong></small></div>{% endif %}
   {% if section.items %}<div class="pd-body"><dl class="pd-dl pd-detail">{% for item in section.items %}<dt>{{ item.label }}</dt><dd{% if item.mono %} class="pd-mono"{% endif %}>{% if item.url %}<a class="pd-link" href="{{ item.url }}">{{ item.value }}</a>{% else %}{{ item.value }}{% endif %}</dd>{% endfor %}</dl></div>{% endif %}
   {% if section.note %}<div class="pd-body"><p class="pd-muted">{{ section.note }}</p></div>{% endif %}
   {% if section.table %}{% include "ui/_table.html" with table=section.table %}{% endif %}

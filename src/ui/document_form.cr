@@ -32,6 +32,9 @@ module PartiduoUi
       property vat_rate_id : String
       # Mise en forme : vide (ligne chiffrée ou note), `title`, `subtotal`.
       property layout : String = ""
+      # Bon de livraison dont la ligne d'une facture est issue (identifiant,
+      # champ caché `line-<n>-delivery_note`, D-INV2-002) ; vide sinon.
+      property delivery_note : String = ""
       property total : String = ""
       property vat_options : Array(Form::Option)?
       property errors : Array(String)?
@@ -112,6 +115,7 @@ module PartiduoUi
           value.call("unit_price"), value.call("discount"), value.call("vat_rate_id"))
         layout = value.call("layout")
         line.layout = Line::LAYOUTS.includes?(layout) ? layout : ""
+        line.delivery_note = value.call("delivery_note")
         form.lines << line
       end
       form
@@ -162,6 +166,7 @@ module PartiduoUi
       @lines = lines.map_with_index do |line, position|
         Line.new(position, line.item, line.description, line.quantity, line.unit, line.unit_price, line.discount, line.vat_rate_id)
           .tap(&.layout=(line.layout))
+          .tap(&.delivery_note=(line.delivery_note))
       end
       self
     end

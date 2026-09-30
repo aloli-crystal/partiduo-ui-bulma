@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Consultation d'un devis ou d'une facture : état, actions selon l'état (valider, transformer, avoir, acompte, décision sur un devis, règlement, relance, aperçu, PDF), canal d'émission (ADR-004 D9), lignes et totaux, mentions obligatoires, documents liés, panneaux des extensions actives (actions, fichiers produits : PartiduoUi::Extensions.document_links), règlements, trace. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Consultation d'un devis ou d'une facture : état, avertissement d'encours maximum et dérogation motivée (D-INV2-009), actions selon l'état (valider, transformer, avoir, acompte, décision sur un devis, règlement, relance, aperçu, PDF), canal d'émission (ADR-004 D9), lignes et totaux, mentions obligatoires, documents liés, panneaux des extensions actives (actions, fichiers produits : PartiduoUi::Extensions.document_links), règlements, trace. #}{% extend "ui/base.html" %}
 {% block title %}{{ title }}{% endblock title %}
 {% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
 {% block heading %}{{ title }} <span class="tag is-light pd-status-tag pd-status-{{ document.status }}">{{ document.status_label }}</span>{% endblock heading %}
@@ -14,6 +14,13 @@
   </div>
 </section>
 {% endif %}
+{% if credit %}<div class="notification {% if credit.blocking %}is-danger{% else %}is-warning{% endif %} is-light pd-credit" role="alert">
+  <p><strong>{% if credit.blocking %}{% translate "ui.invoicing.credit.title_blocking" %}{% else %}{% translate "ui.invoicing.credit.title_warning" %}{% endif %}</strong> {{ credit.message }}</p>
+  {% if credit.override_url %}<form method="post" action="{{ credit.override_url }}" class="pd-credit-override mt-3">{% csrf_input %}
+    <div class="field"><label class="label" for="pd-credit-reason">{% translate "ui.invoicing.credit.reason" %}</label><textarea class="textarea" id="pd-credit-reason" name="credit_override_reason" required maxlength="500" aria-describedby="pd-credit-reason-help"></textarea><p class="help" id="pd-credit-reason-help">{% translate "ui.invoicing.credit.reason_help" %}</p></div>
+    <button class="button is-danger pd-touch" type="submit">{% include "ui/_icon.html" with name="triangle-alert" %}<span>{% translate "ui.invoicing.credit.override" %}</span></button>
+  </form>{% endif %}
+</div>{% endif %}
 <div class="pd-grid2">
   <section class="pd-panel" aria-labelledby="pd-doc-title">
     <header><h2 id="pd-doc-title">{{ document.kind_label }}</h2>{% if document.origin %}<span class="is-size-7 pd-muted">{{ document.origin }}</span>{% endif %}</header>

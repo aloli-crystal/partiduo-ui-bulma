@@ -239,6 +239,7 @@ module PartiduoUi
             summary.overdue_customers.join(" · "), reverse("invoicing:reminders"), "gap")
         end
       end
+      monthly_todos
       if summary.drafts > 0 && (@actor.can?("invoicing.invoice.issue") || @actor.can?("invoicing.invoice.write"))
         @todos << Todo.new(I18n.t("ui.dashboard.todo.drafts", count: summary.drafts), nil,
           "#{reverse("invoicing:documents")}?status=draft", "warn")
@@ -246,6 +247,26 @@ module PartiduoUi
       if summary.quotes_expired > 0
         @todos << Todo.new(I18n.t("ui.dashboard.todo.expired_quotes", count: summary.quotes_expired), nil,
           "#{reverse("invoicing:documents")}?kind=quote&status=expired", "warn")
+      end
+    end
+
+    # Factures récapitulatives de fin de mois proposées (émettre et envoyer
+    # d'un clic, « Bons à facturer ») et clients au-delà de 90 % de leur
+    # encours maximum HT (D-INV2-007, D-INV2-009).
+    private def monthly_todos : Nil
+      proposals = Inv.monthly_proposals(@actor)
+      unless proposals.empty?
+        detail = proposals.first(3).map(&.customer_name).join(" · ")
+        @todos << Todo.new(I18n.t("ui.dashboard.todo.monthly_invoices", count: proposals.size), detail,
+          reverse("invoicing:to_invoice"), "primary")
+      end
+      alerts = Inv.credit_alerts(@actor)
+      unless alerts.empty?
+        detail = alerts.first(3).map do |view|
+          I18n.t("ui.dashboard.todo.credit_detail", name: view.customer_name, percent: view.percent_used || 100)
+        end.join(" · ")
+        @todos << Todo.new(I18n.t("ui.dashboard.todo.credit_limits", count: alerts.size), detail,
+          reverse("invoicing:to_invoice"), alerts.any?(&.exceeded?) ? "gap" : "warn")
       end
     end
   end

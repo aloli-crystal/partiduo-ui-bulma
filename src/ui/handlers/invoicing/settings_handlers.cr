@@ -90,6 +90,12 @@ module PartiduoUi
           Form::Field.new("pdf_copy_from", label("pdf_copy_from"), "date", date_key(input.pdf_copy_from)),
           Form::Field.new("pdf_copy_until", label("pdf_copy_until"), "date", date_key(input.pdf_copy_until)),
         ]),
+        # Fin de mois des clients à facturation mensuelle (D-INV2-007).
+        Form::Group.new(I18n.t("ui.invoicing.settings.groups.monthly"), [
+          Form::Field.new("monthly_billing_mode", label("monthly_billing_mode"), "select", input.monthly_billing_mode,
+            options: Inv::MONTHLY_BILLING_MODES.map { |code| option(code, I18n.t("invoicing.monthly_modes.#{code}")) },
+            help: I18n.t("ui.invoicing.settings.monthly_billing_help")),
+        ]),
       ])
     end
 
@@ -117,6 +123,7 @@ module PartiduoUi
         bank_journal_code: field("bank_journal_code"), customer_account: field("customer_account"),
         sales_account: field("sales_account"), vat_account: field("vat_account"), bank_account: field("bank_account"),
         pdf_copy_enabled: checkbox("pdf_copy_enabled"), pdf_copy_from: copy_from, pdf_copy_until: copy_until,
+        monthly_billing_mode: field("monthly_billing_mode").presence || "propose",
       )
     end
 

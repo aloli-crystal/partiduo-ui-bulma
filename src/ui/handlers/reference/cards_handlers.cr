@@ -452,6 +452,7 @@ module PartiduoUi
       if module_active?("ACCOUNTING") && can?("accounting.account.read")
         sections << accounting_section(card)
       end
+      sections.concat(invoicing_sections(card))
 
       actions = [] of Screen::Action
       # Navigation transverse (ADR-005 D9) : consultation du tiers.
@@ -466,6 +467,13 @@ module PartiduoUi
       end
       detail_page(I18n.t("ui.cards.title", code: card.code, name: card.name), crumbs(card.item?), sections, actions,
         status_tag: card.enabled ? nil : I18n.t("ui.forms.inactive"))
+    end
+
+    # Réglage client de la Facturation : rythme, encours HT et plafond
+    # (DECISIONS D-INV2-004, D-INV2-005).
+    private def invoicing_sections(card) : Array(Screen::Section)
+      return [] of Screen::Section unless card.kind == "customer" && module_active?("INVOICING") && can?("invoicing.invoice.read")
+      [CustomerBillingDisplay.section(self, card, fmt)]
     end
 
     # Lot 6 : actions de suivi de la fiche, historique de son stock.
