@@ -2,7 +2,7 @@
 
 module PartiduoUi
   # Édition d'un devis, d'une commande, d'un bon de livraison, d'une facture,
-  # d'une facture d'acompte ou d'un avoir en brouillon (maquette « Édition
+  # d'une facture d'acompte, d'un avoir ou d'un bon de retour en brouillon (maquette « Édition
   # d'un devis ou d'une facture ») : en-tête et lignes relus depuis les champs
   # envoyés, rendus par `ui/invoicing/edit.html`. Totaux, TVA et refus
   # viennent de `Api::Invoicing.check_document` ; les mentions obligatoires,
@@ -35,6 +35,10 @@ module PartiduoUi
       # Bon de livraison dont la ligne d'une facture est issue (identifiant,
       # champ caché `line-<n>-delivery_note`, D-INV2-002) ; vide sinon.
       property delivery_note : String = ""
+      # Bon de retour dont la ligne d'une facture ou d'un avoir est issue
+      # (identifiant, champ caché `line-<n>-return_note`, D-INV3-003) ; vide
+      # sinon.
+      property return_note : String = ""
       property total : String = ""
       property vat_options : Array(Form::Option)?
       property errors : Array(String)?
@@ -76,9 +80,11 @@ module PartiduoUi
     # `net:<jours>`, `end_of_month:<jours>` ; `delivery` : vide (adresse de
     # livraison par défaut de la fiche), `none`, `card:<rang>`, `other`
     # (champs `delivery_*`). DECISIONS D-R5-004.
+    # `return_reason` : motif d'un bon de retour (`RETURN_REASONS`), vide
+    # pour toute autre nature (D-INV3-012).
     HEADER = %w[customer issue_date delivery_date due_date validity_date operation_category buyer_reference order_reference
       notes global_discount issue_channel b2c payment_terms delivery delivery_line1 delivery_postcode delivery_city
-      delivery_country]
+      delivery_country return_reason]
 
     getter kind : String
     getter lines : Array(Line)
@@ -90,6 +96,7 @@ module PartiduoUi
     property b2c_options : Array(Form::Option)? = nil
     property terms_options : Array(Form::Option)? = nil
     property delivery_options : Array(Form::Option)? = nil
+    property reason_options : Array(Form::Option)? = nil
     # Canal proposé pour le client saisi (« Proposé : … »), `nil` sans client.
     property channel_hint : String? = nil
     property customer_name : String = ""
@@ -116,6 +123,7 @@ module PartiduoUi
         layout = value.call("layout")
         line.layout = Line::LAYOUTS.includes?(layout) ? layout : ""
         line.delivery_note = value.call("delivery_note")
+        line.return_note = value.call("return_note")
         form.lines << line
       end
       form
@@ -125,9 +133,15 @@ module PartiduoUi
       kind == "quote"
     end
 
-    # Conditions de paiement : sans objet pour un avoir ou un bon de livraison.
+    # Conditions de paiement : sans objet pour un avoir, un bon de livraison
+    # ou un bon de retour.
     def payable : Bool
-      !kind.in?("credit_note", "delivery_note")
+      !kind.in?("credit_note", "delivery_note", "return_note")
+    end
+
+    # Bon de retour : motif du retour, date du retour (D-INV3-012).
+    def returning : Bool
+      kind == "return_note"
     end
 
     # Champs de l'autre adresse de livraison ouverts (choix « autre »).
@@ -167,6 +181,7 @@ module PartiduoUi
         Line.new(position, line.item, line.description, line.quantity, line.unit, line.unit_price, line.discount, line.vat_rate_id)
           .tap(&.layout=(line.layout))
           .tap(&.delivery_note=(line.delivery_note))
+          .tap(&.return_note=(line.return_note))
       end
       self
     end

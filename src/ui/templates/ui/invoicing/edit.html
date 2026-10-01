@@ -1,4 +1,4 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Édition d'un devis ou d'une facture en brouillon (maquette « Édition ») : client complété, dates (saisie abrégée), catégorie d'opération, canal d'émission et marquage B2C (ADR-004 D9), conditions de paiement et adresse de livraison (D-R5-004), références, lignes au clavier (paquet Opal entry.js : Entrée, Alt+↓, Ctrl+Entrée), totaux instantanés par check_document (HTMX) ; mentions obligatoires générées par le cœur à l'émission. Sans JavaScript : formulaire ordinaire. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Édition d'un devis ou d'une facture en brouillon (maquette « Édition ») : client complété, dates (saisie abrégée), catégorie d'opération, canal d'émission et marquage B2C (ADR-004 D9), conditions de paiement et adresse de livraison (D-R5-004), motif d'un bon de retour (D-INV3-012), références, lignes au clavier (paquet Opal entry.js : Entrée, Alt+↓, Ctrl+Entrée), totaux instantanés par check_document (HTMX) ; mentions obligatoires générées par le cœur à l'émission. Sans JavaScript : formulaire ordinaire. #}{% extend "ui/base.html" %}
 {% block title %}{{ title }}{% endblock title %}
 {% block scripts %}<script src="{% asset 'ui/js/opal/runtime.js' %}" defer></script>
     <script src="{% asset 'ui/js/opal/entry.js' %}" defer></script>{% endblock scripts %}
@@ -31,7 +31,7 @@
           <div id="pd-express-result" aria-live="polite"></div></details>{% endif %}</div>
       <div class="field"><label class="label" for="pd-d-issue">{% translate "ui.invoicing.issue_date" %}</label><input class="input pd-mono" id="pd-d-issue" name="issue_date" value="{{ form.issue_date }}" inputmode="numeric" aria-describedby="pd-d-date-help">
         {% include "ui/_errors.html" with messages=form.issue_date_errors, id="pd-d-issue-errors" %}</div>
-      <div class="field"><label class="label" for="pd-d-delivery">{% translate "ui.invoicing.delivery_date" %}</label><input class="input pd-mono" id="pd-d-delivery" name="delivery_date" value="{{ form.delivery_date }}" inputmode="numeric">
+      <div class="field"><label class="label" for="pd-d-delivery">{% if form.returning %}{% translate "ui.invoicing.return_date" %}{% else %}{% translate "ui.invoicing.delivery_date" %}{% endif %}</label><input class="input pd-mono" id="pd-d-delivery" name="delivery_date" value="{{ form.delivery_date }}" inputmode="numeric">
         {% include "ui/_errors.html" with messages=form.delivery_date_errors, id="pd-d-delivery-errors" %}</div>
       {% if form.quote %}
       <div class="field"><label class="label" for="pd-d-validity">{% translate "ui.invoicing.validity_date" %}</label><input class="input pd-mono" id="pd-d-validity" name="validity_date" value="{{ form.validity_date }}" inputmode="numeric">
@@ -39,6 +39,12 @@
       {% else %}
       <div class="field"><label class="label" for="pd-d-due">{% translate "ui.invoicing.due_date" %}</label><input class="input pd-mono" id="pd-d-due" name="due_date" value="{{ form.due_date }}" inputmode="numeric">
         {% include "ui/_errors.html" with messages=form.due_date_errors, id="pd-d-due-errors" %}</div>
+      {% endif %}
+      {% if form.returning %}
+      <div class="field"><label class="label" for="pd-d-reason">{% translate "ui.invoicing.return_reason" %}<span class="pd-required" aria-hidden="true"> *</span></label>
+        <div class="select is-fullwidth"><select id="pd-d-reason" name="return_reason" aria-describedby="pd-d-reason-help{% if form.return_reason_errors %} pd-d-reason-errors{% endif %}"{% if form.return_reason_errors %} aria-invalid="true"{% endif %}>{% for option in form.reason_options %}<option value="{{ option.value }}"{% if option.selected %} selected{% endif %}>{{ option.label }}</option>{% endfor %}</select></div>
+        <p class="help" id="pd-d-reason-help">{% translate "ui.invoicing.return_reason_help" %}</p>
+        {% include "ui/_errors.html" with messages=form.return_reason_errors, id="pd-d-reason-errors" %}</div>
       {% endif %}
       {% if form.payable %}
       <div class="field"><label class="label" for="pd-d-terms">{% translate "ui.invoicing.terms.label" %}</label>

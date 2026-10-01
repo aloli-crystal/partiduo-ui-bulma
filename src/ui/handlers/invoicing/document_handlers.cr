@@ -25,6 +25,13 @@ module PartiduoUi
       I18n.t("invoicing.statuses.#{status}")
     end
 
+    # État d'un document lié : un bon de retour repris se dit « Repris »
+    # (`DocumentView#status_key`).
+    def link_status_label(link : Inv::LinkView) : String
+      return I18n.t("invoicing.statuses.returned") if link.kind == "return_note" && link.status == "invoiced"
+      status_label(link.status)
+    end
+
     def document_title(document : Inv::DocumentView) : String
       number = document.number || I18n.t("ui.invoicing.draft")
       "#{kind_label(document.kind)} #{number}"
@@ -55,11 +62,19 @@ module PartiduoUi
       decorate_channel(form) if form.fiscal
       form.terms_options = terms_options(form.payment_terms) if form.payable
       form.delivery_options = delivery_options(form.customer, form.delivery)
+      form.reason_options = reason_options(form.return_reason) if form.returning
       form.each_row do |line|
         line.vat_options = [Form::Option.new("", I18n.t("ui.invoicing.vat_default"), line.vat_rate_id.empty?)] +
                            vat_rates.map { |rate| Form::Option.new(rate.id.to_s, "#{rate.code} · #{fmt.percent(rate.rate)}", rate.id.to_s == line.vat_rate_id) }
       end
       form
+    end
+
+    # Motifs d'un bon de retour (D-INV3-012) : choix vide tant qu'il n'est
+    # pas donné (obligatoire à l'émission).
+    def reason_options(value : String) : Array(Form::Option)
+      [Form::Option.new("", I18n.t("ui.invoicing.return_reason_choose"), value.empty?)] +
+        Inv::RETURN_REASONS.map { |code| Form::Option.new(code, I18n.t("invoicing.return_reasons.#{code}"), code == value) }
     end
 
     # Conditions de paiement proposées (maquette : 30 jours, 45 jours fin de
@@ -156,7 +171,7 @@ module PartiduoUi
     private def layout_input(line : DocumentForm::Line) : Inv::LineInput?
       return unless line.title || line.subtotal
       Inv::LineInput.new(kind: line.layout, description: line.title ? line.description.presence : nil,
-        delivery_note_id: line.delivery_note.to_i64?)
+        delivery_note_id: line.delivery_note.to_i64?, return_note_id: line.return_note.to_i64?)
     end
 
     private def priced_input(line : DocumentForm::Line) : Inv::LineInput
@@ -178,7 +193,8 @@ module PartiduoUi
       Inv::LineInput.new(kind: kind, item_card_id: item_id, description: line.description.presence,
         quantity: quantity || BigDecimal.new(1), unit_code: line.unit.presence, unit_price: price,
         discount_kind: discount && !discount.zero? ? "percent" : "none", discount_value: discount || BigDecimal.new(0),
-        vat_rate_id: line.vat_rate_id.to_i64?, delivery_note_id: line.delivery_note.to_i64?)
+        vat_rate_id: line.vat_rate_id.to_i64?, delivery_note_id: line.delivery_note.to_i64?,
+        return_note_id: line.return_note.to_i64?)
     end
 
     # Document saisi ; `existing` : brouillon modifié (liens d'avoir et
@@ -204,6 +220,7 @@ module PartiduoUi
         issue_channel: form.fiscal ? form.issue_channel.presence : nil,
         b2c: form.fiscal ? {"1" => true, "0" => false}[form.b2c]? : nil,
         delivery_address: delivery, payment_terms: terms.try(&.[0]), payment_terms_days: terms.try(&.[1]),
+        return_reason: form.returning ? form.return_reason.presence : nil,
       )
     end
 
@@ -287,6 +304,7 @@ module PartiduoUi
         form.b2c = document.b2c ? "1" : "0"
       end
       form.payment_terms = terms_value(document)
+      form.return_reason = document.return_reason
       delivery_form(form, document)
       document.lines.each_with_index { |line, index| form.lines << form_line(line, index) }
       form.add_line if form.lines.empty?
@@ -328,8 +346,7 @@ module PartiduoUi
         layout = DocumentForm::Line.new(index, description: line.kind == "title" ? line.description : "")
         layout.layout = line.kind
         layout.total = line.kind == "subtotal" ? fmt.amount(line.net_amount) : ""
-        layout.delivery_note = note_of(line)
-        return layout
+        return cite(layout, line)
       end
       item = line.item_card_id.try { |id| card_code(id) } || ""
       priced = line.priced?
@@ -339,13 +356,16 @@ module PartiduoUi
         line.discount_kind == "percent" ? fmt.input_number(line.discount_value) : "",
         line.vat_rate_id.try(&.to_s) || "").tap do |copy|
         copy.total = priced ? fmt.amount(line.net_amount) : ""
-        copy.delivery_note = note_of(line)
+        cite(copy, line)
       end
     end
 
-    # Bon de livraison cité par une ligne (champ caché), vide sinon.
-    private def note_of(line : Inv::LineView) : String
-      line.delivery_note_id.try(&.to_s) || ""
+    # Bon de livraison et bon de retour cités par une ligne (champs cachés),
+    # vides sinon.
+    private def cite(form_line : DocumentForm::Line, line : Inv::LineView) : DocumentForm::Line
+      form_line.delivery_note = line.delivery_note_id.try(&.to_s) || ""
+      form_line.return_note = line.return_note_id.try(&.to_s) || ""
+      form_line
     end
 
     def card_code(id : Int64) : String
@@ -448,6 +468,11 @@ module PartiduoUi
     getter amount_due : String
     getter structured_reference : String
     getter notes : String
+    # Bon de retour (D-INV3-012) : motif en toutes lettres, document qui le
+    # reprend (facture ou avoir), libellé de la date (« Date du retour »).
+    getter return_reason : String?
+    getter returned_by : Link?
+    getter delivery_date_label : String
 
     # Texte d'une mention, paramètres présentés dans la langue de l'écran :
     # dates ISO, montants et taux décimaux canoniques du cœur (comme le PDF,
@@ -477,7 +502,7 @@ module PartiduoUi
       @draft = view.draft?
       @title = handler.document_title(view)
       @status = view.effective_status
-      @status_label = handler.status_label(view.effective_status)
+      @status_label = I18n.t(view.status_key)
       @currency = view.currency_code
       @customer_name = view.customer.name
       @customer_lines = view.customer.address_lines
@@ -489,6 +514,10 @@ module PartiduoUi
       @due_date = view.due_date.try { |day| fmt.date(day) }
       @delivery_date = view.delivery_date.try { |day| fmt.date(day) }
       @validity_date = view.validity_date.try { |day| fmt.date(day) }
+      returning = view.kind == "return_note"
+      @delivery_date_label = I18n.t(returning ? "ui.invoicing.return_date" : "ui.invoicing.delivery_date")
+      @return_reason = view.return_reason.presence.try { |code| I18n.t("invoicing.return_reasons.#{code}") }
+      @returned_by = returning ? view.billed_in.try { |link| Link.new(link_label(handler, link), handler.reverse("invoicing:document", id: link.id)) } : nil
       @notes = view.notes
       @structured_reference = view.structured_reference
       @rows = view.lines.map { |line| row(line, fmt) }
@@ -509,6 +538,12 @@ module PartiduoUi
       view.delivery_notes.each do |note|
         next if view.source.try(&.id) == note.id
         label = I18n.t("ui.invoicing.delivery_note_link", number: note.number, date: fmt.date(note.delivery_date))
+        links << Link.new(label, handler.reverse("invoicing:document", id: note.id))
+      end
+      # Bons de retour repris par une facture ou un avoir (D-INV3-003).
+      view.return_notes.each do |note|
+        next if view.source.try(&.id) == note.id
+        label = I18n.t("ui.invoicing.return_note_link", number: note.number, date: fmt.date(note.delivery_date))
         links << Link.new(label, handler.reverse("invoicing:document", id: note.id))
       end
       @links = links.empty? ? nil : links
@@ -544,7 +579,7 @@ module PartiduoUi
     end
 
     private def link_label(handler : InvoicingScreen, link : Partiduo::Api::Invoicing::LinkView) : String
-      "#{handler.kind_label(link.kind)} #{link.number || I18n.t("ui.invoicing.draft")} · #{handler.status_label(link.status)}"
+      "#{handler.kind_label(link.kind)} #{link.number || I18n.t("ui.invoicing.draft")} · #{handler.link_status_label(link)}"
     end
   end
 
@@ -578,6 +613,10 @@ module PartiduoUi
         # allégée, mêmes commandes ; profession libérale : formulaire habituel.
         invoice_url = SimpleMode.mode(request) == "MICRO" ? reverse("micro:invoice_new") : reverse("invoicing:invoice_new")
         actions << link_action("ui.invoicing.new_invoice", invoice_url, "primary", "plus")
+        # Bons de retour (D-INV3-012) : saisie libre depuis leur onglet.
+        if kind == "return_note"
+          actions << link_action("ui.invoicing.new_return_note", "#{reverse("invoicing:document_new")}?kind=return_note", icon: "plus")
+        end
       end
       list_page(I18n.t("invoicing.menu.inv_documents"), table, [crumb("core.menu.billing")], "ui.invoicing.csv_name", actions,
         tabs: tabs, tabs_label: I18n.t("ui.invoicing.kind"), filters: filters)
@@ -609,7 +648,7 @@ module PartiduoUi
         Table::Cell.new(fmt.amount(totals.total_net), sort: totals.total_net, csv: fmt.csv_amount(totals.total_net)),
         Table::Cell.new(fmt.amount(totals.total_gross), sort: totals.total_gross, csv: fmt.csv_amount(totals.total_gross)),
         Table::Cell.new(due ? fmt.amount(due) : "", sort: due || BigDecimal.new(0), csv: due ? fmt.csv_amount(due) : ""),
-        Table::Cell.new(status_label(document.effective_status)),
+        Table::Cell.new(I18n.t(document.status_key)),
       ], document.effective_status == "overdue" ? "pd-row-late" : "")
     end
   end
@@ -859,15 +898,24 @@ module PartiduoUi
       actions
     end
 
-    # Transformations admises (sauf l'acompte, qui demande un pourcentage).
+    # Transformations admises (sauf l'acompte, qui demande un pourcentage) ;
+    # « Faire l'avoir » d'un bon de retour émis et non repris (D-INV3-012).
     private def transforms(document : Inv::DocumentView) : Array(Screen::Action)?
       return if document.draft? || !can?(WRITE) || document.effective_status == "cancelled"
       kinds = Inv::TRANSFORMATIONS[document.kind]? || [] of String
       # Bon déjà repris par une facture (D-INV2-002) : plus de facture à en tirer.
       kinds = kinds.reject(&.==("invoice")) if document.billed_in
       list = kinds.reject(&.==("deposit_invoice")).map do |kind|
-        label = kind == "credit_note" ? I18n.t("ui.invoicing.make_credit_note") : I18n.t("ui.invoicing.transform_to", kind: kind_label(kind).downcase)
+        label = case kind
+                when "credit_note" then I18n.t("ui.invoicing.make_credit_note")
+                when "return_note" then I18n.t("ui.invoicing.make_return_note")
+                else                    I18n.t("ui.invoicing.transform_to", kind: kind_label(kind).downcase)
+                end
         Screen::Action.new(label, "#{reverse("invoicing:document_transform", id: document.id)}?kind=#{kind}", "post", "", "file-text")
+      end
+      if document.kind == "return_note" && document.effective_status == "issued" && document.billed_in.nil?
+        list << Screen::Action.new(I18n.t("ui.invoicing.credit_return"),
+          "#{reverse("invoicing:credit_returns")}?note=#{document.id}&from=document", "post", "", "file-text")
       end
       list.empty? ? nil : list
     end
@@ -883,11 +931,13 @@ module PartiduoUi
       reverse("invoicing:document_decide", id: document.id)
     end
 
-    private def payments(document : Inv::DocumentView) : Array(DocumentDisplay::Amount)?
+    # Règlements, rejet compris (D-INV3-012) : « Enregistrer un rejet » sur
+    # chaque règlement non rejeté, Comptabilité active ou non.
+    private def payments(document : Inv::DocumentView) : Array(PaymentDisplay)?
       return if document.draft? || !document.fiscal?
+      can_reject = can?("invoicing.payment.record")
       list = Inv.payments(current.actor, document.id).map do |payment|
-        DocumentDisplay::Amount.new("#{fmt.date(payment.paid_on)} · #{I18n.t("ui.invoicing.methods.#{payment.method}")} #{payment.reference}".strip,
-          fmt.amount(payment.amount))
+        PaymentDisplay.new(payment, fmt, self, can_reject)
       end
       list.empty? ? nil : list
     end
@@ -909,6 +959,43 @@ module PartiduoUi
       if module_active?("ACCOUNTING") && can?("accounting.entry.read") && !document.customer.code.empty?
         "#{reverse("accounting:accounts")}?#{URI::Params.encode({"q" => document.customer.code})}"
       end
+    end
+  end
+
+  # Règlement d'une facture (consultation) : date, mode, référence, montant ;
+  # règlement rejeté barré avec « Rejeté le … — motif » en toutes lettres,
+  # relance proposée et facture de frais ; bouton « Enregistrer un rejet »
+  # (nom accessible qui désigne le règlement) s'il ne l'est pas (D-INV3-012).
+  class PaymentDisplay
+    include Marten::Template::Object::Auto
+
+    getter label : String
+    getter amount : String
+    getter rejected : Bool
+    getter rejection : String?
+    getter reject_url : String?
+    getter reject_label : String
+    getter reminder_url : String?
+    getter fees_url : String?
+
+    def initialize(payment : Partiduo::Api::Invoicing::PaymentView, fmt : Format, handler : InvoicingScreen, can_reject : Bool)
+      method = I18n.t("ui.invoicing.methods.#{payment.method}")
+      @label = "#{fmt.date(payment.paid_on)} · #{method} #{payment.reference}".strip
+      @amount = fmt.amount(payment.amount)
+      rejection = payment.rejection
+      @rejected = !rejection.nil?
+      @rejection = rejection.try { |view| PaymentDisplay.rejection_text(view, fmt) }
+      @reject_url = can_reject && rejection.nil? ? handler.reverse("invoicing:payment_reject", id: payment.document_id, payment_id: payment.id) : nil
+      @reject_label = I18n.t("ui.invoicing.rejection.record_aria", date: fmt.date(payment.paid_on), amount: @amount)
+      @reminder_url = rejection.try(&.reminder_id) ? handler.reverse("invoicing:reminders") : nil
+      @fees_url = rejection.try(&.fees_invoice_id).try { |id| handler.reverse("invoicing:document", id: id) }
+    end
+
+    # « Rejeté le 12/09/2026 — Provision insuffisante (précision) ».
+    def self.rejection_text(view : Partiduo::Api::Invoicing::PaymentRejectionView, fmt : Format) : String
+      reason = I18n.t(view.reason_key)
+      reason = "#{reason} (#{view.reason_text})" unless view.reason_text.empty?
+      I18n.t("ui.invoicing.rejection.rejected_text", date: fmt.date(view.rejected_on), reason: reason)
     end
   end
 

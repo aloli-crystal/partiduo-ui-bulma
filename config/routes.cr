@@ -207,6 +207,10 @@ INVOICING_ROUTES = Marten::Routing::Map.draw do
   path "/to-invoice/send-all", PartiduoUi::ProposalsIssueSendHandler, name: "proposals_issue_send"
   path "/documents/<id:int>/issue-send", PartiduoUi::DocumentIssueSendHandler, name: "document_issue_send"
   path "/customers/<id:int>/billing", PartiduoUi::CustomerBillingHandler, name: "customer_billing"
+  # Retours de marchandises et paiements rejetés (DECISIONS D-INV3-012) :
+  # avoir d'un ou de plusieurs bons de retour, rejet d'un règlement.
+  path "/to-invoice/credit-returns", PartiduoUi::ReturnNotesCreditHandler, name: "credit_returns"
+  path "/documents/<id:int>/payments/<payment_id:int>/reject", PartiduoUi::PaymentRejectHandler, name: "payment_reject"
   path "/documents/<id:int>/send", PartiduoUi::DocumentSendHandler, name: "document_send"
   # Paramètres et modèles de mise en page (menus `invoicing:settings`, `templates`).
   path "/settings", PartiduoUi::InvoicingSettingsHandler, name: "settings"

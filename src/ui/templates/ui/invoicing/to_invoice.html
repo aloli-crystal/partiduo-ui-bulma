@@ -1,7 +1,8 @@
-{# SPDX-License-Identifier: AGPL-3.0-or-later. Bons à facturer (D-INV2-010) : factures de fin de mois proposées (émettre et envoyer, une ou toutes), « Facturer le mois », filtre par client et période de livraison, bons émis non facturés à cocher, encours HT et plafond de chaque client, « Facturer ces bons ». Utilisable sans JavaScript. #}{% extend "ui/base.html" %}
+{# SPDX-License-Identifier: AGPL-3.0-or-later. Bons à facturer (D-INV2-010) : factures de fin de mois proposées (émettre et envoyer, une ou toutes), « Facturer le mois », filtre par client et période de livraison, bons émis non facturés à cocher, encours HT et plafond de chaque client, « Facturer ces bons » ; bons de retour non repris (D-INV3-012) : nature en toutes lettres, montants négatifs, origine, « Faire l'avoir des retours cochés », avoir de fin de mois signalé. Utilisable sans JavaScript. #}{% extend "ui/base.html" %}
 {% block title %}{{ title }}{% endblock title %}
 {% block crumbs %}{% include "ui/_crumbs.html" %}{% endblock crumbs %}
 {% block heading %}{{ title }}{% endblock heading %}
+{% block actions %}{% for action in actions %}{% include "ui/_action.html" %}{% endfor %}{% endblock actions %}
 {% block content %}
 {% if refused %}<div class="notification is-danger is-light" role="alert"><ul>{% for message in refused %}<li>{{ message }}</li>{% endfor %}</ul></div>{% endif %}
 {% if proposals %}
@@ -13,7 +14,7 @@
     <tbody>{% for proposal in proposals %}<tr>
       <td>{{ proposal.customer }}{% if proposal.error %}<p class="is-size-7 has-text-danger" role="note">{{ proposal.error }}</p>{% endif %}</td>
       <td class="pd-hide-s">{{ proposal.month }}</td>
-      <td><a class="pd-link" href="{{ proposal.url }}">{{ proposal.number }}</a></td>
+      <td><a class="pd-link" href="{{ proposal.url }}">{{ proposal.kind_label }} · {{ proposal.number }}</a></td>
       <td class="amount">{{ proposal.gross }}</td>
       <td>{% if can_issue %}<form method="post" action="{{ proposal.send_url }}" class="pd-action-form">{% csrf_input %}<button class="button is-small pd-row-button" type="submit" aria-label="{% translate 'ui.invoicing.to_invoice.send_one_aria' customer: proposal.customer %}">{% translate "ui.invoicing.to_invoice.send_one" %}</button></form>{% endif %}</td>
     </tr>{% endfor %}</tbody>
@@ -32,15 +33,15 @@
 </form>
 <form class="pd-panel" id="pd-ti-form" method="post" action="{% url 'invoicing:to_invoice' %}" aria-labelledby="pd-ti-title">
   {% csrf_input %}
-  <header><h2 id="pd-ti-title">{% translate "ui.invoicing.to_invoice.notes" %}</h2>{% if can_write %}<button class="button is-primary pd-touch" type="submit">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.invoicing.to_invoice.submit" %}</span></button>{% endif %}</header>
+  <header><h2 id="pd-ti-title">{% translate "ui.invoicing.to_invoice.notes" %}</h2>{% if can_write %}<div class="buttons pd-ti-buttons"><button class="button is-primary pd-touch" type="submit">{% include "ui/_icon.html" with name="check" %}<span>{% translate "ui.invoicing.to_invoice.submit" %}</span></button>{% if has_returns %}<button class="button pd-touch" type="submit" formaction="{% url 'invoicing:credit_returns' %}">{% include "ui/_icon.html" with name="file-text" %}<span>{% translate "ui.invoicing.to_invoice.credit_submit" %}</span></button>{% endif %}</div>{% endif %}</header>
   <div class="pd-scroll">
     <table class="table is-fullwidth is-hoverable is-narrow pd-table">
       <caption class="is-sr-only">{% translate "ui.invoicing.to_invoice.notes" %}</caption>
       <thead><tr><th scope="col"><span class="is-sr-only">{% translate "ui.invoicing.to_invoice.select" %}</span></th><th scope="col">{% translate "ui.invoicing.number" %}</th><th scope="col">{% translate "ui.invoicing.to_invoice.delivered_on" %}</th><th scope="col">{% translate "ui.invoicing.customer" %}</th><th scope="col" class="pd-hide-s">{% translate "ui.invoicing.to_invoice.rhythm" %}</th><th scope="col" class="amount">{% translate "ui.invoicing.net" %}</th><th scope="col" class="amount pd-hide-s">{% translate "ui.invoicing.gross" %}</th><th scope="col" class="amount pd-hide-s">{% translate "ui.invoicing.to_invoice.exposure" %}</th></tr></thead>
       <tbody>
       {% if rows %}{% for row in rows %}<tr>
-        <td>{% if row.selectable %}<input type="checkbox" name="note" value="{{ row.id }}" id="pd-ti-{{ row.id }}"{% if row.checked %} checked{% endif %} class="pd-match-box" aria-label="{% translate 'ui.invoicing.to_invoice.select_note' number: row.number %}"{% if not can_write %} disabled{% endif %}>{% endif %}</td>
-        <td class="pd-mono"><label for="pd-ti-{{ row.id }}"><a class="pd-link" href="{{ row.url }}">{{ row.number }}</a></label>{% if row.draft_url %}<p class="is-size-7"><a class="pd-link" href="{{ row.draft_url }}">{% translate "ui.invoicing.to_invoice.in_draft" %}</a></p>{% endif %}</td>
+        <td>{% if row.selectable %}<input type="checkbox" name="note" value="{{ row.id }}" id="pd-ti-{{ row.id }}"{% if row.checked %} checked{% endif %} class="pd-match-box" aria-label="{% translate 'ui.invoicing.to_invoice.select_note' kind: row.kind_label, number: row.number %}"{% if not can_write %} disabled{% endif %}>{% endif %}</td>
+        <td class="pd-mono"><label for="pd-ti-{{ row.id }}"><a class="pd-link" href="{{ row.url }}">{{ row.number }}</a></label><p class="is-size-7 pd-ti-kind{% if row.returned %} is-return{% endif %}">{{ row.kind_label }}</p>{% if row.origin %}<p class="is-size-7"><a class="pd-link" href="{{ row.origin_url }}">{{ row.origin }}</a></p>{% endif %}{% if row.draft_url %}<p class="is-size-7"><a class="pd-link" href="{{ row.draft_url }}">{% if row.returned %}{% translate "ui.invoicing.to_invoice.in_draft_return" %}{% else %}{% translate "ui.invoicing.to_invoice.in_draft" %}{% endif %}</a></p>{% endif %}</td>
         <td class="pd-mono">{{ row.delivery_date }}</td>
         <td><a class="pd-link" href="{{ row.customer_url }}">{{ row.customer }}</a></td>
         <td class="pd-hide-s">{{ row.rhythm }}</td>

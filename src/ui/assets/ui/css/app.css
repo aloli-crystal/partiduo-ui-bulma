@@ -335,6 +335,21 @@ img.pd-attachment-preview { min-height: 0; height: auto; object-fit: contain; }
 .pd-show-s { display: none; }
 .pd-table tr.pd-row-late td:first-child { box-shadow: inset 3px 0 0 var(--pd-gap); }
 .pd-match-box { width: 1.25rem; height: 1.25rem; }
+/* Retours et paiements rejetés (D-INV3-012) : règlement rejeté barré, son
+   état écrit en toutes lettres à côté (jamais la seule couleur) ; nature du
+   bon (livraison ou retour) sous son numéro. */
+.pd-payments { list-style: none; margin: 0; padding: 0; font-size: .85rem; }
+.pd-payment { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .25rem .75rem;
+  padding-block: .4rem; border-block-end: 1px solid var(--pd-rule); }
+.pd-payment:last-child { border-block-end: 0; }
+.pd-payment-label { flex: 1 1 12rem; }
+.pd-payment.is-rejected s { color: var(--pd-muted); }
+.pd-rejection { flex-basis: 100%; margin: 0; color: var(--pd-gap); font-weight: 600; }
+.pd-table td.pd-struck { text-decoration: line-through; color: var(--pd-muted); }
+.pd-table tr.pd-row-rejected td:first-child { box-shadow: inset 3px 0 0 var(--pd-gap); }
+.pd-ti-kind { color: var(--pd-muted); font-family: var(--bulma-family-primary); }
+.pd-ti-kind.is-return { color: var(--pd-gap); font-weight: 600; }
+.pd-ti-buttons { margin: 0; }
 
 /* Devis et factures (maquette « Édition », « Aperçu ») */
 .pd-inv-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .75rem 1rem; }

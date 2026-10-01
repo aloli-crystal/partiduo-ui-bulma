@@ -18,10 +18,13 @@ module PartiduoUi
   end
 
   # Factures à encaisser ; règlement saisi quand la Comptabilité est
-  # inactive (sinon il vient du lettrage, D-INV-009).
+  # inactive (sinon il vient du lettrage, D-INV-009). Onglet « Règlements
+  # reçus » (`?view=received`, D-INV3-012) : chaque règlement, rejeté barré
+  # avec son état en toutes lettres, « Enregistrer un rejet » sur les autres.
   class PaymentsHandler < FollowUpScreen
     def get
       require!(MODULE, "invoicing.payment.record")
+      return received if query("view") == "received"
       accounting = module_active?("ACCOUNTING")
       columns = [
         Table::Column.new("number", I18n.t("ui.invoicing.number"), "mono"),
@@ -48,7 +51,163 @@ module PartiduoUi
       table = Table.new(I18n.t("invoicing.menu.inv_payments"), columns, rows, reverse("invoicing:payments"),
         empty_message: I18n.t("ui.invoicing.nothing_due"))
       intro = accounting ? I18n.t("ui.invoicing.payment_by_matching") : nil
-      list_page(I18n.t("invoicing.menu.inv_payments"), table, [crumb("core.menu.billing")], "ui.invoicing.payments_csv", intro: intro)
+      list_page(I18n.t("invoicing.menu.inv_payments"), table, [crumb("core.menu.billing")], "ui.invoicing.payments_csv", intro: intro,
+        tabs: tabs(false), tabs_label: I18n.t("ui.invoicing.payments_tabs.label"))
+    end
+
+    private def tabs(received : Bool) : Array(Screen::Tab)
+      [Screen::Tab.new(I18n.t("ui.invoicing.payments_tabs.due"), reverse("invoicing:payments"), !received),
+       Screen::Tab.new(I18n.t("ui.invoicing.payments_tabs.received"), "#{reverse("invoicing:payments")}?view=received", received)]
+    end
+
+    # Règlements des factures et acomptes émis, du plus récent au plus
+    # ancien, rejetés compris.
+    private def received : Marten::HTTP::Response
+      actor = current.actor
+      rejected = Inv.payment_rejections(actor).map(&.document_id).to_set
+      documents = OPEN_KINDS.flat_map { |kind| Inv.documents(actor, Inv::DocumentQuery.new(kind: kind, limit: 500)) }
+        .select { |document| !document.draft? && (document.totals.paid.positive? || rejected.includes?(document.id)) }
+      payments = documents.flat_map { |document| Inv.payments(actor, document.id).map { |payment| {document, payment} } }
+        .sort_by! { |(_, payment)| {payment.paid_on, payment.id} }.reverse!
+      columns = [
+        Table::Column.new("date", I18n.t("ui.invoicing.paid_on"), "mono"),
+        Table::Column.new("number", I18n.t("ui.invoicing.number"), "mono"),
+        Table::Column.new("customer", I18n.t("ui.invoicing.customer"), secondary: true),
+        Table::Column.new("method", I18n.t("ui.invoicing.method"), secondary: true),
+        Table::Column.new("amount", I18n.t("ui.invoicing.payment_amount"), "amount"),
+        Table::Column.new("state", I18n.t("ui.invoicing.status")),
+        Table::Column.new("actions", I18n.t("ui.forms.actions"), "actions"),
+      ]
+      rows = payments.map { |(document, payment)| received_row(document, payment) }
+      table = Table.new(I18n.t("ui.invoicing.payments_tabs.received"), columns, rows, reverse("invoicing:payments"),
+        {"view" => "received"}, empty_message: I18n.t("ui.invoicing.rejection.no_payment"))
+      list_page(I18n.t("invoicing.menu.inv_payments"), table, [crumb("core.menu.billing")], "ui.invoicing.payments_csv",
+        intro: I18n.t("ui.invoicing.rejection.received_intro"), tabs: tabs(true), tabs_label: I18n.t("ui.invoicing.payments_tabs.label"))
+    end
+
+    private def received_row(document : Inv::DocumentView, payment : Inv::PaymentView) : Table::Row
+      amount = Table::Cell.new(fmt.amount(payment.amount), sort: payment.amount, csv: fmt.csv_amount(payment.amount))
+      actions = nil
+      if rejection = payment.rejection
+        amount.css = "pd-struck"
+        state = PaymentDisplay.rejection_text(rejection, fmt)
+      else
+        state = I18n.t("ui.invoicing.rejection.received")
+        action = link_action("ui.invoicing.rejection.record", reverse("invoicing:payment_reject", id: document.id, payment_id: payment.id), "small")
+        action.aria_label = I18n.t("ui.invoicing.rejection.record_aria_invoice", number: document.number.to_s,
+          date: fmt.date(payment.paid_on), amount: fmt.amount(payment.amount))
+        actions = [action]
+      end
+      Table::Row.new([
+        Table::Cell.new(fmt.date(payment.paid_on), sort: date_key(payment.paid_on), csv: date_key(payment.paid_on)),
+        Table::Cell.new(document.number || "", document_url(document)),
+        Table::Cell.new(document.customer.name),
+        Table::Cell.new("#{I18n.t("ui.invoicing.methods.#{payment.method}")} #{payment.reference}".strip),
+        amount,
+        Table::Cell.new(state),
+        Table::Cell.new("", actions: actions),
+      ], payment.rejected? ? "pd-row-rejected" : "")
+    end
+  end
+
+  # Rejet d'un règlement (chèque impayé, prélèvement rejeté, virement
+  # retourné ; D-INV3-012) : date, motif, précision, frais bancaires,
+  # refacturation des frais au client (facture de frais à part, taux de TVA
+  # choisi, en principe hors champ : catégorie O). Permission
+  # `invoicing.payment.record`, Comptabilité active ou non.
+  class PaymentRejectHandler < FollowUpScreen
+    PERMISSION = "invoicing.payment.record"
+
+    def get
+      require!(MODULE, PERMISSION)
+      document, payment = load
+      if payment.rejected?
+        flash["warning"] = I18n.t("invoicing.errors.payment_rejection.already_rejected")
+        return go(document_url(document))
+      end
+      values = {"rejected_on" => fmt.date(Partiduo::Api::Core.today), "fees_vat_rate_id" => default_rate}
+      show(document, payment, rejection_form(values))
+    end
+
+    def post
+      require!(MODULE, PERMISSION)
+      document, payment = load
+      errors = [] of {String, String}
+      rejected_on = fmt.parse_short_date(field("rejected_on"), Partiduo::Api::Core.today)
+      errors << {"rejected_on", I18n.t("ui.forms.invalid_date")} unless rejected_on
+      fees = decimal("fees", errors) || BigDecimal.new(0)
+      values = %w[rejected_on reason reason_text fees fees_vat_rate_id].to_h { |name| {name, field(name)} }
+      values["rebill_fees"] = checkbox("rebill_fees") ? "1" : ""
+      form = rejection_form(values)
+      if errors.empty? && rejected_on
+        input = Inv::PaymentRejectionInput.new(rejected_on, field("reason"), field("reason_text").presence, fees,
+          checkbox("rebill_fees"), field("fees_vat_rate_id").to_i64?)
+        result = Inv.reject_payment(current.actor, payment.id, input)
+        if view = result.value?
+          flash["success"] = success_message(view)
+          return go(document_url(document))
+        end
+        form.add_errors(result.errors, fmt)
+      end
+      errors.each { |(name, message)| form.add_error(name, message) }
+      show(document, payment, form)
+    end
+
+    private def load : {Inv::DocumentView, Inv::PaymentView}
+      document = Inv.document(current.actor, id_param)
+      payment_id = id_param("payment_id")
+      payment = Inv.payments(current.actor, document.id).find(&.id.==(payment_id)) ||
+                raise Partiduo::Api::NotFound.new("invoicing_payment", payment_id)
+      {document, payment}
+    end
+
+    # Taux proposé pour la facture de frais : un taux actif de catégorie O
+    # (hors champ de la TVA) s'il en existe un.
+    private def default_rate : String
+      vat_rates.find { |rate| rate.enabled && rate.category == "O" }.try(&.id.to_s) || ""
+    end
+
+    private def rejection_form(values : Hash(String, String)) : Form
+      reasons = [option("", I18n.t("ui.invoicing.rejection.reason_choose"))] +
+                Inv::REJECTION_REASONS.map { |code| option(code, I18n.t("invoicing.rejection_reasons.#{code}")) }
+      rates = [option("", I18n.t("ui.invoicing.rejection.fees_vat_rate_choose"))] +
+              vat_rates.select(&.enabled).map { |rate| option(rate.id.to_s, "#{rate.code} · #{fmt.percent(rate.rate)} · #{rate.label}") }
+      Form.new([
+        Form::Group.new(I18n.t("ui.invoicing.rejection.legend"), [
+          Form::Field.new("rejected_on", I18n.t("ui.invoicing.rejection.rejected_on"), value: values["rejected_on"]? || "",
+            required: true, mono: true, help: I18n.t("ui.invoicing.date_help")),
+          Form::Field.new("reason", I18n.t("ui.invoicing.rejection.reason"), "select", values["reason"]? || "", options: reasons,
+            required: true),
+          Form::Field.new("reason_text", I18n.t("ui.invoicing.rejection.reason_text"), value: values["reason_text"]? || "",
+            wide: true, maxlength: 500, help: I18n.t("ui.invoicing.rejection.reason_text_help")),
+        ]),
+        Form::Group.new(I18n.t("ui.invoicing.rejection.fees_legend"), [
+          Form::Field.new("fees", I18n.t("ui.invoicing.rejection.fees"), "number", values["fees"]? || "", mono: true,
+            help: I18n.t("ui.invoicing.rejection.fees_help")),
+          Form::Field.new("rebill_fees", I18n.t("ui.invoicing.rejection.rebill_fees"), "checkbox", values["rebill_fees"]? || "",
+            help: I18n.t("ui.invoicing.rejection.rebill_fees_help")),
+          Form::Field.new("fees_vat_rate_id", I18n.t("ui.invoicing.rejection.fees_vat_rate"), "select",
+            values["fees_vat_rate_id"]? || "", options: rates, help: I18n.t("ui.invoicing.rejection.fees_vat_rate_help")),
+        ]),
+      ])
+    end
+
+    private def success_message(view : Inv::PaymentRejectionView) : String
+      parts = [I18n.t("ui.invoicing.rejection.recorded", amount: fmt.amount(view.amount), number: view.document_number,
+        balance: fmt.amount(view.balance), currency: view.currency_code)]
+      parts << I18n.t("ui.invoicing.rejection.reminder_proposed") if view.reminder_id
+      parts << I18n.t("ui.invoicing.rejection.fees_invoice_drafted") if view.fees_invoice_id
+      parts.join(" ")
+    end
+
+    private def show(document : Inv::DocumentView, payment : Inv::PaymentView, form : Form) : Marten::HTTP::Response
+      intro = I18n.t("ui.invoicing.rejection.intro", date: fmt.date(payment.paid_on), amount: fmt.amount(payment.amount),
+        currency: document.currency_code, method: I18n.t("ui.invoicing.methods.#{payment.method}"), number: document.number.to_s)
+      note = module_active?("ACCOUNTING") ? "ui.invoicing.rejection.accounting_note" : "ui.invoicing.rejection.invoicing_note"
+      form_page(I18n.t("ui.invoicing.rejection.title", title: document_title(document)),
+        crumbs + [Screen::Crumb.new(document_title(document), document_url(document))], form,
+        reverse("invoicing:payment_reject", id: document.id, payment_id: payment.id), I18n.t("ui.invoicing.rejection.submit"),
+        document_url(document), intro: "#{intro} #{I18n.t(note)}")
     end
   end
 
@@ -180,8 +339,10 @@ module PartiduoUi
       ]
       rows = reminders.map do |reminder|
         penalties = reminder.interest + reminder.indemnity
+        # Relance proposée à la suite d'un rejet de paiement (D-INV3-012).
+        after_rejection = reminder.payment_rejection_id ? I18n.t("ui.invoicing.rejection.reminder_tag") : nil
         Table::Row.new([
-          Table::Cell.new(reminder.document_number, reverse("invoicing:document", id: reminder.document_id)),
+          Table::Cell.new(reminder.document_number, reverse("invoicing:document", id: reminder.document_id), tag: after_rejection),
           Table::Cell.new(reminder.customer_name),
           Table::Cell.new(reminder.level.to_s, sort: reminder.level.to_s),
           Table::Cell.new(reminder.days_late.to_s, sort: BigDecimal.new(reminder.days_late)),

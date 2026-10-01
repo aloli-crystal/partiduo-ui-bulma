@@ -239,6 +239,7 @@ module PartiduoUi
             summary.overdue_customers.join(" · "), reverse("invoicing:reminders"), "gap")
         end
       end
+      rejection_todos
       monthly_todos
       if summary.drafts > 0 && (@actor.can?("invoicing.invoice.issue") || @actor.can?("invoicing.invoice.write"))
         @todos << Todo.new(I18n.t("ui.dashboard.todo.drafts", count: summary.drafts), nil,
@@ -248,6 +249,31 @@ module PartiduoUi
         @todos << Todo.new(I18n.t("ui.dashboard.todo.expired_quotes", count: summary.quotes_expired), nil,
           "#{reverse("invoicing:documents")}?kind=quote&status=expired", "warn")
       end
+    end
+
+    # Paiements rejetés dont la facture reste due (D-INV3-012) : client,
+    # facture, montant ; pour un client mensuel ou une facture payable en
+    # fin de mois, encours HT et plafond du client.
+    private def rejection_todos : Nil
+      rejections = Inv.payment_rejections(@actor, open_only: true)
+      return if rejections.empty?
+      detail = rejections.first(3).map { |rejection| rejection_detail(rejection) }.join(" · ")
+      url = rejections.size == 1 ? reverse("invoicing:document", id: rejections.first.document_id) : "#{reverse("invoicing:payments")}?view=received"
+      @todos << Todo.new(I18n.t("ui.dashboard.todo.payment_rejections", count: rejections.size), detail, url, "gap")
+    end
+
+    private def rejection_detail(rejection : Inv::PaymentRejectionView) : String
+      text = I18n.t("ui.dashboard.todo.rejection_detail", name: rejection.customer_name, number: rejection.document_number,
+        amount: @fmt.amount(rejection.amount), currency: rejection.currency_code)
+      return text unless rejection.end_of_month
+      billing = Inv.customer_billing(@actor, rejection.customer_card_id)
+      exposure = if limit = billing.credit_limit
+                   I18n.t("ui.dashboard.todo.rejection_exposure_limit", exposure: @fmt.amount(billing.exposure),
+                     limit: @fmt.amount(limit), currency: billing.currency_code)
+                 else
+                   I18n.t("ui.dashboard.todo.rejection_exposure", exposure: @fmt.amount(billing.exposure), currency: billing.currency_code)
+                 end
+      "#{text} (#{exposure})"
     end
 
     # Factures récapitulatives de fin de mois proposées (émettre et envoyer
