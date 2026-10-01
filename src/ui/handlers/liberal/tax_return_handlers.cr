@@ -9,7 +9,9 @@ module PartiduoUi
   # préparation du dépôt (empreinte, montants par case), édition de contrôle
   # PDF. Tout vient de `Partiduo::Api::Liberal.tax_return`, recalculée à
   # chaque lecture ; l'état de l'exercice est en tête : ouvert (la 2035 suit
-  # le livre-journal), clôturé ou 2035 transmise (figée, D-LIB2-005).
+  # le livre-journal), clôturé (figée, se rouvre) ou verrouillé (2035
+  # transmise, D-LIB2-005, D-LIB5-001), avec « Clôturer l'exercice » ou
+  # « Rouvrir l'exercice » et l'historique des clôtures et réouvertures.
   class LiberalTaxReturnHandler < LiberalScreen
     # Postes toujours présentés, même nuls : ce que le déclarant cherche.
     KEY_ITEMS = %w[total_receipts total_expenses profit]
@@ -47,7 +49,9 @@ module PartiduoUi
       sections << adjustments_section(view)
       sections << controls_section(controls)
       sections << filing_section(view)
-      actions = [link_action("ui.liberal.tax_return.export", "#{reverse("liberal:tax_return")}?year=#{year}&format=pdf", icon: "printer")]
+      history(year).try { |section| sections << section }
+      actions = year_actions(view.exercise, "#{reverse("liberal:tax_return")}?year=#{year}")
+      actions << link_action("ui.liberal.tax_return.export", "#{reverse("liberal:tax_return")}?year=#{year}&format=pdf", icon: "printer")
       actions << link_action("ui.liberal.form_lines.title", "#{reverse("liberal:form_lines")}?millesime=#{year}") if can?(SETTINGS)
       context["title"] = I18n.t("ui.liberal.tax_return.title", year: year.to_s)
       context["crumbs"] = liberal_crumbs
@@ -56,7 +60,7 @@ module PartiduoUi
       context["year"] = year.to_s
       context["ready"] = view.ready?
       context["exercise_frozen"] = view.exercise.frozen?
-      context["transmitted"] = view.exercise.state == "transmitted"
+      context["transmitted"] = view.exercise.locked?
       context["exercise_text"] = exercise_text(view.exercise)
       context["blocking"] = Screen.listed(controls.select(&.error).map(&.text))
       context["sections"] = sections
@@ -68,10 +72,44 @@ module PartiduoUi
       page("ui/liberal/tax_return.html", status: status)
     end
 
-    # État de l'exercice en tête de la 2035 (D-LIB2-005).
+    # État de l'exercice en tête de la 2035 (D-LIB2-005, D-LIB5-001) :
+    # ouvert, clôturé (par qui, réversible ou clos au socle), verrouillé.
     private def exercise_text(exercise : Liberal::YearView) : String
       date = exercise.frozen_at.try { |moment| fmt.date(moment) } || ""
-      I18n.t("ui.liberal.tax_return.exercise_#{exercise.state}", year: exercise.year.to_s, date: date)
+      year = exercise.year.to_s
+      if exercise.locked?
+        I18n.t("ui.liberal.tax_return.exercise_locked", year: year, date: date)
+      elsif exercise.reopenable?
+        by = exercise.closed_by.empty? ? "" : I18n.t("ui.liberal.tax_return.by", name: exercise.closed_by)
+        I18n.t("ui.liberal.tax_return.exercise_closed", year: year, date: date, by: by)
+      elsif exercise.closed?
+        I18n.t("ui.liberal.tax_return.exercise_core_closed", year: year, date: date)
+      else
+        I18n.t("ui.liberal.tax_return.exercise_open", year: year)
+      end
+    end
+
+    # Clôtures, réouvertures, transmission et rejet de l'exercice : quand,
+    # qui ; rien avant la première clôture.
+    private def history(year : Int32) : Screen::Section?
+      changes = Liberal.year_history(current.actor, year)
+      return if changes.empty?
+      columns = [
+        Table::Column.new("at", I18n.t("ui.liberal.exercise.history_at"), "mono", sortable: false),
+        Table::Column.new("action", I18n.t("ui.liberal.exercise.history_action"), sortable: false),
+        Table::Column.new("user", I18n.t("ui.liberal.exercise.history_user"), secondary: true, sortable: false),
+      ]
+      rows = changes.reverse.map do |item|
+        Table::Row.new([
+          Table::Cell.new(fmt.datetime(item.at)),
+          Table::Cell.new(I18n.t("ui.liberal.exercise.actions.#{item.action}")),
+          Table::Cell.new(item.user),
+        ])
+      end
+      title = I18n.t("ui.liberal.exercise.history")
+      table = Table.new(title, columns, rows, reverse("liberal:tax_return"), id: "pd-year-history")
+      table.exportable = false
+      Screen::Section.new(title, table: table)
     end
 
     def adjustment_form(values : Hash(String, String)) : Form

@@ -118,19 +118,23 @@ module PartiduoUi
       @lines = rows.empty? ? nil : rows
     end
 
-    # 2035 des revenus de l'année écoulée : à préparer tant qu'elle compte
-    # des contrôles bloquants (de janvier à juin) ; rien une fois l'exercice
-    # figé (clôturé ou 2035 transmise, D-LIB2-001).
+    # 2035 des revenus de l'année écoulée (de janvier à juin) : à préparer
+    # tant qu'elle compte des contrôles bloquants, puis exercice à clôturer,
+    # puis 2035 à transmettre ; rien une fois l'exercice verrouillé (2035
+    # transmise, D-LIB5-001).
     private def previous_return : Nil
       return if @today.month > 6
       previous = @year - 1
-      return if Liberal.year(@actor, previous).frozen?
+      exercise = Liberal.year(@actor, previous)
+      return if exercise.locked?
       return if Liberal.journal_totals(@actor, Liberal::JournalQuery.new(from: Time.utc(previous, 1, 1), to: Time.utc(previous, 12, 31))).count.zero?
       view = Liberal.tax_return(@actor, previous)
       errors = view.controls.count(&.error?)
       url = "#{reverse("liberal:tax_return")}?year=#{previous}"
       if errors > 0
         @todos << Dashboard::Todo.new(I18n.t("ui.liberal.dashboard.todo_errors", year: previous.to_s, count: errors), nil, url, "gap")
+      elsif exercise.open?
+        @todos << Dashboard::Todo.new(I18n.t("ui.liberal.dashboard.todo_close", year: previous.to_s), nil, url, "warn")
       else
         @todos << Dashboard::Todo.new(I18n.t("ui.liberal.dashboard.todo_ready", year: previous.to_s), nil, url, "warn")
       end

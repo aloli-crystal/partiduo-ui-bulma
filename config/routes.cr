@@ -351,7 +351,8 @@ end
 # éditions `?format=csv|pdf`), immobilisations (acquisition, modification et
 # suppression dans un exercice ouvert, contre-passation, cession et sa
 # suppression, plan d'amortissement), 2035 préparée (réintégrations et
-# déductions, édition de contrôle `?format=pdf`), paramètres (natures, table
+# déductions, édition de contrôle `?format=pdf`), clôture et réouverture de
+# l'exercice (POST, D-LIB5-001), paramètres (natures, table
 # de correspondance, valeurs par défaut, republication). Module inactif : 404.
 LIBERAL_ROUTES = Marten::Routing::Map.draw do
   path "/journal", PartiduoUi::LiberalJournalHandler, name: "journal"
@@ -374,6 +375,8 @@ LIBERAL_ROUTES = Marten::Routing::Map.draw do
   path "/tax-return", PartiduoUi::LiberalTaxReturnHandler, name: "tax_return"
   path "/tax-return/adjustments", PartiduoUi::LiberalAdjustmentNewHandler, name: "adjustment_new"
   path "/adjustments/<id:int>/delete", PartiduoUi::LiberalAdjustmentDeleteHandler, name: "adjustment_delete"
+  path "/years/<year:int>/close", PartiduoUi::LiberalYearCloseHandler, name: "year_close"
+  path "/years/<year:int>/reopen", PartiduoUi::LiberalYearReopenHandler, name: "year_reopen"
   path "/settings", PartiduoUi::LiberalSettingsHandler, name: "settings"
   path "/natures", PartiduoUi::LiberalNaturesHandler, name: "natures"
   path "/natures/<id:int>", PartiduoUi::LiberalNatureHandler, name: "nature"

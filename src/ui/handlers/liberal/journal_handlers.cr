@@ -9,9 +9,11 @@ module PartiduoUi
   # d'une ligne.
   #
   # Exercice ouvert (année civile de la 2035, D-LIB2-001) : la ligne se
-  # modifie et se supprime (confirmation) ; exercice figé — clôturé ou 2035
-  # transmise — ou période close : cadenas et « Contre-passer » (ligne
-  # inverse datée du jour, dans l'exercice ouvert).
+  # modifie et se supprime (confirmation) ; exercice clôturé (il se rouvre,
+  # D-LIB5-001) ou verrouillé (2035 transmise), ou période close : cadenas
+  # et « Contre-passer » (ligne inverse datée du jour, dans l'exercice
+  # ouvert). « Clôturer l'exercice » et « Rouvrir l'exercice » en tête de la
+  # liste de l'année.
   abstract class JournalScreen < LiberalScreen
     # Sens présenté : `receipt`, `expense`, `nil` pour tout le livre-journal.
     abstract def kind : String?
@@ -76,13 +78,16 @@ module PartiduoUi
       table = Table.new("#{t("title")} #{year}", columns, rows.map { |item| row(item) }, list_url, {"year" => year.to_s},
         empty_message: t("empty"), footer_rows: footers(year, summary))
       table.pdf = true
-      # En-tête de l'exercice de l'année : ouvert, clôturé, 2035 transmise.
-      table.groups = {year.to_s => exercise_group(Liberal.year(current.actor, year))}
+      # En-tête de l'exercice de l'année : ouvert, clôturé, verrouillé.
+      exercise = Liberal.year(current.actor, year)
+      table.groups = {year.to_s => exercise_group(exercise)}
       actions = [] of Screen::Action
       if can?(WRITE)
         actions << link_action("ui.liberal.receipt.new", new_url("receipt"), kind == "expense" ? "" : "primary", "plus") unless kind == "expense"
         actions << link_action("ui.liberal.expense.new", new_url("expense"), kind == "expense" ? "primary" : "", "plus") unless kind == "receipt"
       end
+      # Clôturer ou rouvrir l'exercice de l'année (D-LIB5-001).
+      actions.concat(year_actions(exercise, "#{list_url}?year=#{year}"))
       list_page("#{t("title")} #{year}", table, liberal_crumbs, "ui.liberal.#{kind || "journal"}.csv_name", actions,
         tabs: year_tabs(list_url, year), tabs_label: I18n.t("ui.liberal.year"),
         intro: "#{t("intro")} #{I18n.t("ui.liberal.exercise.intro")}")
@@ -325,7 +330,7 @@ module PartiduoUi
     # raison que donnerait le contrat.
     private def refuse(line : Liberal::LineView) : Marten::HTTP::Response
       reason = if line.locked
-                 line.transmitted_at ? "transmitted" : "closed_period"
+                 locked_reason(line)
                elsif line.origin != "manual"
                  "from_invoicing"
                elsif line.reversal?
@@ -335,6 +340,14 @@ module PartiduoUi
                end
       flash["danger"] = I18n.t("liberal.errors.line.change.#{reason}", year: line.date.year.to_s)
       go(reverse("liberal:line", id: line.id))
+    end
+
+    # Ligne intangible : 2035 transmise, exercice clôturé par le module (il
+    # se rouvre), sinon période close.
+    private def locked_reason(line : Liberal::LineView) : String
+      return "transmitted" if line.transmitted_at
+      exercise = Liberal.year(current.actor, line.date.year)
+      exercise.reopenable? ? "year_closed" : "closed_period"
     end
 
     private def show_edit(form : Form, status : Int32 = 200) : Marten::HTTP::Response
@@ -411,9 +424,11 @@ module PartiduoUi
     private def intro(item : Liberal::LineView, exercise : Liberal::YearView) : String
       year = exercise.year.to_s
       date = exercise.frozen_at.try { |moment| fmt.date(moment) } || ""
-      if exercise.state == "transmitted"
+      if exercise.locked?
         I18n.t("ui.liberal.line.transmitted", year: year, date: date)
-      elsif exercise.state == "closed"
+      elsif exercise.reopenable?
+        I18n.t("ui.liberal.line.closed_reopenable", year: year, date: date)
+      elsif exercise.closed?
         I18n.t("ui.liberal.line.closed", year: year, date: date)
       elsif item.locked
         I18n.t("ui.liberal.line.locked")

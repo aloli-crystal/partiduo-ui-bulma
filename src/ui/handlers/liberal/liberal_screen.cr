@@ -112,21 +112,25 @@ module PartiduoUi
       page("ui/liberal/entry.html", status: status)
     end
 
-    # --- Exercices (D-LIB2-001) -------------------------------------------------------
+    # --- Exercices (D-LIB2-001, D-LIB5-001) ------------------------------------------
 
-    # État d'un exercice, en clair : « ouvert, modifiable », « clôturé le
-    # … », « 2035 transmise le … ».
+    # État d'un exercice, en clair : « ouvert, modifiable », « clôturé le …
+    # par … », « 2035 transmise le … — verrouillé ».
     def exercise_status(view : Liberal::YearView) : String
-      at = view.frozen_at
-      case view.state
-      when "transmitted" then I18n.t("ui.liberal.exercise.transmitted", date: at ? fmt.date(at) : "")
-      when "closed"      then I18n.t("ui.liberal.exercise.closed", date: at ? fmt.date(at) : "")
-      else                    I18n.t("ui.liberal.exercise.open")
+      at = view.frozen_at.try { |moment| fmt.date(moment) } || ""
+      if view.locked?
+        I18n.t("ui.liberal.exercise.locked", date: at)
+      elsif view.closed? && !view.closed_by.empty?
+        I18n.t("ui.liberal.exercise.closed_by", date: at, name: view.closed_by)
+      elsif view.closed?
+        I18n.t("ui.liberal.exercise.closed", date: at)
+      else
+        I18n.t("ui.liberal.exercise.open")
       end
     end
 
     # En-tête de groupe d'un exercice : « Exercice 2026 », état, cadenas s'il
-    # est figé.
+    # est clôturé ou verrouillé.
     def exercise_group(view : Liberal::YearView) : Table::Group
       Table::Group.new(I18n.t("ui.liberal.exercise.label", year: view.year.to_s), exercise_status(view),
         view.frozen? ? "lock" : nil)
@@ -135,6 +139,31 @@ module PartiduoUi
     # Exercices des années citées, par année.
     def exercises(years : Enumerable(Int32)) : Hash(Int32, Liberal::YearView)
       years.to_set.to_h { |year| {year, Liberal.year(current.actor, year)} }
+    end
+
+    # « Clôturer l'exercice » (ouvert) ou « Rouvrir l'exercice » (clôturé
+    # par le module, 2035 non transmise), avec confirmation ; rien pour un
+    # exercice verrouillé ou clos au socle, ni sans le droit de saisie
+    # (D-LIB5-001, D-LIB5-005). Retour à `back` après l'action.
+    def year_actions(view : Liberal::YearView, back : String) : Array(Screen::Action)
+      actions = [] of Screen::Action
+      return actions unless can?(WRITE)
+      year = view.year.to_s
+      next_query = URI::Params.encode({"next" => back})
+      action = if view.closable?
+                 Screen::Action.new(I18n.t("ui.liberal.exercise.close"),
+                   "#{reverse("liberal:year_close", year: view.year)}?#{next_query}", "post", "", "lock",
+                   I18n.t("ui.liberal.exercise.close_confirm", year: year))
+               elsif view.reopenable?
+                 Screen::Action.new(I18n.t("ui.liberal.exercise.reopen"),
+                   "#{reverse("liberal:year_reopen", year: view.year)}?#{next_query}", "post", "", "lock-open",
+                   I18n.t("ui.liberal.exercise.reopen_confirm", year: year))
+               end
+      if action
+        action.aria_label = "#{action.label} #{year}"
+        actions << action
+      end
+      actions
     end
 
     # Actions d'une ligne du livre-journal selon son exercice (D-LIB2-001) :

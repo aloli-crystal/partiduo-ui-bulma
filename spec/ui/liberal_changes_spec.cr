@@ -49,11 +49,12 @@ end
 
 # 2035 de `year` transmise : ce que note le module à l'événement
 # `tax_return.transmitted` de l'extension qui la dépose (l'interface ne
-# publie pas d'événement, ADR-005 D3 ; le cœur éprouve l'abonnement).
+# publie pas d'événement, ADR-005 D3 ; le cœur éprouve l'abonnement) :
+# exercice verrouillé (D-LIB5-002).
 private def transmit(year : Int32) : Nil
   Marten::DB::Connection.default.open do |db|
-    db.exec("INSERT INTO liberal_year (year, transmitted_at, reference, transmitted_fingerprint, frozen_fingerprint) " \
-            "VALUES ($1, now(), 'teledec:1', '', '')", year)
+    db.exec("INSERT INTO liberal_year (year, state, closed_at, transmitted_at, reference, transmitted_fingerprint, " \
+            "frozen_fingerprint) VALUES ($1, 'locked', now(), now(), 'teledec:1', '', '')", year)
   end
 end
 
@@ -167,11 +168,11 @@ describe "Profession libérale — livre-journal modifiable tant que l'exercice 
     page.should contain(%(action="/liberal/tax-return/adjustments?year=2026"))
     close_2025
     closed = browser.get("/liberal/tax-return?year=2025").html
-    closed.should contain("Exercice 2025 clôturé le #{today_text} : la 2035 est figée.")
+    closed.should contain("Exercice 2025 clôturé le #{today_text} avec l'exercice du dossier : la 2035 est figée")
     closed.should_not contain(%(action="/liberal/tax-return/adjustments?year=2025"))
     transmit(2026)
     sent = browser.get("/liberal/tax-return?year=2026").html
-    sent.should contain("2035 de 2026 transmise le #{today_text}")
+    sent.should contain("2035 de 2026 transmise le #{today_text} — exercice verrouillé")
     sent.should_not contain("Déclaration prête à être déposée")
     sent.should_not contain("missing translation")
   end

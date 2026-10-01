@@ -75,6 +75,7 @@ require "./handlers/liberal/liberal_screen"
 require "./handlers/liberal/journal_handlers"
 require "./handlers/liberal/asset_handlers"
 require "./handlers/liberal/tax_return_handlers"
+require "./handlers/liberal/year_handlers"
 require "./handlers/liberal/settings_handlers"
 require "./handlers/accounting/liberal_accounts_handlers"
 
